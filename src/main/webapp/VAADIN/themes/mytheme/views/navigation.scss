@@ -1,0 +1,10 @@
+@mixin navigation-menu {
+
+  .version-numbers {
+    font-size: 12px;
+    line-height: 1em;
+    /* Move this to the bottom. */
+    bottom: 0;
+    position: absolute;
+  }
+}

@@ -1,0 +1,15 @@
+// Modify the base color of the theme
+//$v-background-color: hsl(200, 50%, 50%);
+
+// Import valo after setting the parameters
+@import "../valo/valo";
+@import "views/login";
+@import "views/navigation";
+
+.mytheme {
+  @include valo;
+  @include login-view;
+  @include navigation-menu;
+
+  // Your theme's rules go here
+}
