@@ -2,7 +2,6 @@ package org.xlrnet.datac.session.ui.views;
 
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener;
-import com.vaadin.server.Responsive;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.spring.annotation.UIScope;
@@ -10,7 +9,7 @@ import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.Application;
-import org.xlrnet.datac.foundation.BuildInformation;
+import org.xlrnet.datac.BuildInformation;
 import org.xlrnet.datac.session.ui.components.CustomLoginForm;
 import org.xlrnet.datac.session.ui.listener.UserLoginListener;
 
@@ -46,7 +45,6 @@ public class LoginView extends HorizontalLayout implements View {
 
     private Component buildLoginPanel() {
         final HorizontalLayout loginPanel = new HorizontalLayout();
-        Responsive.makeResponsive(loginPanel);
         loginPanel.setSizeUndefined();
         loginPanel.setSpacing(true);
         loginPanel.addStyleName("login-panel");

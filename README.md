@@ -7,3 +7,5 @@ Datac aims to provide you a convenient web user interface for managing various i
 ## Disclaimer
 
 This is currently a very early version which has nearly none of the final features.
+
+Icons are taken from [http://www.iconsdb.com/icon-sets/web-2-blue-icons/].

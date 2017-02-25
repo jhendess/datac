@@ -3,6 +3,7 @@ package org.xlrnet.datac.foundation.ui.components;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.*;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
@@ -11,11 +12,10 @@ import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.Application;
-import org.xlrnet.datac.foundation.BuildInformation;
+import org.xlrnet.datac.BuildInformation;
 import org.xlrnet.datac.foundation.ui.ViewType;
-import org.xlrnet.datac.session.domain.User;
+import org.xlrnet.datac.administration.domain.User;
 import org.xlrnet.datac.session.services.UserService;
-import org.xlrnet.datac.session.ui.views.LoginView;
 
 import javax.annotation.PostConstruct;
 
@@ -23,8 +23,9 @@ import javax.annotation.PostConstruct;
  * A responsive menu component providing user information and the controls for
  * primary navigation between the views.
  */
-@SuppressWarnings({"serial", "unchecked"})
+@UIScope
 @SpringComponent
+@SuppressWarnings({"serial", "unchecked"})
 public final class NavigationMenu extends CustomComponent {
 
     public static final String ID = "dashboard-menu";
@@ -45,9 +46,9 @@ public final class NavigationMenu extends CustomComponent {
 
     @Override
     public void attach() {
+        super.attach();
         // Call buildContent() only when the session is already available to avoid errors
         setCompositionRoot(buildContent());
-        super.attach();
     }
 
     @PostConstruct
@@ -120,7 +121,6 @@ public final class NavigationMenu extends CustomComponent {
         settingsItem.addSeparator();*/
         settingsItem.addItem("Sign Out", (MenuBar.Command) selectedItem -> {
             userService.logout();
-            UI.getCurrent().getNavigator().navigateTo(LoginView.VIEW_NAME);
         });
         return settings;
     }

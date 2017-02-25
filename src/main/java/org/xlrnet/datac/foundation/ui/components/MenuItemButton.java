@@ -6,8 +6,6 @@ import org.xlrnet.datac.foundation.ui.ViewType;
 
 public final class MenuItemButton extends Button {
 
-    private static final String STYLE_SELECTED = "selected";
-
     private final ViewType view;
 
     public MenuItemButton(final ViewType view) {

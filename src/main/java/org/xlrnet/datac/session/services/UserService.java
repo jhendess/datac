@@ -1,11 +1,13 @@
 package org.xlrnet.datac.session.services;
 
+import com.vaadin.server.VaadinServlet;
 import com.vaadin.server.VaadinSession;
+import com.vaadin.ui.UI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.xlrnet.datac.session.SessionAttributes;
-import org.xlrnet.datac.session.domain.User;
+import org.xlrnet.datac.administration.domain.User;
 
 /**
  * Service used for authentication
@@ -40,7 +42,7 @@ public class UserService {
     protected User findUserByLoginName(String username) {
         // TODO: Dummy method - call actual backend
         User user = new User();
-        user.setId(1);
+        user.setId(1L);
         user.setLoginName(username);
         user.setFirstName(username);
         return user;
@@ -53,5 +55,14 @@ public class UserService {
     public void logout() {
         VaadinSession session = VaadinSession.getCurrent();
         session.setAttribute(SessionAttributes.USERNAME, null);
+
+        closeSession(session);
+    }
+
+    private void closeSession(VaadinSession session) {
+        session.close();
+        session.getService().closeSession(session);
+        UI.getCurrent().close();
+        UI.getCurrent().getPage().setLocation(VaadinServlet.getCurrent().getServletContext().getContextPath());
     }
 }

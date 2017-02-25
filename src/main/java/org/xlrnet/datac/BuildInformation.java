@@ -1,4 +1,4 @@
-package org.xlrnet.datac.foundation;
+package org.xlrnet.datac;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;

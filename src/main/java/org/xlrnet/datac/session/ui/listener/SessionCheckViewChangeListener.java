@@ -16,7 +16,6 @@ public class SessionCheckViewChangeListener implements ViewChangeListener {
 
     @Override
     public boolean beforeViewChange(ViewChangeEvent event) {
-
         // Check if a user has logged in
         boolean isLoggedIn = UI.getCurrent().getSession().getAttribute("user") != null;
         boolean isLoginView = event.getNewView() instanceof LoginView;

@@ -5,10 +5,12 @@
 @import "../valo/valo";
 @import "views/login";
 @import "views/navigation";
+@import "views/admin";
 
-.mytheme {
+.datac {
   @include valo;
   @include login-view;
+  @include admin-view;
   @include navigation-menu;
 
   // Your theme's rules go here
