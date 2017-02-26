@@ -25,3 +25,6 @@ nbdist/
 
 ### SCSS cached files ###
 **/*.scss.cache
+
+### Transaction logs
+transaction-logs/

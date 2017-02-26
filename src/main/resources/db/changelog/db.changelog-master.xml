@@ -21,4 +21,8 @@
             </column>
         </createTable>
     </changeSet>
+    <changeSet id="2" author="jhendess">
+        <modifyDataType tableName="user" columnName="password" newDataType="BLOB"/>
+        <modifyDataType tableName="user" columnName="salt" newDataType="BLOB"/>
+    </changeSet>
 </databaseChangeLog>

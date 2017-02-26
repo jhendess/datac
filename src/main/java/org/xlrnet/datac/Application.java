@@ -7,6 +7,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.xlrnet.datac.administration.domain.User;
+import org.xlrnet.datac.session.services.UserService;
+
+import java.util.Locale;
 
 /**
  * Main application class for bootstrapping.
@@ -20,9 +24,12 @@ public class Application {
 
     private final BuildInformation buildInformation;
 
+    private final UserService userService;
+
     @Autowired
-    public Application(BuildInformation buildInformation) {
+    public Application(BuildInformation buildInformation, UserService userService) {
         this.buildInformation = buildInformation;
+        this.userService = userService;
     }
 
     public static void main(String[] args) {
@@ -33,6 +40,16 @@ public class Application {
     public CommandLineRunner startupLogging() {
         return strings -> {
             LOGGER.info("Starting {} version {}", APPLICATION_NAME, buildInformation.getVersion(), buildInformation.getVersion());
+
+            Locale.setDefault(Locale.ENGLISH);  // Reset the locale VM-wide
+
+            User user = new User();
+            user.setFirstName("Internal");
+            user.setLastName("User");
+            user.setLoginName("system");
+            user.setEmail("system@demo.org");
+            userService.createNewUser(user, "system");
+            LOGGER.info("Created technical user system:system");
         };
     }
 }

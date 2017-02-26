@@ -5,7 +5,7 @@ import com.vaadin.server.Resource;
 import org.xlrnet.datac.administration.ui.views.AdminView;
 import org.xlrnet.datac.foundation.ui.views.HomeView;
 
-public enum ViewType {
+public enum MainMenuEntry {
     HOME(HomeView.VIEW_NAME, "Home", VaadinIcons.HOME),
 
     ADMINSTRATION(AdminView.VIEW_NAME, "Adminstration", VaadinIcons.COGS);
@@ -16,7 +16,7 @@ public enum ViewType {
 
     private final Resource icon;
 
-    ViewType(String viewName, final String displayString, final Resource icon) {
+    MainMenuEntry(String viewName, final String displayString, final Resource icon) {
         this.viewName = viewName;
         this.displayString = displayString;
         this.icon = icon;
@@ -34,11 +34,11 @@ public enum ViewType {
         return viewName;
     }
 
-    public static ViewType getByViewName(final String viewName) {
-        ViewType result = null;
-        for (ViewType viewType : values()) {
-            if (viewType.getDisplayString().equals(viewName)) {
-                result = viewType;
+    public static MainMenuEntry getByViewName(final String viewName) {
+        MainMenuEntry result = null;
+        for (MainMenuEntry mainMenuEntry : values()) {
+            if (mainMenuEntry.getDisplayString().equals(viewName)) {
+                result = mainMenuEntry;
                 break;
             }
         }

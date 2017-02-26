@@ -1,4 +1,4 @@
-package org.xlrnet.datac.foundation.ui.components;
+package org.xlrnet.datac.administration.ui.views.user;
 
 import com.vaadin.data.BeanValidationBinder;
 import com.vaadin.spring.annotation.SpringComponent;
@@ -8,7 +8,7 @@ import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.TextField;
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.administration.domain.User;
-import org.xlrnet.datac.administration.ui.views.user.AbstractForm;
+import org.xlrnet.datac.foundation.ui.components.AbstractForm;
 
 /**
  * Simple editor component for users.
@@ -17,20 +17,28 @@ import org.xlrnet.datac.administration.ui.views.user.AbstractForm;
  * forms - less code, better UX. See e.g. AbstractForm in Viritin
  * (https://vaadin.com/addon/viritin).
  */
-@SpringComponent
 @UIScope
+@SpringComponent
 public class AdminUserForm extends AbstractForm<User> {
 
-    /** Login name of the entity. */
+    /**
+     * Login name of the entity.
+     */
     private TextField loginName = new TextField("Login");
 
-    /** First name of the entity. */
+    /**
+     * First name of the entity.
+     */
     private TextField firstName = new TextField("First name");
 
-    /** Last name of the entity. */
+    /**
+     * Last name of the entity.
+     */
     private TextField lastName = new TextField("Last name");
 
-    /** Email of the entity. */
+    /**
+     * Email of the entity.
+     */
     private TextField email = new TextField("E-Mail address");
 
     @Override

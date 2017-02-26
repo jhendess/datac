@@ -45,14 +45,16 @@ public class User extends org.xlrnet.datac.foundation.domain.AbstractEntity {
     private String email;
 
     /**
-     * Login password of the user.
+     * Hashed login password of the user.
      */
-    private String password;
+    @NotNull
+    private byte[] password;
 
     /**
      * Password salt.
      */
-    private String salt;
+    @NotNull
+    private byte[] salt;
 
     public String getLoginName() {
         return loginName;
@@ -87,19 +89,19 @@ public class User extends org.xlrnet.datac.foundation.domain.AbstractEntity {
         this.email = email;
     }
 
-    public String getPassword() {
+    public byte[] getPassword() {
         return password;
     }
 
-    public void setPassword(String password) {
+    public void setPassword(byte[] password) {
         this.password = password;
     }
 
-    public String getSalt() {
+    public byte[] getSalt() {
         return salt;
     }
 
-    public void setSalt(String salt) {
+    public void setSalt(byte[] salt) {
         this.salt = salt;
     }
 

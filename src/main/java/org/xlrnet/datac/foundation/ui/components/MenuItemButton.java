@@ -2,13 +2,13 @@ package org.xlrnet.datac.foundation.ui.components;
 
 import com.vaadin.ui.Button;
 import com.vaadin.ui.UI;
-import org.xlrnet.datac.foundation.ui.ViewType;
+import org.xlrnet.datac.foundation.ui.MainMenuEntry;
 
 public final class MenuItemButton extends Button {
 
-    private final ViewType view;
+    private final MainMenuEntry view;
 
-    public MenuItemButton(final ViewType view) {
+    public MenuItemButton(final MainMenuEntry view) {
         this.view = view;
         setPrimaryStyleName("valo-menu-item");
         setIcon(view.getIcon());

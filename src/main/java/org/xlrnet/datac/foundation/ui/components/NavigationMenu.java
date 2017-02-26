@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.Application;
 import org.xlrnet.datac.BuildInformation;
 import org.xlrnet.datac.administration.domain.User;
-import org.xlrnet.datac.foundation.ui.ViewType;
+import org.xlrnet.datac.foundation.ui.MainMenuEntry;
 import org.xlrnet.datac.session.services.UserService;
 
 import javax.annotation.PostConstruct;
@@ -143,8 +143,8 @@ public final class NavigationMenu extends CustomComponent {
         CssLayout menuItemsLayout = new CssLayout();
         menuItemsLayout.addStyleName("valo-menuitems");
 
-        for (ViewType viewType : ViewType.values()) {
-            MenuItemButton menuItemButton = new MenuItemButton(viewType);
+        for (MainMenuEntry mainMenuEntry : MainMenuEntry.values()) {
+            MenuItemButton menuItemButton = new MenuItemButton(mainMenuEntry);
             menuItemsLayout.addComponent(menuItemButton);
         }
 

@@ -1,4 +1,4 @@
-package org.xlrnet.datac.administration.ui.views.user;
+package org.xlrnet.datac.foundation.ui.components;
 
 import com.vaadin.data.BeanValidationBinder;
 import com.vaadin.event.ShortcutAction;
@@ -11,14 +11,12 @@ import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.themes.ValoTheme;
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
-import org.xlrnet.datac.foundation.ui.components.DummyEntityChangeHandler;
-import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
-import org.xlrnet.datac.foundation.ui.components.GenericHandler;
 
 import javax.annotation.PostConstruct;
 
 /**
- * Created by xolor on 26.02.17.
+ * Abstract implementation of a form with a save, cancel and delete button. Inherit from this class to build specific
+ * forms.
  */
 @SpringComponent
 public abstract class AbstractForm<T extends AbstractEntity> extends FormLayout {
@@ -59,8 +57,6 @@ public abstract class AbstractForm<T extends AbstractEntity> extends FormLayout 
      */
     protected EntityChangeHandler<T> deleteHandler = new DummyEntityChangeHandler<T>();
 
-    ;
-
     /**
      * Handler which will be called when the cancel button has been clicked.
      */
@@ -97,7 +93,7 @@ public abstract class AbstractForm<T extends AbstractEntity> extends FormLayout 
         setVisible(false);
     }
 
-    protected boolean isCancellable(T entity) {
+    protected boolean isDeletable(T entity) {
         return entity.getId() != null;
     }
 
@@ -114,8 +110,7 @@ public abstract class AbstractForm<T extends AbstractEntity> extends FormLayout 
             setVisible(false);
             return;
         }
-        final boolean persisted = isCancellable(entity);
-        cancel.setVisible(persisted);
+        final boolean persisted = isDeletable(entity);
         delete.setVisible(persisted);
 
         this.entity = entity;
