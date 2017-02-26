@@ -18,13 +18,13 @@ import org.xlrnet.datac.session.services.UserService;
 @Service
 public class UserLoginListener implements LoginForm.LoginListener {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserLoginListener.class);
+
     private static final String USERNAME_PARAMETER = "username";
 
     private static final String PASSWORD_PARAMETER = "password";        // NOSONAR: Just a key for password parameter
 
     private final UserService userService;
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(UserLoginListener.class);
 
     @Autowired
     public UserLoginListener(UserService userService) {
@@ -40,6 +40,7 @@ public class UserLoginListener implements LoginForm.LoginListener {
         if (loginSuccessful) {
             UI.getCurrent().getNavigator().navigateTo(ViewType.HOME.getViewName());
         } else {
+            LOGGER.warn("Login for user {} failed", username);
             Notification error = new Notification("Error", "User login failed", Notification.Type.ERROR_MESSAGE);
             error.setPosition(Position.BOTTOM_RIGHT);
             error.show(Page.getCurrent());

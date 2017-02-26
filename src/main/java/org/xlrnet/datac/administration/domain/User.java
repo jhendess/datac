@@ -3,8 +3,7 @@ package org.xlrnet.datac.administration.domain;
 import org.hibernate.validator.constraints.Email;
 
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
+import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.util.Objects;
@@ -13,20 +12,13 @@ import java.util.Objects;
  * A user who may access the application.
  */
 @Entity
-public class User {
-
-    /**
-     * Internal id of the user.
-     */
-    @Id
-    @GeneratedValue
-    private Long id;
+@Table(name = "user")
+public class User extends org.xlrnet.datac.foundation.domain.AbstractEntity {
 
     /**
      * Login name of the user.
      */
     @NotNull
-    
     @Size(min = 4, max = 20)
     private String loginName;
 
@@ -34,14 +26,14 @@ public class User {
      * First name of the user.
      */
     @NotNull
-    @Size(min = 1, max = 64)
+    @Size(min = 3, max = 64)
     private String firstName;
 
     /**
      * Last name of the user.
      */
     @NotNull
-    @Size(min = 1, max = 64)
+    @Size(min = 3, max = 64)
     private String lastName;
 
     /**
@@ -61,18 +53,6 @@ public class User {
      * Password salt.
      */
     private String salt;
-
-    public User() {
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public User setId(Long id) {
-        this.id = id;
-        return this;
-    }
 
     public String getLoginName() {
         return loginName;

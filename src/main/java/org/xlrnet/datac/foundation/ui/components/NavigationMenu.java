@@ -1,11 +1,10 @@
 package org.xlrnet.datac.foundation.ui.components;
 
-import com.vaadin.server.FontAwesome;
+import com.vaadin.icons.VaadinIcons;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.*;
-import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.MenuBar.MenuItem;
 import com.vaadin.ui.themes.ValoTheme;
@@ -13,8 +12,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.Application;
 import org.xlrnet.datac.BuildInformation;
-import org.xlrnet.datac.foundation.ui.ViewType;
 import org.xlrnet.datac.administration.domain.User;
+import org.xlrnet.datac.foundation.ui.ViewType;
 import org.xlrnet.datac.session.services.UserService;
 
 import javax.annotation.PostConstruct;
@@ -126,17 +125,14 @@ public final class NavigationMenu extends CustomComponent {
     }
 
     private Component buildToggleButton() {
-        Button valoMenuToggleButton = new Button("Menu", new ClickListener() {
-            @Override
-            public void buttonClick(final ClickEvent event) {
-                if (getCompositionRoot().getStyleName().contains(STYLE_VISIBLE)) {
-                    getCompositionRoot().removeStyleName(STYLE_VISIBLE);
-                } else {
-                    getCompositionRoot().addStyleName(STYLE_VISIBLE);
-                }
+        Button valoMenuToggleButton = new Button("Menu", (ClickListener) event -> {
+            if (getCompositionRoot().getStyleName().contains(STYLE_VISIBLE)) {
+                getCompositionRoot().removeStyleName(STYLE_VISIBLE);
+            } else {
+                getCompositionRoot().addStyleName(STYLE_VISIBLE);
             }
         });
-        valoMenuToggleButton.setIcon(FontAwesome.LIST);
+        valoMenuToggleButton.setIcon(VaadinIcons.LIST);
         valoMenuToggleButton.addStyleName("valo-menu-toggle");
         valoMenuToggleButton.addStyleName(ValoTheme.BUTTON_BORDERLESS);
         valoMenuToggleButton.addStyleName(ValoTheme.BUTTON_SMALL);
