@@ -1,8 +1,7 @@
 package org.xlrnet.datac.session.services;
 
-import com.vaadin.server.VaadinServlet;
-import com.vaadin.server.VaadinSession;
-import com.vaadin.ui.UI;
+import java.util.Optional;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +14,9 @@ import org.xlrnet.datac.commons.util.CryptoUtils;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.session.SessionAttributes;
 
-import java.util.Arrays;
-import java.util.Optional;
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.server.VaadinSession;
+import com.vaadin.ui.UI;
 
 /**
  * Service used for authenticating and managing users.
@@ -26,9 +26,12 @@ public class UserService extends AbstractTransactionalService<User, UserReposito
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
 
+    private final PasswordService passwordService;
+
     @Autowired
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordService passwordService) {
         super(userRepository);
+        this.passwordService = passwordService;
     }
 
     /**
@@ -46,7 +49,7 @@ public class UserService extends AbstractTransactionalService<User, UserReposito
         User user = getRepository().findFirstByLoginNameIgnoreCase(loginName);
 
         if (user != null) {
-            boolean loginSuccessful = checkPassword(user, password);
+            boolean loginSuccessful = passwordService.checkPassword(user, password);
 
             LOGGER.debug("Login attempt for user {} was {}", loginName, loginSuccessful ? "successful" : "not successful");
             if (loginSuccessful) {
@@ -59,7 +62,7 @@ public class UserService extends AbstractTransactionalService<User, UserReposito
 
     /**
      * Creates a new user in the database and calculates both a new salt and hashed password. If the user already
-     * exists, an empty optional will be returned.
+     * exists or if the password doesn't meet the complexity requirements, an empty optional will be returned.
      *
      * @param user
      *         The user to persist.
@@ -71,29 +74,21 @@ public class UserService extends AbstractTransactionalService<User, UserReposito
     @Transactional
     public Optional<User> createNewUser(@NotNull User user, @NotNull String unhashedPassword) {
         User existingUser = getRepository().findFirstByLoginNameIgnoreCase(user.getLoginName());
-        if (existingUser == null) {
-            // TODO: Validate password
+        if (existingUser == null && passwordService.isValid(unhashedPassword)) {
             byte[] salt = CryptoUtils.generateRandom(CryptoUtils.DEFAULT_SALT_LENGTH);
-            byte[] hashedPassword = hashPassword(unhashedPassword, salt);
+            byte[] hashedPassword = passwordService.hashPassword(unhashedPassword, salt);
 
             user.setPassword(hashedPassword);
             user.setSalt(salt);
 
-            return Optional.of(getRepository().save(user));
+            User save = getRepository().save(user);
+
+            LOGGER.debug("Created new user {}", user);
+            return Optional.of(save);
         } else {
-            LOGGER.warn("User creation failed: user {} already exists", existingUser.getLoginName());
+            LOGGER.warn("User creation failed for user {}", user.getLoginName());
             return Optional.empty();
         }
-    }
-
-    @NotNull
-    byte[] hashPassword(@NotNull String unhashedPassword, @NotNull byte[] salt) {
-        return CryptoUtils.hashPassword(unhashedPassword.toCharArray(), salt, CryptoUtils.DEFAULT_ITERATIONS, CryptoUtils.DEFAULT_KEYLENGTH);
-    }
-
-    private boolean checkPassword(User user, String password) {
-        byte[] newHash = hashPassword(password, user.getSalt());
-        return Arrays.equals(user.getPassword(), newHash);
     }
 
     public User getSessionUser() {

@@ -1,9 +1,7 @@
 package org.xlrnet.datac.administration.ui.views.user;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
+import java.util.Objects;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,9 +10,16 @@ import org.xlrnet.datac.administration.repository.UserRepository;
 import org.xlrnet.datac.commons.util.WindowUtils;
 import org.xlrnet.datac.foundation.ui.Subview;
 import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
+import org.xlrnet.datac.foundation.ui.components.GenericHandler;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
+import org.xlrnet.datac.session.services.PasswordService;
 import org.xlrnet.datac.session.services.UserService;
+
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
 
 /**
  * Admin view which is responsible for managing the available users.
@@ -39,6 +44,15 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
      */
     private final UserRepository userRepository;
 
+    /** Service for generating passwords. */
+    private final PasswordService passwordService;
+
+    /** Text field informing the user about the default. */
+    private Label defaultPasswordTextField = new Label("", ContentMode.HTML);
+
+    /** Default password for new user. */
+    private String defaultPassword;
+
     /**
      * Grid with all available users.
      */
@@ -50,10 +64,11 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
     private SimpleOkCancelWindow confirmationWindow;
 
     @Autowired
-    public AdminUserSubview(AdminUserForm editor, UserService userService, UserRepository userRepository) {
+    public AdminUserSubview(AdminUserForm editor, UserService userService, UserRepository userRepository, PasswordService passwordService) {
         this.userService = userService;
         this.editor = editor;
         this.userRepository = userRepository;
+        this.passwordService = passwordService;
     }
 
     @Override
@@ -75,6 +90,7 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
         Button newUserButton = new Button("New");
         newUserButton.setIcon(VaadinIcons.PLUS);
         newUserButton.addClickListener(e -> {
+            generateDefaultPassword();
             editor.setEntity(new User());
             editor.setVisible(true);
         });
@@ -96,9 +112,10 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
         // Setup all handlers
         editor.setSaveHandler(buildSaveHandler());
         editor.setDeleteHandler(buildDeleteHandler());
-        editor.setCancelHandler(() -> editor.setVisible(false));
+        editor.setCancelHandler(this::hideEditor);
 
         layout.addComponent(newUserButton);
+        layout.addComponent(defaultPasswordTextField);
         layout.addComponent(editor);
         layout.addComponent(grid);
 
@@ -107,18 +124,31 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
         return layout;
     }
 
+    private void generateDefaultPassword() {
+        // Generate a too short password to force the user on his first login to change it
+        defaultPassword = passwordService.generatePassword(PasswordService.MINIMUM_PASSWORD_SIZE - 1);
+        defaultPasswordTextField.setValue("The new user will be created using the password <strong>" + defaultPassword + "</strong><br>" +
+                "The password has to be changed after the first login.");
+        defaultPasswordTextField.setVisible(true);
+    }
+
     @NotNull
     private EntityChangeHandler<User> buildDeleteHandler() {
         return user -> {
-            confirmationWindow.setCustomContent(new Label("Do you want to delete the user " + user.getLoginName() + "?<br>This action cannot be reverted!", ContentMode.HTML));
-            confirmationWindow.setOkHandler(() -> {
-                userService.delete(user);
-                editor.setVisible(false);
-                confirmationWindow.close();
-                updateUsers();
-            });
+            if (Objects.equals(user.getId(), userService.getSessionUser().getId())) {
+                WindowUtils.showModalDialog("", "You cannot delete your own user!");
+            } else {
+                confirmationWindow.setCustomContent(new Label("Do you want to delete the user " + user.getLoginName() + "?<br>This action cannot be reverted!", ContentMode.HTML));
+                confirmationWindow.setOkHandler(() -> {
+                    userService.delete(user);
+                    hideEditor();
+                    confirmationWindow.close();
+                    updateUsers();
+                    Notification.show("User deleted successfully", Notification.Type.TRAY_NOTIFICATION);
+                });
 
-            UI.getCurrent().addWindow(confirmationWindow);
+                UI.getCurrent().addWindow(confirmationWindow);
+            }
         };
     }
 
@@ -126,20 +156,33 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
     private EntityChangeHandler<User> buildSaveHandler() {
         return (user) -> {
             User existingUser = userRepository.findFirstByLoginNameIgnoreCase(user.getLoginName());
-            if (user.getId() == null && existingUser != null) {
+            // If user with same login name exists and who has a different ID than the current -> reject creation
+            if (existingUser != null && !Objects.equals(existingUser.getId(), user.getId())) {
                 WindowUtils.showModalDialog(null, "There is already a user with the same name.");
             } else {
-                confirmationWindow.setCustomContent(new Label("Do you want to save the user?"));
-                confirmationWindow.setOkHandler(() -> {
-                    // TODO: Generate default password for new users
-                    userService.createNewUser(user, "");
-                    editor.setVisible(false);
-                    confirmationWindow.close();
-                    updateUsers();
-                });
-
+                StringBuilder saveConfirmation = new StringBuilder("Do you want to save the user?");
+                if (user.getId() == null) {
+                    saveConfirmation.append("<br>The default password is <strong>").append(defaultPassword).append("</strong>");
+                }
+                confirmationWindow.setCustomContent(new Label(saveConfirmation.toString(), ContentMode.HTML));
+                confirmationWindow.setOkHandler(buildPersistUserHandler(user));
                 UI.getCurrent().addWindow(confirmationWindow);
             }
+        };
+    }
+
+    @NotNull
+    private GenericHandler buildPersistUserHandler(User user) {
+        return () -> {
+            if (user.getId() == null) {
+                userService.createNewUser(user, defaultPassword);
+            } else {
+                userRepository.save(user);
+            }
+            hideEditor();
+            confirmationWindow.close();
+            updateUsers();
+            Notification.show("User saved successfully", Notification.Type.TRAY_NOTIFICATION);
         };
     }
 
@@ -155,5 +198,10 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
 
     private void updateUsers() {
         grid.setItems(userRepository.findAllByOrderByLoginNameAsc());
+    }
+
+    private void hideEditor() {
+        defaultPasswordTextField.setVisible(false);
+        editor.setVisible(false);
     }
 }

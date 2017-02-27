@@ -1,14 +1,15 @@
 package org.xlrnet.datac.foundation.ui.views;
 
+import javax.annotation.PostConstruct;
+
+import org.jetbrains.annotations.NotNull;
+import org.xlrnet.datac.foundation.ui.Subview;
+
 import com.vaadin.navigator.ViewChangeListener;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.ValoTheme;
-import org.jetbrains.annotations.NotNull;
-import org.xlrnet.datac.foundation.ui.Subview;
-
-import javax.annotation.PostConstruct;
 
 /**
  * Abstract subview which contains a title with subtitle and a main content panel. Override the abstract methods in this
@@ -54,6 +55,7 @@ public abstract class AbstractSubview extends VerticalLayout implements Subview 
      * @return this.
      */
     @NotNull
+    @Override
     public Component getContent() {
         return this;
     }

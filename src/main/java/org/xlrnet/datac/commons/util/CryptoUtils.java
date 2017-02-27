@@ -24,14 +24,15 @@
 
 package org.xlrnet.datac.commons.util;
 
-import org.xlrnet.datac.commons.exception.DatacRuntimeException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
 
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
+
+import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 
 /**
  * Utility class with crypto related methods.
@@ -53,7 +54,14 @@ public class CryptoUtils {
      */
     public static final int DEFAULT_SALT_LENGTH = 32;
 
+    /**
+     * Random generator.
+     */
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    private CryptoUtils() {
+        
+    }
 
     /**
      * Generates a new random salt of a given length.

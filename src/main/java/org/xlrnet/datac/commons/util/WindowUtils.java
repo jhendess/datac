@@ -47,6 +47,7 @@ public class WindowUtils {
         layout.addComponent(component);
         layout.setComponentAlignment(component, Alignment.MIDDLE_CENTER);
         layout.setSizeUndefined();
+        layout.setMargin(true);
 
         Button okButton = new Button(DEFAULT_OK);
         okButton.setStyleName(ValoTheme.BUTTON_PRIMARY);
