@@ -2,6 +2,7 @@ package org.xlrnet.datac.session.services;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -21,9 +22,9 @@ public class UserServiceTest {
 
     private static final String USER_LOGIN_NAME = "demoUser";
 
-    private static final String TEST_PASSWORD = "password";
+    private static final String TEST_PASSWORD = "Password123";
 
-    private PasswordService passwordServiceMock;
+    private PasswordService passwordService;
 
     private UserRepository userRepositoryMock;
 
@@ -32,8 +33,8 @@ public class UserServiceTest {
     @Before
     public void setup() {
         userRepositoryMock = Mockito.mock(UserRepository.class);
-        passwordServiceMock = Mockito.mock(PasswordService.class);
-        userService = new UserService(userRepositoryMock, passwordServiceMock);
+        passwordService = Mockito.spy(PasswordService.class);
+        userService = new UserService(userRepositoryMock, passwordService);
     }
 
     @Test
@@ -56,7 +57,7 @@ public class UserServiceTest {
     public void createNewUser() throws Exception {
         User user = new User();
         user.setLoginName(USER_LOGIN_NAME);
-        when(passwordServiceMock.isValid(TEST_PASSWORD)).thenReturn(true);
+        doReturn(true).when(passwordService).isValid(TEST_PASSWORD);
         when(userRepositoryMock.findFirstByLoginNameIgnoreCase(USER_LOGIN_NAME)).thenReturn(null);
         when(userRepositoryMock.save(any(User.class))).thenAnswer(new ReturnFirstArgumentAnswer());
 
@@ -71,7 +72,7 @@ public class UserServiceTest {
     public void createNewUser_invalidPassword() throws Exception {
         User user = new User();
         user.setLoginName(USER_LOGIN_NAME);
-        when(passwordServiceMock.isValid(TEST_PASSWORD)).thenReturn(false);
+        doReturn(false).when(passwordService).isValid(TEST_PASSWORD);
         when(userRepositoryMock.findFirstByLoginNameIgnoreCase(USER_LOGIN_NAME)).thenReturn(null);
 
         Optional<User> createdUser = userService.createNewUser(user, TEST_PASSWORD);
@@ -92,7 +93,7 @@ public class UserServiceTest {
 
     private void prepareAuthDataMock() {
         byte[] salt = CryptoUtils.generateRandom(CryptoUtils.DEFAULT_SALT_LENGTH);
-        byte[] hashedPassword = passwordServiceMock.hashPassword(TEST_PASSWORD, salt);
+        byte[] hashedPassword = passwordService.hashPassword(TEST_PASSWORD, salt);
 
         User user = new User();
         user.setLoginName(USER_LOGIN_NAME);

@@ -83,10 +83,14 @@ public class UserService extends AbstractTransactionalService<User, UserReposito
 
             User save = getRepository().save(user);
 
-            LOGGER.debug("Created new user {}", user);
-            return Optional.of(save);
+            if (save != null) {
+                LOGGER.debug("Created new user {}", user.getLoginName());
+            } else {
+                LOGGER.error("Creating new user {} failed", user.getLoginName());
+            }
+            return Optional.ofNullable(save);
         } else {
-            LOGGER.warn("User creation failed for user {}", user.getLoginName());
+            LOGGER.error("User creation failed for user {}", user.getLoginName());
             return Optional.empty();
         }
     }
