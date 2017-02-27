@@ -50,17 +50,18 @@ public abstract class AbstractForm<T extends AbstractEntity> extends FormLayout 
      * Handler which will be called when the save button has been clicked and the entity has been successfully
      * validated.
      */
-    protected EntityChangeHandler<T> saveHandler = new DummyEntityChangeHandler<T>();
+    protected EntityChangeHandler<T> saveHandler = new DummyEntityChangeHandler<>();
 
     /**
      * Handler which will be called when the delete button has been clicked.
      */
-    protected EntityChangeHandler<T> deleteHandler = new DummyEntityChangeHandler<T>();
+    protected EntityChangeHandler<T> deleteHandler = new DummyEntityChangeHandler<>();
 
     /**
      * Handler which will be called when the cancel button has been clicked.
      */
     private GenericHandler cancelHandler = () -> {
+        // Default action is to do nothing when clicking cancel
     };
 
     @PostConstruct

@@ -1,5 +1,6 @@
 package org.xlrnet.datac.commons.util;
 
+import com.vaadin.server.Sizeable;
 import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
@@ -41,12 +42,14 @@ public class WindowUtils {
      */
     public static Window showModalDialog(String title, Component component) {
         Window window = new Window(title);
+        window.setWidth(400, Sizeable.Unit.PIXELS);
+        window.setHeight(175, Sizeable.Unit.PIXELS);
         window.setModal(true);
 
         VerticalLayout layout = new VerticalLayout();
         layout.addComponent(component);
         layout.setComponentAlignment(component, Alignment.MIDDLE_CENTER);
-        layout.setSizeUndefined();
+        layout.setSizeFull();
         layout.setMargin(true);
 
         Button okButton = new Button(DEFAULT_OK);

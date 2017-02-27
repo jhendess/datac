@@ -1,12 +1,5 @@
 package org.xlrnet.datac.session.services;
 
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
-
-import java.util.Optional;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -14,6 +7,13 @@ import org.xlrnet.datac.administration.domain.User;
 import org.xlrnet.datac.administration.repository.UserRepository;
 import org.xlrnet.datac.commons.util.CryptoUtils;
 import org.xlrnet.datac.test.util.ReturnFirstArgumentAnswer;
+
+import java.util.Optional;
+
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link UserService}.

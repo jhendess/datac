@@ -1,7 +1,9 @@
 package org.xlrnet.datac.administration.ui.views.user;
 
-import java.util.Objects;
-
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +18,7 @@ import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 import org.xlrnet.datac.session.services.PasswordService;
 import org.xlrnet.datac.session.services.UserService;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
+import java.util.Objects;
 
 /**
  * Admin view which is responsible for managing the available users.
@@ -44,13 +43,19 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
      */
     private final UserRepository userRepository;
 
-    /** Service for generating passwords. */
+    /**
+     * Service for generating passwords.
+     */
     private final PasswordService passwordService;
 
-    /** Text field informing the user about the default. */
+    /**
+     * Text field informing the user about the default.
+     */
     private Label defaultPasswordTextField = new Label("", ContentMode.HTML);
 
-    /** Default password for new user. */
+    /**
+     * Default password for new user.
+     */
     private String defaultPassword;
 
     /**
@@ -126,7 +131,7 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
 
     private void generateDefaultPassword() {
         // Generate a too short password to force the user on his first login to change it
-        defaultPassword = passwordService.generatePassword(PasswordService.MINIMUM_PASSWORD_SIZE - 1);
+        defaultPassword = passwordService.generatePassword(PasswordService.MINIMUM_PASSWORD_SIZE);
         defaultPasswordTextField.setValue("The new user will be created using the password <strong>" + defaultPassword + "</strong><br>" +
                 "The password has to be changed after the first login.");
         defaultPasswordTextField.setVisible(true);
@@ -175,6 +180,7 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
     private GenericHandler buildPersistUserHandler(User user) {
         return () -> {
             if (user.getId() == null) {
+                user.setPwChangeNecessary(true);
                 userService.createNewUser(user, defaultPassword);
             } else {
                 userRepository.save(user);

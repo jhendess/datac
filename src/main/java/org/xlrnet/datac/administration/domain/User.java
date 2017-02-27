@@ -56,8 +56,17 @@ public class User extends org.xlrnet.datac.foundation.domain.AbstractEntity {
     @NotNull
     private byte[] salt;
 
+    /**
+     * Indicator if a password change is necessary.
+     */
+    private boolean pwChangeNecessary;
+
     public String getLoginName() {
         return loginName;
+    }
+
+    public boolean isPwChangeNecessary() {
+        return pwChangeNecessary;
     }
 
     public void setLoginName(String loginName) {
@@ -99,6 +108,10 @@ public class User extends org.xlrnet.datac.foundation.domain.AbstractEntity {
 
     public byte[] getSalt() {
         return salt;
+    }
+
+    public void setPwChangeNecessary(boolean pwChangeNecessary) {
+        this.pwChangeNecessary = pwChangeNecessary;
     }
 
     public void setSalt(byte[] salt) {

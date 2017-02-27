@@ -1,11 +1,5 @@
 package org.xlrnet.datac.session.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.regex.Pattern;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
@@ -13,61 +7,86 @@ import org.springframework.util.StringUtils;
 import org.xlrnet.datac.administration.domain.User;
 import org.xlrnet.datac.commons.util.CryptoUtils;
 
+import java.util.Arrays;
+import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * Service for generating and validating passwords. Passwords must match at least three of the following
  * properties:
  * <ul>
- *     <li>At least one uppercase character</li>
- *     <li>At least one lowercase character</li>
- *     <li>At least one special character</li>
- *     <li>At least one digit</li>
+ * <li>At least one uppercase character</li>
+ * <li>At least one lowercase character</li>
+ * <li>At least one special character</li>
+ * <li>At least one digit</li>
  * </ul>
  */
 @Service
 public class PasswordService {
-    /** Minimum password size. */
+
+    /**
+     * Minimum password size.
+     */
     public static final int MINIMUM_PASSWORD_SIZE = 6;
 
-    /** Maximum password size. */
+    /**
+     * Maximum password size.
+     */
     public static final int MAXIMUM_PASSWORD_SIZE = 32;
 
-    /** Number of rules that need to match for a valid password. */
+    /**
+     * Number of rules that need to match for a valid password.
+     */
     private static final int REQUIRED_RULE_MATCHES = 3;
 
-    /** Contains uppercase character. */
+    /**
+     * Contains uppercase character.
+     */
     private static final Pattern HAS_UPPERCASE = Pattern.compile("[A-Z]");
 
-    /** Contains uppercase lowercase. */
+    /**
+     * Contains uppercase lowercase.
+     */
     private static final Pattern HAS_LOWERCASE = Pattern.compile("[a-z]");
 
-    /** Contains uppercase special char. */
+    /**
+     * Contains uppercase special char.
+     */
     private static final Pattern HAS_SPECIALCHAR = Pattern.compile("[^a-zA-Z0-9 ]");
 
-    /** Contains uppercase number. */
+    /**
+     * Contains uppercase number.
+     */
     private static final Pattern HAS_NUMBER = Pattern.compile("\\d");
 
-    /** Uppercase characters for password generation. */
+    /**
+     * Uppercase characters for password generation.
+     */
     private static final String UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    /** Lowercase characters for password generation. */
+    /**
+     * Lowercase characters for password generation.
+     */
     private static final String LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
 
-    /** Numbers for password generation. */
+    /**
+     * Numbers for password generation.
+     */
     private static final String NUMBERS = "0123456789";
-
-    /** Secure random for password generation. */
-    private final SecureRandom secureRandom = new SecureRandom();
 
     /**
      * Checks if the given password is valid. Passwords must match at least three of the following
      * properties to be valid:
      * <ul>
-     *     <li>At least one uppercase character</li>
-     *     <li>At least one lowercase character</li>
-     *     <li>At least one special character</li>
-     *     <li>At least one digit</li>
+     * <li>At least one uppercase character</li>
+     * <li>At least one lowercase character</li>
+     * <li>At least one special character</li>
+     * <li>At least one digit</li>
      * </ul>
-     * @param password The password to check
+     *
+     * @param password
+     *         The password to check
      * @return True if valid, otherwise false.
      */
     public boolean isValid(@NotNull String password) {
@@ -85,7 +104,8 @@ public class PasswordService {
     /**
      * Generates a random password with a given length.
      *
-     * @param length Length of the new password. Must be greater than 0.
+     * @param length
+     *         Length of the new password. Must be greater than 0.
      * @return a generated random password.
      */
     public String generatePassword(int length) {
@@ -94,7 +114,7 @@ public class PasswordService {
         StringBuilder stringBuilder = new StringBuilder(length);
 
         for (int i = 0; i < length; i++) {
-            switch (i % 3) {
+            switch (i % 3) {        // NOSONAR: there is no default other branch possible
                 case 0:
                     stringBuilder.append(RandomStringUtils.random(1, LOWERCASE));
                     break;
@@ -112,8 +132,11 @@ public class PasswordService {
 
     /**
      * Checks if the given unhashed password matches the hashed password in the given user object.
-     * @param user      The user to check.
-     * @param password   The password for authentication.
+     *
+     * @param user
+     *         The user to check.
+     * @param password
+     *         The password for authentication.
      * @return True if the password is valid, otherwise false.
      */
     public boolean checkPassword(User user, String password) {
@@ -122,9 +145,27 @@ public class PasswordService {
     }
 
     /**
+     * Changes the password in the given user object to the given and reset the change-necessary status. This method
+     * does <strong>not</strong> perform any backend operation.
+     *
+     * @param sessionUser
+     *         The user to update.
+     * @param newPassword
+     *         The new password to set.
+     */
+    public void changePassword(User sessionUser, String newPassword) {
+        byte[] hashedPassword = hashPassword(newPassword, sessionUser.getSalt());
+        sessionUser.setPassword(hashedPassword);
+        sessionUser.setPwChangeNecessary(false);
+    }
+
+    /**
      * Hashes a given string using a given salt.
-     * @param unhashedPassword The unhashed password to hash.
-     * @param salt             The salt.
+     *
+     * @param unhashedPassword
+     *         The unhashed password to hash.
+     * @param salt
+     *         The salt.
      * @return Binary representation of the hashed password.
      */
     @NotNull

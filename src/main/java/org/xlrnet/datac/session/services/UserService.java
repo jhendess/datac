@@ -1,7 +1,8 @@
 package org.xlrnet.datac.session.services;
 
-import java.util.Optional;
-
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.server.VaadinSession;
+import com.vaadin.ui.UI;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,9 +15,7 @@ import org.xlrnet.datac.commons.util.CryptoUtils;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.session.SessionAttributes;
 
-import com.vaadin.server.VaadinServlet;
-import com.vaadin.server.VaadinSession;
-import com.vaadin.ui.UI;
+import java.util.Optional;
 
 /**
  * Service used for authenticating and managing users.

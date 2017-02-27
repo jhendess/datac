@@ -15,6 +15,7 @@ import org.xlrnet.datac.BuildInformation;
 import org.xlrnet.datac.administration.domain.User;
 import org.xlrnet.datac.foundation.ui.MainMenuEntry;
 import org.xlrnet.datac.session.services.UserService;
+import org.xlrnet.datac.session.ui.components.UserProfileWindow;
 
 import javax.annotation.PostConstruct;
 
@@ -37,10 +38,13 @@ public final class NavigationMenu extends CustomComponent {
 
     private final BuildInformation buildInformation;
 
+    private final UserProfileWindow userProfileWindow;
+
     @Autowired
-    public NavigationMenu(UserService userService, BuildInformation buildInformation) {
+    public NavigationMenu(UserService userService, BuildInformation buildInformation, UserProfileWindow userProfileWindow) {
         this.userService = userService;
         this.buildInformation = buildInformation;
+        this.userProfileWindow = userProfileWindow;
     }
 
     @Override
@@ -48,6 +52,10 @@ public final class NavigationMenu extends CustomComponent {
         super.attach();
         // Call buildContent() only when the session is already available to avoid errors
         setCompositionRoot(buildContent());
+        User sessionUser = userService.getSessionUser();
+        if (sessionUser != null && sessionUser.isPwChangeNecessary()) {
+            userProfileWindow.open();
+        }
     }
 
     @PostConstruct
@@ -105,13 +113,8 @@ public final class NavigationMenu extends CustomComponent {
         settingsItem = settings.addItem("", new ThemeResource(
                 "img/profile-pic-300px.jpg"), null);
         updateUserName();
-        /*settingsItem.addItem("Edit Profile", new Command() {
-            @Override
-            public void menuSelected(final MenuItem selectedItem) {
-                ProfilePreferencesWindow.open(user, false);
-            }
-        });
-        settingsItem.addItem("Preferences", new Command() {
+        settingsItem.addItem("Edit Profile", (MenuBar.Command) selectedItem -> userProfileWindow.open());
+        /*settingsItem.addItem("Preferences", new Command() {
             @Override
             public void menuSelected(final MenuItem selectedItem) {
                 ProfilePreferencesWindow.open(user, true);

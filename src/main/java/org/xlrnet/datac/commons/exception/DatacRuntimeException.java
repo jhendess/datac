@@ -33,6 +33,7 @@ public class DatacRuntimeException extends RuntimeException {
     private static final long serialVersionUID = 5551989583927723250L;
 
     public DatacRuntimeException() {
+        super();
     }
 
     public DatacRuntimeException(String message) {

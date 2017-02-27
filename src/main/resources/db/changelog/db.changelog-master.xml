@@ -25,4 +25,9 @@
         <modifyDataType tableName="user" columnName="password" newDataType="BLOB"/>
         <modifyDataType tableName="user" columnName="salt" newDataType="BLOB"/>
     </changeSet>
+    <changeSet id="3" author="jhendess">
+        <addColumn tableName="user">
+            <column name="pw_change_necessary" type="boolean" defaultValue="false"/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>
