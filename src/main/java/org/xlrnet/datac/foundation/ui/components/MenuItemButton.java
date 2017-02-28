@@ -2,7 +2,6 @@ package org.xlrnet.datac.foundation.ui.components;
 
 import com.vaadin.ui.Button;
 import com.vaadin.ui.UI;
-import org.xlrnet.datac.foundation.ui.MainMenuEntry;
 
 public final class MenuItemButton extends Button {
 

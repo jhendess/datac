@@ -4,10 +4,7 @@ import com.vaadin.data.BeanValidationBinder;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.CssLayout;
-import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
@@ -67,15 +64,16 @@ public abstract class AbstractForm<T extends AbstractEntity> extends FormLayout 
     @PostConstruct
     private void init() {
         Component fields = getContent();
-        CssLayout actions = new CssLayout(save, cancel, delete);
-        addComponents(fields, actions);
+        HorizontalLayout buttonLayout = new HorizontalLayout(save, cancel, delete);
+        addComponents(fields, buttonLayout);
+
+        buttonLayout.setSpacing(true);
 
         // Bind text fields to actual bean properties with the same name
         binder.bindInstanceFields(this);
 
         // Configure and style components
         setSpacing(true);
-        actions.setStyleName(ValoTheme.LAYOUT_COMPONENT_GROUP);
         save.setStyleName(ValoTheme.BUTTON_PRIMARY);
         save.setClickShortcut(ShortcutAction.KeyCode.ENTER);
 

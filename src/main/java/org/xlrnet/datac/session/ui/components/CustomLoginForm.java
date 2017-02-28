@@ -6,7 +6,7 @@ import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
 
 /**
- * Created by jhendess on 24.02.2017.
+ * Custom login form which is used for the user login.
  */
 public class CustomLoginForm extends LoginForm {
 

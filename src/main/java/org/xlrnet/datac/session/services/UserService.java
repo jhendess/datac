@@ -9,18 +9,20 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.xlrnet.datac.administration.domain.User;
-import org.xlrnet.datac.administration.repository.UserRepository;
 import org.xlrnet.datac.commons.util.CryptoUtils;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.session.SessionAttributes;
+import org.xlrnet.datac.session.domain.User;
+import org.xlrnet.datac.session.repository.UserRepository;
 
+import java.util.Collection;
 import java.util.Optional;
 
 /**
  * Service used for authenticating and managing users.
  */
 @Service
+@Transactional
 public class UserService extends AbstractTransactionalService<User, UserRepository> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
@@ -44,6 +46,7 @@ public class UserService extends AbstractTransactionalService<User, UserReposito
      * @return authenticated user or null if authentication failed.
      */
     @NotNull
+    @Transactional(readOnly = true)
     public Optional<User> authenticate(@NotNull String loginName, @NotNull String password) {
         User user = getRepository().findFirstByLoginNameIgnoreCase(loginName);
 
@@ -92,6 +95,26 @@ public class UserService extends AbstractTransactionalService<User, UserReposito
             LOGGER.error("User creation failed for user {}", user.getLoginName());
             return Optional.empty();
         }
+    }
+
+    /**
+     * Returns all users ordered by their login name in ascending order.
+     *
+     * @return all users ordered by their login name in ascending order.
+     */
+    @Transactional(readOnly = true)
+    public Collection<User> findAllByOrderByLoginNameAsc() {
+        return getRepository().findAllByOrderByLoginNameAsc();
+    }
+
+    /**
+     * Returns the first user with a given login name.
+     *
+     * @return the first user with a given login name.
+     */
+    @Transactional(readOnly = true)
+    public User findFirstByLoginNameIgnoreCase(String loginName) {
+        return getRepository().findFirstByLoginNameIgnoreCase(loginName);
     }
 
     public User getSessionUser() {

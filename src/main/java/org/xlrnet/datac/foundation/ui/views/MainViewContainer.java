@@ -1,18 +1,18 @@
 package org.xlrnet.datac.foundation.ui.views;
 
+import javax.annotation.PostConstruct;
+
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.xlrnet.datac.foundation.ui.components.NavigationMenu;
+
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.CssLayout;
 import com.vaadin.ui.HorizontalLayout;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.xlrnet.datac.foundation.ui.Subview;
-import org.xlrnet.datac.foundation.ui.components.NavigationMenu;
-
-import javax.annotation.PostConstruct;
 
 /**
  * Main view for the application. Represents a container with static navigation menu and main-content subview

@@ -1,0 +1,23 @@
+#
+# General application configuration file for spring boot
+#
+
+# Spring configuration
+spring:
+  # Database configuration
+  datasource:
+    driver-class-name: org.hsqldb.jdbc.JDBCDriver
+    url: jdbc:hsqldb:mem:datac
+    username: SA
+    password: SA
+    # Configuration for Hikari connection pool
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      idle-timeout: 10000
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+liquibase:
+  change-log: classpath:db/changelog/db.changelog-master.xml    # Use XML changelog for liquibase
+

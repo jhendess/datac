@@ -1,11 +1,11 @@
 package org.xlrnet.datac.foundation.ui.views;
 
+import org.jetbrains.annotations.NotNull;
+import org.xlrnet.datac.Application;
+
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.VerticalLayout;
-import org.jetbrains.annotations.NotNull;
-import org.xlrnet.datac.Application;
-import org.xlrnet.datac.foundation.ui.Subview;
 
 /**
  * Start page after login.

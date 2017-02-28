@@ -1,14 +1,15 @@
 package org.xlrnet.datac.administration.ui.views.user;
 
+import org.jetbrains.annotations.NotNull;
+import org.xlrnet.datac.foundation.ui.components.AbstractForm;
+import org.xlrnet.datac.session.domain.User;
+
 import com.vaadin.data.BeanValidationBinder;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.TextField;
-import org.jetbrains.annotations.NotNull;
-import org.xlrnet.datac.administration.domain.User;
-import org.xlrnet.datac.foundation.ui.components.AbstractForm;
 
 /**
  * Simple editor component for users.

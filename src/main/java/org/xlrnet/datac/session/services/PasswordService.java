@@ -1,16 +1,16 @@
 package org.xlrnet.datac.session.services;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.xlrnet.datac.administration.domain.User;
-import org.xlrnet.datac.commons.util.CryptoUtils;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.xlrnet.datac.commons.util.CryptoUtils;
+import org.xlrnet.datac.session.domain.User;
 
 /**
  * Service for generating and validating passwords. Passwords must match at least three of the following

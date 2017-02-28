@@ -3,7 +3,6 @@ package org.xlrnet.datac.foundation.ui.views;
 import javax.annotation.PostConstruct;
 
 import org.jetbrains.annotations.NotNull;
-import org.xlrnet.datac.foundation.ui.Subview;
 
 import com.vaadin.navigator.ViewChangeListener;
 import com.vaadin.ui.Component;

@@ -1,8 +1,8 @@
-package org.xlrnet.datac.administration.repository;
+package org.xlrnet.datac.session.repository;
 
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.transaction.annotation.Transactional;
-import org.xlrnet.datac.administration.domain.User;
+import org.xlrnet.datac.session.domain.User;
 
 import java.util.List;
 

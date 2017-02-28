@@ -1,13 +1,12 @@
 package org.xlrnet.datac.foundation.domain;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
+import javax.persistence.*;
 
 /**
- * Abstract class for all entities stored in a database. All entities must inherit from this class to make sure that an id field exists.
+ * Abstract class for all entities stored in a database. All entities must inherit from this class to make sure that an
+ * id field exists.
  */
-@Entity
+@MappedSuperclass
 public abstract class AbstractEntity {
 
     /**

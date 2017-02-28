@@ -30,4 +30,7 @@
             <column name="pw_change_necessary" type="boolean" defaultValue="false"/>
         </addColumn>
     </changeSet>
+    <changeSet id="4" author="jhendess">
+        <renameColumn tableName="user" oldColumnName="login" newColumnName="login_name"/>
+    </changeSet>
 </databaseChangeLog>

@@ -10,9 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xlrnet.datac.administration.domain.User;
-import org.xlrnet.datac.foundation.ui.MainMenuEntry;
+import org.xlrnet.datac.foundation.ui.components.MainMenuEntry;
 import org.xlrnet.datac.session.SessionAttributes;
+import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.UserService;
 
 import java.util.Optional;

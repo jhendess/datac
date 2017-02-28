@@ -32,6 +32,7 @@ public class AbstractTransactionalService<T, R extends CrudRepository<T, Long>> 
      * @param entity
      *         The entity to delete.
      */
+    @Transactional
     public void delete(T entity) {
         crudRepository.delete(entity);
     }
@@ -43,6 +44,7 @@ public class AbstractTransactionalService<T, R extends CrudRepository<T, Long>> 
      *         The id to find.
      * @return the entity with a given id.
      */
+    @Transactional(readOnly = true)
     public T findOne(Long id) {
         return crudRepository.findOne(id);
     }
@@ -52,8 +54,36 @@ public class AbstractTransactionalService<T, R extends CrudRepository<T, Long>> 
      *
      * @return all entities.
      */
+    @Transactional(readOnly = true)
     public Iterable<T> findAll() {
         return crudRepository.findAll();
+    }
+
+    /**
+     * Saves a given entity. Use the returned instance for further operations as the save operation might have changed
+     * the entity instance completely.
+     *
+     * @param entity
+     *         The entity to save.
+     * @return the saved entity
+     */
+    @Transactional
+    public <S extends T> S save(S entity) {
+        return crudRepository.save(entity);
+    }
+
+    /**
+     * Saves all given entities.
+     *
+     * @param entities
+     *         The entities to save.
+     * @return the saved entities.
+     * @throws IllegalArgumentException
+     *         in case the given entity is {@literal null}.
+     */
+    @Transactional
+    public <S extends T> Iterable<S> save(Iterable<S> entities) {
+        return crudRepository.save(entities);
     }
 
     /**

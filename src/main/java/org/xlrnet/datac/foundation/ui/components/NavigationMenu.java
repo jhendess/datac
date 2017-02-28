@@ -1,5 +1,15 @@
 package org.xlrnet.datac.foundation.ui.components;
 
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.xlrnet.datac.Application;
+import org.xlrnet.datac.BuildInformation;
+import org.xlrnet.datac.session.domain.User;
+import org.xlrnet.datac.session.services.UserService;
+import org.xlrnet.datac.session.ui.components.UserProfileWindow;
+
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.spring.annotation.SpringComponent;
@@ -8,16 +18,6 @@ import com.vaadin.ui.*;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.MenuBar.MenuItem;
 import com.vaadin.ui.themes.ValoTheme;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.xlrnet.datac.Application;
-import org.xlrnet.datac.BuildInformation;
-import org.xlrnet.datac.administration.domain.User;
-import org.xlrnet.datac.foundation.ui.MainMenuEntry;
-import org.xlrnet.datac.session.services.UserService;
-import org.xlrnet.datac.session.ui.components.UserProfileWindow;
-
-import javax.annotation.PostConstruct;
 
 /**
  * A responsive menu component providing user information and the controls for

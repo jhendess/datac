@@ -2,19 +2,20 @@ package org.xlrnet.datac.administration.ui.views.user;
 
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.xlrnet.datac.administration.domain.User;
-import org.xlrnet.datac.administration.repository.UserRepository;
 import org.xlrnet.datac.commons.util.WindowUtils;
-import org.xlrnet.datac.foundation.ui.Subview;
 import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
 import org.xlrnet.datac.foundation.ui.components.GenericHandler;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
+import org.xlrnet.datac.foundation.ui.views.Subview;
+import org.xlrnet.datac.session.domain.User;
+import org.xlrnet.datac.session.repository.UserRepository;
 import org.xlrnet.datac.session.services.PasswordService;
 import org.xlrnet.datac.session.services.UserService;
 
@@ -23,6 +24,7 @@ import java.util.Objects;
 /**
  * Admin view which is responsible for managing the available users.
  */
+@SpringComponent
 @SpringView(name = AdminUserSubview.VIEW_NAME)
 public class AdminUserSubview extends AbstractSubview implements Subview {
 
@@ -37,11 +39,6 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
      * User service containing business logic for managing users.
      */
     private final UserService userService;
-
-    /**
-     * Data access for users.
-     */
-    private final UserRepository userRepository;
 
     /**
      * Service for generating passwords.
@@ -69,23 +66,22 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
     private SimpleOkCancelWindow confirmationWindow;
 
     @Autowired
-    public AdminUserSubview(AdminUserForm editor, UserService userService, UserRepository userRepository, PasswordService passwordService) {
+    public AdminUserSubview(AdminUserForm editor, UserService userService, PasswordService passwordService) {
         this.userService = userService;
         this.editor = editor;
-        this.userRepository = userRepository;
         this.passwordService = passwordService;
     }
 
     @Override
     @NotNull
     protected String getSubtitle() {
-        return "Create new users or modify existing ones. Click on an existing user to modify him.";
+        return "Configure who can access the application. Click on an existing user to modify him.";
     }
 
     @Override
     @NotNull
     protected String getTitle() {
-        return "User management";
+        return "User administration";
     }
 
     @Override
@@ -160,7 +156,7 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
     @NotNull
     private EntityChangeHandler<User> buildSaveHandler() {
         return (user) -> {
-            User existingUser = userRepository.findFirstByLoginNameIgnoreCase(user.getLoginName());
+            User existingUser = userService.findFirstByLoginNameIgnoreCase(user.getLoginName());
             // If user with same login name exists and who has a different ID than the current -> reject creation
             if (existingUser != null && !Objects.equals(existingUser.getId(), user.getId())) {
                 WindowUtils.showModalDialog(null, "There is already a user with the same name.");
@@ -183,7 +179,7 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
                 user.setPwChangeNecessary(true);
                 userService.createNewUser(user, defaultPassword);
             } else {
-                userRepository.save(user);
+                userService.save(user);
             }
             hideEditor();
             confirmationWindow.close();
@@ -203,7 +199,7 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
     }
 
     private void updateUsers() {
-        grid.setItems(userRepository.findAllByOrderByLoginNameAsc());
+        grid.setItems(userService.findAllByOrderByLoginNameAsc());
     }
 
     private void hideEditor() {

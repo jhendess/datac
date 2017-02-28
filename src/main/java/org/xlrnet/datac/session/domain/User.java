@@ -1,7 +1,9 @@
-package org.xlrnet.datac.administration.domain;
+package org.xlrnet.datac.session.domain;
 
 import org.hibernate.validator.constraints.Email;
+import org.xlrnet.datac.foundation.domain.AbstractEntity;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
@@ -13,13 +15,14 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "user")
-public class User extends org.xlrnet.datac.foundation.domain.AbstractEntity {
+public class User extends AbstractEntity {
 
     /**
      * Login name of the user.
      */
     @NotNull
     @Size(min = 4, max = 20)
+    @Column(name = "login_name")
     private String loginName;
 
     /**
@@ -27,6 +30,7 @@ public class User extends org.xlrnet.datac.foundation.domain.AbstractEntity {
      */
     @NotNull
     @Size(min = 3, max = 64)
+    @Column(name = "first_name")
     private String firstName;
 
     /**
@@ -34,6 +38,7 @@ public class User extends org.xlrnet.datac.foundation.domain.AbstractEntity {
      */
     @NotNull
     @Size(min = 3, max = 64)
+    @Column(name = "last_name")
     private String lastName;
 
     /**
@@ -42,23 +47,27 @@ public class User extends org.xlrnet.datac.foundation.domain.AbstractEntity {
     @Email
     @NotNull
     @Size(min = 1, max = 64)
+    @Column(name = "email")
     private String email;
 
     /**
      * Hashed login password of the user.
      */
     @NotNull
+    @Column(name = "password")
     private byte[] password;
 
     /**
      * Password salt.
      */
     @NotNull
+    @Column(name = "salt")
     private byte[] salt;
 
     /**
      * Indicator if a password change is necessary.
      */
+    @Column(name = "pw_change_necessary")
     private boolean pwChangeNecessary;
 
     public String getLoginName() {

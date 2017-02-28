@@ -11,18 +11,17 @@ import com.vaadin.ui.*;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
-import org.xlrnet.datac.administration.domain.User;
-import org.xlrnet.datac.administration.repository.UserRepository;
 import org.xlrnet.datac.commons.util.WindowUtils;
+import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.PasswordService;
 import org.xlrnet.datac.session.services.UserService;
 
 import javax.annotation.PostConstruct;
 import java.util.Objects;
 
-@SuppressWarnings("serial")
 @UIScope
 @SpringComponent
+@SuppressWarnings("serial")
 public class UserProfileWindow extends Window {
 
     public static final String ID = "profilepreferenceswindow";
@@ -41,11 +40,6 @@ public class UserProfileWindow extends Window {
      * User service.
      */
     private final UserService userService;
-
-    /**
-     * User repository.
-     */
-    private final UserRepository userRepository;
 
     /**
      * Password service.
@@ -109,9 +103,8 @@ public class UserProfileWindow extends Window {
      */
     private Button cancelButton;
 
-    private UserProfileWindow(UserService userService, UserRepository userRepository, PasswordService passwordService) {
+    private UserProfileWindow(UserService userService, PasswordService passwordService) {
         this.userService = userService;
-        this.userRepository = userRepository;
         this.passwordService = passwordService;
     }
 
@@ -280,7 +273,7 @@ public class UserProfileWindow extends Window {
     }
 
     private void saveUserAndClose() {
-        userRepository.save(sessionUser);
+        userService.save(sessionUser);
         Notification.show("Profile updated", Notification.Type.TRAY_NOTIFICATION);
         close();
     }

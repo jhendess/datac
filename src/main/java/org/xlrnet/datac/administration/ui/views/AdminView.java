@@ -1,5 +1,11 @@
 package org.xlrnet.datac.administration.ui.views;
 
+import org.jetbrains.annotations.NotNull;
+import org.xlrnet.datac.administration.ui.views.projects.AdminProjectSubview;
+import org.xlrnet.datac.administration.ui.views.user.AdminUserSubview;
+import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
+import org.xlrnet.datac.foundation.ui.views.Subview;
+
 import com.vaadin.server.ThemeResource;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.spring.annotation.UIScope;
@@ -8,10 +14,6 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.themes.ValoTheme;
-import org.jetbrains.annotations.NotNull;
-import org.xlrnet.datac.administration.ui.views.user.AdminUserSubview;
-import org.xlrnet.datac.foundation.ui.Subview;
-import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 
 /**
  * Administration view.
@@ -52,6 +54,7 @@ public class AdminView extends AbstractSubview implements Subview {
         Button projectButton = new Button("Projects", new ThemeResource("img/project-128.png"));
         projectButton.addStyleName(ADMIN_CATEGORY_BUTTON_CLASS);
         projectButton.addStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
+        projectButton.addClickListener(event -> UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME));
 
         Button databaseButton = new Button("Databases", new ThemeResource("img/database-configuration-128.png"));
         databaseButton.addStyleName(ADMIN_CATEGORY_BUTTON_CLASS);
