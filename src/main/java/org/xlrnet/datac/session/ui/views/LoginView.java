@@ -1,5 +1,13 @@
 package org.xlrnet.datac.session.ui.views;
 
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.xlrnet.datac.Application;
+import org.xlrnet.datac.foundation.configuration.BuildInformation;
+import org.xlrnet.datac.session.ui.components.CustomLoginForm;
+import org.xlrnet.datac.session.ui.listener.UserLoginListener;
+
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener;
 import com.vaadin.server.ThemeResource;
@@ -7,13 +15,6 @@ import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.xlrnet.datac.Application;
-import org.xlrnet.datac.BuildInformation;
-import org.xlrnet.datac.session.ui.components.CustomLoginForm;
-import org.xlrnet.datac.session.ui.listener.UserLoginListener;
-
-import javax.annotation.PostConstruct;
 
 /**
  * Login view for the application. Based on https://github.com/vaadin/dashboard-demo/blob/7.7/src/main/java/com/vaadin/demo/dashboard/view/LoginView.java

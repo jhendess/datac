@@ -5,7 +5,7 @@ import javax.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.Application;
-import org.xlrnet.datac.BuildInformation;
+import org.xlrnet.datac.foundation.configuration.BuildInformation;
 import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.UserService;
 import org.xlrnet.datac.session.ui.components.UserProfileWindow;

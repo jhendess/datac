@@ -7,6 +7,7 @@ import org.xlrnet.datac.foundation.ui.views.MainViewContainer;
 import org.xlrnet.datac.foundation.ui.views.Subview;
 import org.xlrnet.datac.session.ui.listener.SessionCheckViewChangeListener;
 
+import com.vaadin.annotations.Push;
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.Title;
 import com.vaadin.navigator.View;
@@ -17,6 +18,7 @@ import com.vaadin.spring.annotation.SpringViewDisplay;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.UI;
 
+@Push
 @SpringUI
 @Title(Application.APPLICATION_NAME)
 @Theme(VaadinUI.THEME_NAME)

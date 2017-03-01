@@ -2,10 +2,9 @@ package org.xlrnet.datac.vcs.api;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.net.URL;
-
 /**
- * Adapter interface used for communicating with a version control system.
+ * Adapter interface used for communicating with a version control system. Adapters must be implemented stateless as
+ * they are used for instantiating new connections and will be shared among multiple threads.
  */
 public interface VcsAdapter {
 
@@ -19,21 +18,17 @@ public interface VcsAdapter {
     VcsMetaInfo getMetaInfo();
 
     /**
-     * Connects to a remote VCS repository at the given target URL using the given authentication credentials. If the
-     * connection did not fail, a {@link VcsRemoteRepository} object will be returned. Depending on the concrete
-     * implementation, a {@link VcsRemoteRepository} object may also be returned without establishing an actual network
-     * connection and validating the credentials.
+     * Connects to a remote VCS repository at the given target URL using the given authentication credentials. For each
+     * new connection, a new connection object should be returned.
+     * If the connection did not fail, a {@link VcsRemoteRepositoryConnection} object will be returned.
+     * Depending on the concrete implementation, a {@link VcsRemoteRepositoryConnection} object may also be returned
+     * without establishing an actual network connection and validating the credentials.
      *
-     * @param url
-     *         The target repository to which should be connected.
-     * @param username
-     *         The username for authentication.
-     * @param password
-     *         The password for authentication.
-     * @return A {@link VcsRemoteRepository} if no connection errors occurred.
+     * @param credentials
+     *         Credentials for the remote repository.
      * @throws VcsConnectionException
      *         Will be thrown if an error occurred while connecting or authenticating.
      */
     @NotNull
-    VcsRemoteRepository connectRemote(@NotNull URL url, @NotNull String username, @NotNull String password) throws VcsConnectionException;
+    VcsRemoteRepositoryConnection connectRemote(@NotNull VcsRemoteCredentials credentials) throws VcsConnectionException;
 }

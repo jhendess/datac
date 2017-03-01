@@ -1,4 +1,4 @@
-package org.xlrnet.datac.vcs.impl;
+package org.xlrnet.datac.vcs.impl.dummy;
 
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
@@ -17,6 +17,6 @@ public class DummyVcsMetaInfo implements VcsMetaInfo {
     @NotNull
     @Override
     public String getAdapterName() {
-        return "Dummynet";
+        return "Dummy adapter";
     }
 }

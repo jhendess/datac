@@ -1,6 +1,7 @@
 package org.xlrnet.datac.vcs.services;
 
 import com.google.common.collect.ImmutableList;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,8 +12,9 @@ import org.xlrnet.datac.vcs.api.VcsAdapter;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Service which provides central access to the available VCS adapters. The adapters will be registered on application
@@ -29,6 +31,9 @@ public class VersionControlSystemService implements Lifecycle {
 
     /** List of all registered VCS metadata. */
     private List<VcsMetaInfo> vcsAdapterMetaInfo;
+
+    /** Map for resolving meta infos to the concrete adapter. */
+    private Map<VcsMetaInfo, VcsAdapter> metaInfoAdapterMap = new HashMap<>();
 
     private boolean running;
 
@@ -53,15 +58,28 @@ public class VersionControlSystemService implements Lifecycle {
 
     /**
      * Returns the available {@link VcsMetaInfo} for all currently registered VCS adapters.
-
+     *
      * @return available metadata for all currently registered VCS adapters.
      */
     public ImmutableList<VcsMetaInfo> listSupportedVersionControlSystems() {
         return ImmutableList.copyOf(vcsAdapterMetaInfo);
     }
 
+    /**
+     * Returns an {@link Optional} with the adapter that matches a given meta info. If no adapter could be found, the
+     * optional will be empty.
+     *
+     * @param vcsMetaInfo The meta info to use for searching.
+     * @return An {@link Optional} containing the requested {@link VcsAdapter} if it is registered.
+     */
+    @NotNull
+    public Optional<VcsAdapter> findAdapterByMetaInfo(@NotNull VcsMetaInfo vcsMetaInfo) {
+        return Optional.ofNullable(metaInfoAdapterMap.get(vcsMetaInfo));
+    }
+
     @Override
     public void start() {
+        // TODO: This is probably not necessary
         if (!running) {
             init();
         }
@@ -79,10 +97,17 @@ public class VersionControlSystemService implements Lifecycle {
         return running;
     }
 
-    private void registerVcsAdapter(VcsAdapter vcsAdapter) {
+    private void registerVcsAdapter(@NotNull VcsAdapter vcsAdapter) {
         VcsMetaInfo metaInfo = vcsAdapter.getMetaInfo();
+
+        checkNotNull(metaInfo, "Metainfo for VCS adapter may not be null", vcsAdapter.getClass().getName());
+        checkNotNull(metaInfo.getVcsName(), "VCS name for VCS adapter may not be null", vcsAdapter.getClass().getName());
+        checkNotNull(metaInfo.getAdapterName(), "Returned metainfo for VCS adapter may not be null", vcsAdapter.getClass().getName());
+
         vcsAdapterMetaInfo.add(metaInfo);
-        // TODO: Do some registration stuff
+        metaInfoAdapterMap.put(metaInfo, vcsAdapter);
+
+
         LOGGER.info("Successfully registered VCS adapter {} ({}) for system {}", metaInfo.getAdapterName(), vcsAdapter.getClass().getName(), metaInfo.getVcsName());
     }
 

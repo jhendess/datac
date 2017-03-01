@@ -5,6 +5,9 @@ package org.xlrnet.datac.vcs.api;
  */
 public enum VcsConnectionStatus {
 
+    /** An internal error (e.g. an exception) occurred which prevented the connection check from completing. */
+    INTERNAL_ERROR,
+
     /** No connection could be established. */
     COMMUNICATION_FAILURE,
 

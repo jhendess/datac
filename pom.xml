@@ -104,7 +104,12 @@
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
         </dependency>
-        
+        <!-- Vaadin push support -->
+        <dependency>
+            <groupId>com.vaadin</groupId>
+            <artifactId>vaadin-push</artifactId>
+        </dependency>
+
         <!-- Spring boot testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

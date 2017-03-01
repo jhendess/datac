@@ -2,11 +2,13 @@ package org.xlrnet.datac.vcs.api;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Closeable;
+
 /**
  * Connection object to a remote version control system. Implementations of this object may contain stateful data and
  * do not have to be thread-safe.
  */
-public interface VcsRemoteRepository {
+public interface VcsRemoteRepositoryConnection extends Closeable {
 
     /**
      * Performs a request to the VCS backend and tries to login with the instance's credentials. The status of the

@@ -1,5 +1,8 @@
 package org.xlrnet.datac;
 
+import java.util.Locale;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,11 +10,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.xlrnet.datac.foundation.configuration.BuildInformation;
 import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.UserService;
-
-import java.util.Locale;
-import java.util.Optional;
 
 /**
  * Main application class for bootstrapping.
@@ -26,8 +27,6 @@ public class Application {
     private final BuildInformation buildInformation;
 
     private final UserService userService;
-
-//    private final VersionControlSystemService versionControlSystemService;
 
     @Autowired
     public Application(BuildInformation buildInformation, UserService userService) {
