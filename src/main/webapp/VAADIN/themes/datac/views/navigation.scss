@@ -1,5 +1,16 @@
 @mixin navigation-menu {
 
+  .navigation-menu {
+    position: fixed;
+    height: 100%;
+    width: 201px;
+  }
+
+  .view-content {
+    margin-left: 201px;
+    min-width: 1000px;
+  }
+
   .version-numbers {
     font-size: 12px;
     line-height: 1em;
