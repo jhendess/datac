@@ -1,10 +1,10 @@
 package org.xlrnet.datac.session.services;
 
+import org.junit.Test;
+import org.xlrnet.datac.session.domain.validation.PasswordValidator;
+
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
-
-import org.junit.Test;
-import org.xlrnet.datac.session.validation.PasswordValidator;
 
 /**
  * Tests for {@link PasswordValidator}.

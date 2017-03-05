@@ -1,8 +1,10 @@
 package org.xlrnet.datac.vcs.api;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.Closeable;
+import java.util.Collection;
+
+import org.jetbrains.annotations.NotNull;
+import org.xlrnet.datac.vcs.domain.Branch;
 
 /**
  * Connection object to a remote version control system. Implementations of this object may contain stateful data and
@@ -21,4 +23,13 @@ public interface VcsRemoteRepositoryConnection extends Closeable {
      */
     @NotNull
     VcsConnectionStatus checkConnection() throws VcsConnectionException;
+
+    /**
+     * Lists all branches in a remote VCS.
+     *
+     * @return list of all branches in a VCS
+     * @throws VcsConnectionException
+     *         Will be thrown if any connection errors occurred.
+     */
+    Collection<Branch> listBranches() throws VcsConnectionException;
 }

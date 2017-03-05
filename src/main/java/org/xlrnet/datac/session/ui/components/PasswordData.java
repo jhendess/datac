@@ -1,10 +1,10 @@
 package org.xlrnet.datac.session.ui.components;
 
-import org.xlrnet.datac.session.services.PasswordService;
-import org.xlrnet.datac.session.validation.ValidPassword;
-
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+
+import org.xlrnet.datac.session.domain.validation.ValidPassword;
+import org.xlrnet.datac.session.services.PasswordService;
 
 /**
  * Data for password fields in {@link UserProfileWindow}.

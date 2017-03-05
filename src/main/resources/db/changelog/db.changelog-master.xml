@@ -33,4 +33,60 @@
     <changeSet id="4" author="jhendess">
         <renameColumn tableName="user" oldColumnName="login" newColumnName="login_name"/>
     </changeSet>
+    <changeSet id="5" author="jhendess">
+        <createTable tableName="project">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_project"/>
+            </column>
+            <column name="name" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(1000)"/>
+            <column name="website" type="VARCHAR(200)"/>
+        </createTable>
+        <createTable tableName="vcs_config">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_vcs_config"/>
+            </column>
+            <column name="project_id" type="int">
+                <constraints nullable="false" foreignKeyName="fk_vcs_config__project" references="project(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="adapter" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="url" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="username" type="VARCHAR(20)"/>
+            <column name="password" type="VARCHAR(20)"/>
+            <column name="development_branch" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="poll_interval" type="int"/>
+            <column name="new_branch_pattern" type="VARCHAR(200)"/>
+        </createTable>
+        <createTable tableName="branch">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_branch"/>
+            </column>
+            <column name="name" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="internal_id" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="watched" type="boolean"/>
+            <column name="changelog_location" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="vcs_config_id" type="int">
+                <constraints nullable="false" foreignKeyName="fk_branch__vcs_config" references="project(id)"
+                             deleteCascade="true"/>
+            </column>
+        </createTable>
+    </changeSet>
 </databaseChangeLog>

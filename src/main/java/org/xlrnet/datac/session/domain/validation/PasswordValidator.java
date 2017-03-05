@@ -1,4 +1,4 @@
-package org.xlrnet.datac.session.validation;
+package org.xlrnet.datac.session.domain.validation;
 
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;

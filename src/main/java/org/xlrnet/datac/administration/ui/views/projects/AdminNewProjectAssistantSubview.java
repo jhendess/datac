@@ -12,16 +12,23 @@ import com.vaadin.ui.themes.ValoTheme;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.task.TaskExecutor;
+import org.vaadin.viritin.fields.IntegerField;
 import org.xlrnet.datac.commons.tasks.RunnableTask;
 import org.xlrnet.datac.commons.ui.DatacTheme;
+import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.ui.components.BooleanStatusChangeHandler;
+import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
 import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.api.VcsAdapter;
 import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
-import org.xlrnet.datac.vcs.api.VcsRemoteCredentials;
+import org.xlrnet.datac.vcs.domain.Branch;
+import org.xlrnet.datac.vcs.domain.VcsConfig;
 import org.xlrnet.datac.vcs.services.VersionControlSystemService;
 import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
+import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
 
+import java.util.Collection;
 import java.util.Optional;
 
 /**
@@ -35,44 +42,103 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
 
     private static final int NOTIFICATION_DELAY_MS = 5000;
 
-    /** The VCS Service. */
+    /**
+     * The VCS Service.
+     */
     private final VersionControlSystemService vcsService;
 
-    /** Task executor. */
+    /**
+     * Task executor.
+     */
     private final TaskExecutor taskExecutor;
 
-    /** Layout for project name field. */
-    private TextField nameField = new TextField("Name");
+    /**
+     * Layout for project name field.
+     */
+    @PropertyId("name")
+    private final TextField nameField = new TextField("Name");
 
-    /** Layout for project description. */
-    private TextArea descriptionArea = new TextArea("Description");
+    /**
+     * Layout for project description.
+     */
+    @PropertyId("description")
+    private final TextArea descriptionArea = new TextArea("Description");
 
-    /** Selection box for various VCS implementations. */
-    private ComboBox<VcsMetaInfo> vcsSelect = new ComboBox<>("VCS System");
+    /**
+     * Selection box for various VCS implementations.
+     */
+    private final ComboBox<VcsMetaInfo> vcsSelect = new ComboBox<>("VCS System");
 
-    /** Text field for vcs target URL. */
+    /**
+     * Text field for vcs target URL.
+     */
     @PropertyId("url")
-    private TextField vcsUrlField = new TextField("URL");
+    private final TextField vcsUrlField = new TextField("URL");
 
-    /** Text field for vcs username. */
+    /**
+     * Text field for vcs username.
+     */
     @PropertyId("username")
-    private TextField vcsUsernameField = new TextField("Username");
+    private final TextField vcsUsernameField = new TextField("Username");
 
-    /** Text field for vcs password. */
+    /**
+     * Text field for vcs password.
+     */
     @PropertyId("password")
-    private PasswordField vcsPasswordField = new PasswordField("Password");
+    private final PasswordField vcsPasswordField = new PasswordField("Password");
 
-    /** Progress bar for VCS setup. */
-    private ProgressBar progressBar = new ProgressBar();
+    /**
+     * Selection box for the VCS development branch.
+     */
+    private final ComboBox<Branch> branchSelect = new ComboBox<>("Development branch");
 
-    /** Layout with main content. */
+    /**
+     * Poll interval for new VCS.
+     */
+    @PropertyId("pollInterval")
+    private final IntegerField pollIntervalField = new IntegerField("Poll interval in minutes");
+
+    /**
+     * Checkboxes for selecting release branches.
+     */
+    private final CheckBoxGroup<Branch> releaseBranchesCheckboxGroup = new CheckBoxGroup<>("Release branches");
+
+    /**
+     * Checkbox to enable automatic import of new branches.
+     */
+    @PropertyId("newBranchPattern")
+    private final TextField newBranchesPattern = new TextField("Pattern for new branches");
+
+    /**
+     * Text field for changelog master file.
+     */
+    @PropertyId("changelogLocation")
+    private final TextField changeLogLocationField = new TextField("Changelog master file");
+
+    /**
+     * Progress bar for VCS setup.
+     */
+    private final ProgressBar progressBar = new ProgressBar();
+
+    /**
+     * Layout with main content.
+     */
     private VerticalLayout mainLayout;
 
-    /** Layout for buttons. */
+    /**
+     * Layout for buttons.
+     */
     private HorizontalLayout buttonLayout;
 
-    /** Validation binder. */
-    private BeanValidationBinder<VcsRemoteCredentials> binder = new BeanValidationBinder<>(VcsRemoteCredentials.class);
+    /**
+     * Project validation projectBinder.
+     */
+    private final BeanValidationBinder<Project> projectBinder = new BeanValidationBinder<>(Project.class);
+
+    /**
+     * VCS validation projectBinder.
+     */
+    private final BeanValidationBinder<VcsConfig> vcsBinder = new BeanValidationBinder<>(VcsConfig.class);
 
     @Autowired
     public AdminNewProjectAssistantSubview(VersionControlSystemService vcsService, TaskExecutor taskExecutor) {
@@ -104,7 +170,6 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
 
         mainLayout = new VerticalLayout();
         mainLayout.setMargin(false);
-        mainLayout.setSpacing(false);
 
         Layout informationLayout = buildInformationLayout();
         mainLayout.addComponent(informationLayout);
@@ -116,16 +181,21 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
         Layout vcsSetupLayout = buildVcsSetupLayout();
         mainLayout.addComponent(vcsSetupLayout);
 
-        binder.bindInstanceFields(this);
-        binder.setBean(new VcsRemoteCredentials());
+        projectBinder.bindInstanceFields(this);
+        projectBinder.setBean(new Project());
+        vcsBinder.bindInstanceFields(this);
+        VcsConfig vcsConfig = new VcsConfig();
+        vcsConfig.setChangelogLocation("CHANGEME");
+        vcsConfig.setNewBranchPattern(".+");
+        vcsBinder.setBean(vcsConfig);
 
         return mainLayout;
     }
 
     @NotNull
-    private VerticalLayout buildInformationLayout() {
-        VerticalLayout layout = new VerticalLayout();
-        layout.setSpacing(false);
+    private Layout buildInformationLayout() {
+        FormLayout layout = new FormLayout();
+        layout.setSpacing(true);
 
         layout.addComponent(nameField);
         layout.addComponent(descriptionArea);
@@ -134,9 +204,12 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
     }
 
     @NotNull
-    private VerticalLayout buildVcsSetupLayout() {
-        VerticalLayout layout = new VerticalLayout();
-        layout.setSpacing(false);
+    private Layout buildVcsSetupLayout() {
+        FormLayout layout = new FormLayout();
+
+        vcsSelect.setDescription("Version control system that is used");
+        vcsUrlField.setDescription("URL which is used for fetching data from a repository");
+        vcsUsernameField.setDescription("Leave blank if anonymous access should be used.");
 
         vcsSelect.setItems(vcsService.listSupportedVersionControlSystems());
         vcsSelect.setItemCaptionGenerator(m -> String.format("%s (%s)", m.getVcsName(), m.getAdapterName()));
@@ -153,19 +226,28 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
         buttonLayout.setMargin(new MarginInfo(true, false));
         buttonLayout.setSpacing(true);
 
+        UI ui = UI.getCurrent();
+
         Button continueButton = new Button("Continue");
         continueButton.setStyleName(ValoTheme.BUTTON_PRIMARY);
-        continueButton.addClickListener(event -> Notification.show("Not implemented."));
+        continueButton.addClickListener(e -> {
+            projectBinder.validate();
+            vcsBinder.validate();
+            if (vcsBinder.isValid() && projectBinder.isValid()) {
+                checkConnection(buildContinueButtonHandler(ui));
+                changeLogLocationField.setValue("");
+            }
+        });
         Button checkConnectionButton = new Button("Test connection");
         checkConnectionButton.setStyleName(ValoTheme.BUTTON_PRIMARY);
         checkConnectionButton.addClickListener(e -> {
-            binder.validate();
-            if (binder.isValid()) {
-                this.checkConnection();
+            vcsBinder.validate();
+            if (vcsBinder.isValid()) {
+                this.checkConnection((s) -> ui.access(() -> showConnectionNotification(s)));
             }
         });
         Button cancelButton = new Button("Cancel");
-        cancelButton.addClickListener(e -> UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME));
+        cancelButton.addClickListener(e -> ui.getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME));
 
         buttonLayout.addComponent(continueButton);
         buttonLayout.addComponent(checkConnectionButton);
@@ -181,15 +263,89 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
         return layout;
     }
 
-    private void checkConnection() {
+    @NotNull
+    private EntityChangeHandler<VcsConnectionStatus> buildContinueButtonHandler(UI ui) {
+        return (s) -> {
+            // Only show a notification if something went wrong
+            if (!(VcsConnectionStatus.ESTABLISHED.equals(s))) {
+                ui.access(() -> showConnectionNotification(s));
+                return;
+            }
+            Optional<VcsAdapter> adapter = vcsService.findAdapterByMetaInfo(vcsSelect.getValue());
+
+            FetchRemoteVcsBranchesTask fetchBranches = new FetchRemoteVcsBranchesTask(adapter.get(), vcsBinder.getBean());
+            fetchBranches.setRunningStatusHandler(buildRunningStatusHandler(ui));
+            fetchBranches.setEntityChangeHandler(branches -> ui.access(() -> handleFetchedBranches(branches)));
+            taskExecutor.execute(fetchBranches);
+        };
+    }
+
+    private void checkConnection(@NotNull EntityChangeHandler<VcsConnectionStatus> entityChangeHandler) {
         Optional<VcsAdapter> adapter = vcsService.findAdapterByMetaInfo(vcsSelect.getValue());
 
         UI ui = UI.getCurrent();
-        RunnableTask<VcsConnectionStatus> checkConnection = new CheckRemoteVcsConnectionTask(adapter.get(), binder.getBean());
-        checkConnection.setRunningStatusHandler((running) -> ui.access(() -> setCheckingMode(running)));
-        checkConnection.setEntityChangeHandler(e -> ui.access(() -> showConnectionNotification(e)));
+        RunnableTask<VcsConnectionStatus> checkConnection = new CheckRemoteVcsConnectionTask(adapter.get(), vcsBinder.getBean());
+        checkConnection.setRunningStatusHandler(buildRunningStatusHandler(ui));
+        checkConnection.setEntityChangeHandler(entityChangeHandler);
 
         taskExecutor.execute(checkConnection);
+    }
+
+    @NotNull
+    private BooleanStatusChangeHandler buildRunningStatusHandler(UI ui) {
+        return (running) -> ui.access(() -> setCheckingMode(running));
+    }
+
+    private void handleFetchedBranches(Collection<Branch> branches) {
+        if (branches == null) {
+            Notification notification = new Notification("Fetching branches failed", Notification.Type.ERROR_MESSAGE);
+            notification.setPosition(Position.BOTTOM_RIGHT);
+            notification.show(Page.getCurrent());
+        } else {
+            changeToBranchSelectionState(branches);
+        }
+    }
+
+    private void changeToBranchSelectionState(Collection<Branch> branches) {
+        FormLayout branchSelectionLayout = new FormLayout();
+
+        vcsBinder.getBean().setBranches(branches);
+
+        branchSelect.setItems(branches);
+        branchSelect.setItemCaptionGenerator(Branch::getName);
+        releaseBranchesCheckboxGroup.setItems(branches);
+        releaseBranchesCheckboxGroup.setItemCaptionGenerator(Branch::getName);
+        releaseBranchesCheckboxGroup.addValueChangeListener(selected -> {
+            // Update the selection state in the source objects
+            for (Branch branch : branches) {
+                branch.setWatched(selected.getValue().contains(branch));
+            }
+        });
+
+        Button continueButton = new Button("Continue");
+        continueButton.setStyleName(ValoTheme.BUTTON_PRIMARY);
+        continueButton.addClickListener(e -> {
+            vcsBinder.validate();
+            if (vcsBinder.isValid()) {
+                Notification.show("Not implemented");
+            }
+        });
+        Button cancelButton = new Button("Cancel");
+        cancelButton.addClickListener(e -> UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME));
+
+        buttonLayout.removeAllComponents();
+        buttonLayout.addComponent(continueButton);
+        buttonLayout.addComponent(cancelButton);
+
+        branchSelectionLayout.addComponent(changeLogLocationField);
+        branchSelectionLayout.addComponent(pollIntervalField);
+        branchSelectionLayout.addComponent(branchSelect);
+        branchSelectionLayout.addComponent(releaseBranchesCheckboxGroup);
+        branchSelectionLayout.addComponent(newBranchesPattern);
+        branchSelectionLayout.addComponent(buttonLayout);
+
+        mainLayout.removeAllComponents();
+        mainLayout.addComponent(branchSelectionLayout);
     }
 
     private void showConnectionNotification(@NotNull VcsConnectionStatus e) {
@@ -204,8 +360,7 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
 
     private void setCheckingMode(boolean checking) {
         progressBar.setVisible(checking);
-        setVcsFieldEnabled(!checking);
-        vcsSelect.setEnabled(!checking);
+        mainLayout.setEnabled(!checking);
     }
 
     private void setVcsFieldEnabled(boolean enabled) {

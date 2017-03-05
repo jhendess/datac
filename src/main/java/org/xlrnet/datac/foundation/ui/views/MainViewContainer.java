@@ -34,15 +34,11 @@ public class MainViewContainer extends HorizontalLayout {
 
     @PostConstruct
     private void init() {
-        //setSizeFull();
-        //addStyleName("mainview");
         addComponent(navigationMenu);
 
         contentContainer = new CssLayout();
         contentContainer.addStyleName("view-content");
-        //contentContainer.setSizeFull();
         addComponent(contentContainer);
-        //setExpandRatio(contentContainer, 1.0f);
     }
 
     /**

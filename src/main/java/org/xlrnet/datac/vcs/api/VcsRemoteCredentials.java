@@ -1,42 +1,20 @@
 package org.xlrnet.datac.vcs.api;
 
-import org.hibernate.validator.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Credentials for connecting to a remote VCS.
  */
-public class VcsRemoteCredentials {
+public interface VcsRemoteCredentials {
 
-    @NotEmpty
-    private String url;
+    @NotNull
+    public String getUrl();
 
-    @NotEmpty
-    private String username;
+    @Nullable
+    public String getUsername();
 
-    @NotEmpty
-    private String password;
-
-    public String getUrl() {
-        return url;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
+    @Nullable
+    public String getPassword();
 }
