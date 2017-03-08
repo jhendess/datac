@@ -11,6 +11,7 @@ import com.vaadin.ui.*;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
+import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.commons.util.WindowUtils;
 import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.PasswordService;
@@ -188,7 +189,7 @@ public class UserProfileWindow extends Window {
         profilePic.setWidth(100.0f, Unit.PIXELS);
         pic.addComponent(profilePic);
 
-        Button upload = new Button("Change…", (ClickListener) event -> Notification.show("Not implemented."));
+        Button upload = new Button("Change…", (ClickListener) event -> NotificationUtils.showNotImplemented());
         upload.addStyleName(ValoTheme.BUTTON_TINY);
         pic.addComponent(upload);
 
@@ -257,9 +258,9 @@ public class UserProfileWindow extends Window {
                     passwordBinder.validate();
                     if (passwordBinder.isValid()) {
                         if (!passwordService.checkPassword(sessionUser, passwordData.getOldPassword())) {
-                            Notification.show("Your old password doesn't match", Notification.Type.ERROR_MESSAGE);
+                            NotificationUtils.showError("Your old password doesn't match", false);
                         } else if (!Objects.equals(passwordData.getNewPassword(), passwordData.getNewPasswordConfirmation())) {
-                            Notification.show("Your new passwords don't match", Notification.Type.ERROR_MESSAGE);
+                            NotificationUtils.showError("Your new passwords don't match", false);
                         } else {
                             passwordService.changePassword(sessionUser, passwordData.getNewPassword());
                             saveUserAndClose();
@@ -274,7 +275,7 @@ public class UserProfileWindow extends Window {
 
     private void saveUserAndClose() {
         userService.save(sessionUser);
-        Notification.show("Profile updated", Notification.Type.TRAY_NOTIFICATION);
+        NotificationUtils.showSuccess("Profile updated");
         close();
     }
 

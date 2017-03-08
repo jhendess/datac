@@ -1,4 +1,4 @@
-package org.xlrnet.datac.vcs.domain.validation;
+package org.xlrnet.datac.foundation.domain.validation;
 
 import javax.validation.Constraint;
 import javax.validation.Payload;
@@ -8,15 +8,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation for validating if the development branch of a {@link org.xlrnet.datac.vcs.domain.VcsConfig} is also
- * marked as a tracked branch.
+ * Annotation for validating if a {@link org.xlrnet.datac.foundation.domain.Project} contains exactly one valid
+ * development branch.
  */
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = VcsConfigBranchValidator.class)
-public @interface ValidReleaseBranches {
+@Constraint(validatedBy = BranchConfigValidator.class)
+public @interface ValidBranches {
 
-    String message() default "The development branch must be selected for tracking.";
+    String message() default "Project must have exactly one development branch.";
 
     Class<? extends Payload>[] payload() default {};
 

@@ -1,4 +1,4 @@
-package org.xlrnet.datac.session.repository;
+package org.xlrnet.datac.session.domain.repository;
 
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.transaction.annotation.Transactional;

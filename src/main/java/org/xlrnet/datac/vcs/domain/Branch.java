@@ -2,12 +2,12 @@ package org.xlrnet.datac.vcs.domain;
 
 import com.google.common.base.MoreObjects;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
+import org.xlrnet.datac.foundation.domain.Project;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.util.Objects;
 
 /**
  * Representation of a branch in a VCS.
@@ -28,6 +28,13 @@ public class Branch extends AbstractEntity {
 
     @Column(name = "watched")
     private boolean watched;
+
+    @Column(name = "development")
+    private boolean development;
+
+    @ManyToOne(targetEntity = Project.class)
+    @JoinColumn(name = "project_id", insertable = false, updatable = false)
+    private Project project;
 
     public void setName(String name) {
         this.name = name;
@@ -78,4 +85,35 @@ public class Branch extends AbstractEntity {
         this.watched = watched;
     }
 
+    public Project getProject() {
+        return project;
+    }
+
+    public void setProject(Project project) {
+        this.project = project;
+        project.addBranch(this);
+    }
+
+    public boolean isDevelopment() {
+        return development;
+    }
+
+    public void setDevelopment(boolean development) {
+        this.development = development;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Branch branch = (Branch) o;
+        return watched == branch.watched &&
+                Objects.equals(name, branch.name) &&
+                Objects.equals(internalId, branch.internalId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, internalId, watched);
+    }
 }

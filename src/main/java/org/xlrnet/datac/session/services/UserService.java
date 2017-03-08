@@ -13,7 +13,7 @@ import org.xlrnet.datac.commons.util.CryptoUtils;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.session.SessionAttributes;
 import org.xlrnet.datac.session.domain.User;
-import org.xlrnet.datac.session.repository.UserRepository;
+import org.xlrnet.datac.session.domain.repository.UserRepository;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -22,7 +22,6 @@ import java.util.Optional;
  * Service used for authenticating and managing users.
  */
 @Service
-@Transactional
 public class UserService extends AbstractTransactionalService<User, UserRepository> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);

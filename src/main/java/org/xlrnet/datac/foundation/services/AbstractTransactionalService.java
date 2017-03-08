@@ -67,7 +67,6 @@ public class AbstractTransactionalService<T, R extends CrudRepository<T, Long>> 
      *         The entity to save.
      * @return the saved entity
      */
-    @Transactional
     public <S extends T> S save(S entity) {
         return crudRepository.save(entity);
     }

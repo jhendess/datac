@@ -1,4 +1,4 @@
-package org.xlrnet.datac.vcs.domain.validation;
+package org.xlrnet.datac.foundation.domain.validation;
 
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
@@ -18,7 +18,7 @@ public class RegexValidator implements ConstraintValidator<Regex, String> {
         try {
             Pattern.compile(obj);
             return true;
-        } catch (PatternSyntaxException p) {
+        } catch (PatternSyntaxException p) {    // NOSONAR: No logging of exception necessary
             return false;
         }
     }

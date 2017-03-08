@@ -1,4 +1,4 @@
-package org.xlrnet.datac.vcs.domain.validation;
+package org.xlrnet.datac.foundation.domain.validation;
 
 import javax.validation.Constraint;
 import javax.validation.Payload;

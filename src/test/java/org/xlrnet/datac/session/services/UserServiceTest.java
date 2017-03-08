@@ -5,7 +5,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.xlrnet.datac.commons.util.CryptoUtils;
 import org.xlrnet.datac.session.domain.User;
-import org.xlrnet.datac.session.repository.UserRepository;
+import org.xlrnet.datac.session.domain.repository.UserRepository;
 import org.xlrnet.datac.test.util.ReturnFirstArgumentAnswer;
 
 import java.util.Optional;

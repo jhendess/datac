@@ -8,6 +8,7 @@ import com.vaadin.ui.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.commons.util.WindowUtils;
 import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
 import org.xlrnet.datac.foundation.ui.components.GenericHandler;
@@ -15,7 +16,6 @@ import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 import org.xlrnet.datac.foundation.ui.views.Subview;
 import org.xlrnet.datac.session.domain.User;
-import org.xlrnet.datac.session.repository.UserRepository;
 import org.xlrnet.datac.session.services.PasswordService;
 import org.xlrnet.datac.session.services.UserService;
 
@@ -145,7 +145,7 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
                     hideEditor();
                     confirmationWindow.close();
                     updateUsers();
-                    Notification.show("User deleted successfully", Notification.Type.TRAY_NOTIFICATION);
+                    NotificationUtils.showTrayNotification("User deleted successfully");
                 });
 
                 UI.getCurrent().addWindow(confirmationWindow);
