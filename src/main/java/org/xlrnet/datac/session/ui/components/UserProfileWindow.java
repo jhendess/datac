@@ -11,6 +11,7 @@ import com.vaadin.ui.*;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.commons.util.WindowUtils;
 import org.xlrnet.datac.session.domain.User;
@@ -104,6 +105,7 @@ public class UserProfileWindow extends Window {
      */
     private Button cancelButton;
 
+    @Autowired
     private UserProfileWindow(UserService userService, PasswordService passwordService) {
         this.userService = userService;
         this.passwordService = passwordService;

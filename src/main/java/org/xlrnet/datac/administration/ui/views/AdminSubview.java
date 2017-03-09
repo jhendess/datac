@@ -1,11 +1,5 @@
 package org.xlrnet.datac.administration.ui.views;
 
-import org.jetbrains.annotations.NotNull;
-import org.xlrnet.datac.administration.ui.views.projects.AdminProjectSubview;
-import org.xlrnet.datac.administration.ui.views.user.AdminUserSubview;
-import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
-import org.xlrnet.datac.foundation.ui.views.Subview;
-
 import com.vaadin.server.ThemeResource;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.spring.annotation.UIScope;
@@ -14,13 +8,19 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.themes.ValoTheme;
+import org.jetbrains.annotations.NotNull;
+import org.xlrnet.datac.administration.ui.views.projects.AdminProjectSubview;
+import org.xlrnet.datac.administration.ui.views.user.AdminUserSubview;
+import org.xlrnet.datac.commons.ui.NotificationUtils;
+import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
+import org.xlrnet.datac.foundation.ui.views.Subview;
 
 /**
  * Administration view.
  */
 @UIScope
-@SpringView(name = AdminView.VIEW_NAME)
-public class AdminView extends AbstractSubview implements Subview {
+@SpringView(name = AdminSubview.VIEW_NAME)
+public class AdminSubview extends AbstractSubview implements Subview {
 
     public static final String VIEW_NAME = "admin";
 
@@ -59,6 +59,7 @@ public class AdminView extends AbstractSubview implements Subview {
         Button databaseButton = new Button("Databases", new ThemeResource("img/database-configuration-128.png"));
         databaseButton.addStyleName(ADMIN_CATEGORY_BUTTON_CLASS);
         databaseButton.addStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
+        databaseButton.addClickListener(event -> NotificationUtils.showNotImplemented());
 
 
         layout.addComponent(userButton);

@@ -11,8 +11,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-
 /**
  * Abstract subview which contains a title with subtitle and a main content panel. Override the abstract methods in this
  * class to build a the user interface.
@@ -26,23 +24,23 @@ public abstract class AbstractSubview extends VerticalLayout implements Subview 
 
     protected String parameters;
 
-    @PostConstruct
-    private void init() {
-
-    }
-
     @Override
     public void enter(ViewChangeListener.ViewChangeEvent event) {
         parameters = event.getParameters();
         if (StringUtils.isEmpty(parameters)) {
-            LOGGER.debug("Entering view {}", event.getViewName());
+            LOGGER.debug("Entering subview {}", event.getViewName());
         } else {
-            LOGGER.debug("Entering view {} with parameters {}", event.getViewName(), event.getParameters());
+            LOGGER.debug("Entering subview {} with parameters {}", event.getViewName(), event.getParameters());
         }
 
+        buildComponents();
+    }
+
+    private void buildComponents() {
         Component topPanel = buildTitlePanel();
         Component editPanel = buildMainPanel();
 
+        removeAllComponents();
         addComponent(topPanel);
         addComponent(editPanel);
         setWidth("100%");

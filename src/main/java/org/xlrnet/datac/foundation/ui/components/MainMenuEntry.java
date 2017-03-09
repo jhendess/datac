@@ -1,15 +1,14 @@
 package org.xlrnet.datac.foundation.ui.components;
 
-import org.xlrnet.datac.administration.ui.views.AdminView;
-import org.xlrnet.datac.foundation.ui.views.HomeView;
-
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.server.Resource;
+import org.xlrnet.datac.administration.ui.views.AdminSubview;
+import org.xlrnet.datac.foundation.ui.views.HomeView;
 
 public enum MainMenuEntry {
     HOME(HomeView.VIEW_NAME, "Home", VaadinIcons.HOME),
 
-    ADMINSTRATION(AdminView.VIEW_NAME, "Adminstration", VaadinIcons.COGS);
+    ADMINSTRATION(AdminSubview.VIEW_NAME, "Adminstration", VaadinIcons.COGS);
 
     private final String displayString;
 
