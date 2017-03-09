@@ -7,17 +7,24 @@ spring:
   # Database configuration
   datasource:
     driver-class-name: org.hsqldb.jdbc.JDBCDriver
-    url: jdbc:hsqldb:mem:datac
+    url: jdbc:hsqldb:hsql://localhost:9001/
     username: SA
-    password: SA
+    password:
     # Configuration for Hikari connection pool
     type: com.zaxxer.hikari.HikariDataSource
     hikari:
       idle-timeout: 10000
+
   jpa:
     hibernate:
       ddl-auto: none
+    show-sql: true
 
 liquibase:
-  change-log: classpath:db/changelog/db.changelog-master.xml    # Use XML changelog for liquibase
+  change-log: classpath:db/changelog/db.changelog-master.xml       # Use XML changelog for liquibase
+
+logging:
+  level:
+    org.xlrnet.datac: trace
+
 

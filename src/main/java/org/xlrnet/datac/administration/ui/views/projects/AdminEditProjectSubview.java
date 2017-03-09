@@ -8,6 +8,7 @@ import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,17 +34,18 @@ import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
 import javax.validation.ConstraintViolationException;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Assistant for creating new projects.
  */
 @SpringComponent
-@SpringView(name = AdminNewProjectAssistantSubview.VIEW_NAME)
-public class AdminNewProjectAssistantSubview extends AbstractSubview {
+@SpringView(name = AdminEditProjectSubview.VIEW_NAME)
+public class AdminEditProjectSubview extends AbstractSubview {
 
-    static final String VIEW_NAME = "admin/projects/new";
+    static final String VIEW_NAME = "admin/projects/edit";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AdminNewProjectAssistantSubview.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdminEditProjectSubview.class);
 
     /**
      * The VCS Service.
@@ -154,8 +156,10 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
      */
     private Project projectBean;
 
+    private boolean isNewProject;
+
     @Autowired
-    public AdminNewProjectAssistantSubview(VersionControlSystemService vcsService, TaskExecutor taskExecutor, ProjectService projectService) {
+    public AdminEditProjectSubview(VersionControlSystemService vcsService, TaskExecutor taskExecutor, ProjectService projectService) {
         this.vcsService = vcsService;
         this.taskExecutor = taskExecutor;
         this.projectService = projectService;
@@ -171,6 +175,20 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
     @Override
     protected String getTitle() {
         return "New project";
+    }
+
+    /**
+     * If the current navigator state ends with a valid integer, return the project with the matching id. If the state
+     * has is no integer, null will returned (indicating that a new project should be created).
+     */
+    private Project getProjectToEdit() {
+        if (NumberUtils.isDigits(getParameters())) {
+            LOGGER.debug("Trying to open project {} for editing", getParameters());
+            long id = Long.parseLong(getParameters());
+            return projectService.findOne(id);
+        } else {
+            return null;
+        }
     }
 
     @NotNull
@@ -202,13 +220,24 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
         Layout vcsSetupLayout = buildVcsSetupLayout();
         mainLayout.addComponent(vcsSetupLayout);
 
-        projectBinder.bindInstanceFields(this);
-        projectBean = new Project();
-        projectBean.setChangelogLocation("CHANGEME");
-        projectBean.setNewBranchPattern(".+");
-        projectBinder.setBean(projectBean);
+        setupProject();
+        if (!isNewProject) {
+            changeToBranchSelectionState(projectBean.getBranches());
+        }
 
         return mainLayout;
+    }
+
+    private void setupProject() {
+        projectBean = getProjectToEdit();
+        if (projectBean == null) {
+            projectBean = new Project();
+            isNewProject = true;
+            projectBean.setChangelogLocation("CHANGEME");
+            projectBean.setNewBranchPattern(".+");
+        }
+        projectBinder.bindInstanceFields(this);
+        projectBinder.setBean(projectBean);
     }
 
     @NotNull
@@ -338,12 +367,18 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
         });
         releaseBranchesCheckboxGroup.setItems(branches);
         releaseBranchesCheckboxGroup.setItemCaptionGenerator(Branch::getName);
+        releaseBranchesCheckboxGroup.setValue(
+                branches.stream().filter(Branch::isWatched).collect(Collectors.toSet())
+        );
         releaseBranchesCheckboxGroup.addValueChangeListener(selected -> {
             // Update the selection state in the source objects
             for (Branch branch : branches) {
                 branch.setWatched(selected.getValue().contains(branch));
             }
         });
+        if (isNewProject) {
+            branchSelect.setValue(projectBean.getDevelopmentBranch());
+        }
 
         Button continueButton = new Button("Save");
         continueButton.setStyleName(ValoTheme.BUTTON_PRIMARY);
@@ -367,7 +402,9 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
         branchSelectionLayout.addComponent(newBranchesPattern);
         branchSelectionLayout.addComponent(buttonLayout);
 
-        mainLayout.removeAllComponents();
+        if (isNewProject) {
+            mainLayout.removeAllComponents();
+        }
         mainLayout.addComponent(branchSelectionLayout);
     }
 
@@ -420,9 +457,9 @@ public class AdminNewProjectAssistantSubview extends AbstractSubview {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof AdminNewProjectAssistantSubview)) return false;
+        if (!(o instanceof AdminEditProjectSubview)) return false;
         if (!super.equals(o)) return false;
-        AdminNewProjectAssistantSubview that = (AdminNewProjectAssistantSubview) o;
+        AdminEditProjectSubview that = (AdminEditProjectSubview) o;
         return Objects.equal(vcsService, that.vcsService) &&
                 Objects.equal(taskExecutor, that.taskExecutor) &&
                 Objects.equal(projectService, that.projectService) &&

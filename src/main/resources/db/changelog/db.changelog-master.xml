@@ -119,4 +119,9 @@
             <column name="new_branch_pattern" type="VARCHAR(200)"/>
         </addColumn>
     </changeSet>
+    <changeSet id="7" author="jhendess">
+        <addColumn tableName="project">
+            <column name="last_change_check" type="DATETIME"/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

@@ -1,15 +1,20 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import org.jetbrains.annotations.NotNull;
-import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
-
 import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.UI;
-import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.*;
+import com.vaadin.ui.renderers.ButtonRenderer;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.xlrnet.datac.commons.ui.NotificationUtils;
+import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.services.ProjectService;
+import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
+import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
+
+import java.util.Collection;
 
 /**
  * Admin view for managing projects responsible for managing the available users.
@@ -20,11 +25,30 @@ public class AdminProjectSubview extends AbstractSubview {
 
     public static final String VIEW_NAME = "admin/projects";
 
-    /** Button for new projects. */
+    /**
+     * Button for new projects.
+     */
     private Button newButton;
 
-    /** Main layout. */
+    /**
+     * Main layout.
+     */
     private VerticalLayout layout;
+
+    /**
+     * The project service for accessing projects.
+     */
+    private final ProjectService projectService;
+
+    /**
+     * The grid component containing the projects.
+     */
+    private Grid<Project> grid = new Grid<>();
+
+    @Autowired
+    public AdminProjectSubview(ProjectService projectService) {
+        this.projectService = projectService;
+    }
 
     @NotNull
     @Override
@@ -33,9 +57,56 @@ public class AdminProjectSubview extends AbstractSubview {
 
         newButton = new Button("New project");
         newButton.setIcon(VaadinIcons.PLUS);
-        newButton.addClickListener((e) -> UI.getCurrent().getNavigator().navigateTo(AdminNewProjectAssistantSubview.VIEW_NAME));
+        newButton.addClickListener((e) -> UI.getCurrent().getNavigator().navigateTo(AdminEditProjectSubview.VIEW_NAME + "/new"));
         layout.addComponent(newButton);
+
+        layout.addComponent(buildGrid());
+
         return layout;
+    }
+
+    private Component buildGrid() {
+        grid.addColumn(Project::getId).setCaption("ID");
+        grid.addColumn(Project::getName).setCaption("Name");
+        grid.addColumn(Project::getUrl).setCaption("VCS Url");
+        grid.addColumn(Project::getLastChangeCheck).setCaption("Last check for changes");
+
+        grid.addColumn(project -> "Check for changes", new ButtonRenderer<>(clickEvent -> {
+            forceUpdate(clickEvent.getItem());
+        }));
+        grid.addColumn(project -> "Edit", new ButtonRenderer<>(clickEvent -> {
+            UI.getCurrent().getNavigator().navigateTo(AdminEditProjectSubview.VIEW_NAME + "/" + clickEvent.getItem().getId());
+        }));
+        grid.addColumn(project -> "Delete", new ButtonRenderer<>(clickEvent -> {
+            deleteProject(clickEvent.getItem());
+        }));
+
+        grid.setSizeFull();
+
+        reloadProjects();
+
+        return grid;
+    }
+
+    private void reloadProjects() {
+        grid.setItems((Collection<Project>) projectService.findAll());
+    }
+
+    private void deleteProject(Project item) {
+        SimpleOkCancelWindow window = new SimpleOkCancelWindow("Delete project");
+        window.setCustomContent(new Label("Do you want to delete the project " + item.getName() + "?<br>This action cannot be reverted!", ContentMode.HTML));
+        window.setOkHandler(() -> {
+            projectService.delete(item);
+            NotificationUtils.showSuccess("Project deleted successfully");
+            reloadProjects();
+            window.close();
+        });
+        UI.getCurrent().addWindow(window);
+    }
+
+    private void forceUpdate(Project item) {
+        // TODO
+        NotificationUtils.showNotImplemented();
     }
 
     @NotNull

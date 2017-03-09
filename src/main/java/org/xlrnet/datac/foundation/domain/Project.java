@@ -12,6 +12,7 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
@@ -115,10 +116,15 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials {
     private String changelogLocation;
 
     /**
+     * The time when the project was last checked for new changes in the source repository.
+     */
+    @Column(name = "last_change_check")
+    private LocalDateTime lastChangeCheck;
+
+    /**
      * Collection of branches in the VCS. Contains both watched and unwatched changes.
      */
-    @OneToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH, CascadeType.DETACH},
-            targetEntity = Branch.class)
+    @OneToMany(cascade = CascadeType.ALL, targetEntity = Branch.class, fetch = FetchType.EAGER)
     @JoinColumn(name = "project_id", referencedColumnName = "id", nullable = false)
     private Collection<Branch> branches = new ArrayList<>();
 
@@ -242,6 +248,14 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials {
         this.newBranchPattern = newBranchPattern;
     }
 
+    public LocalDateTime getLastChangeCheck() {
+        return lastChangeCheck;
+    }
+
+    public void setLastChangeCheck(LocalDateTime lastChangeCheck) {
+        this.lastChangeCheck = lastChangeCheck;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -258,11 +272,12 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials {
                 Objects.equals(password, project.password) &&
                 Objects.equals(newBranchPattern, project.newBranchPattern) &&
                 Objects.equals(changelogLocation, project.changelogLocation) &&
+                Objects.equals(lastChangeCheck, project.lastChangeCheck) &&
                 Objects.equals(branches, project.branches);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, website, type, adapterClass, url, username, password, pollInterval, newBranchPattern, changelogLocation, branches);
+        return Objects.hash(name, description, website, type, adapterClass, url, username, password, pollInterval, newBranchPattern, changelogLocation, lastChangeCheck, branches);
     }
 }
