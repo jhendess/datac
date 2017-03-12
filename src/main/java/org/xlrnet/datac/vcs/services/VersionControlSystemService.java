@@ -1,6 +1,7 @@
 package org.xlrnet.datac.vcs.services;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,41 @@ public class VersionControlSystemService implements Lifecycle {
     @Autowired
     public VersionControlSystemService(List<VcsAdapter> vcsAdapters) {
         this.vcsAdapters = vcsAdapters;
+    }
+
+    /**
+     * Tries to find the specific metadata for a given adapter class name.
+     *
+     * @param adapterClass The class of the adapter to whom the metadata belongs.
+     * @return An optional containing the {@link VcsMetaInfo} object or empty.
+     */
+    @NotNull
+    public Optional<VcsMetaInfo> findMetaInfoByAdapterClassName(@NotNull String adapterClass) {
+        VcsMetaInfo metaInfo = null;
+        for (Map.Entry<VcsMetaInfo, VcsAdapter> entry: metaInfoAdapterMap.entrySet()) {
+            if (StringUtils.equalsIgnoreCase(entry.getValue().getClass().getName(), adapterClass)) {
+                metaInfo = entry.getKey();
+            }
+        }
+        return Optional.ofNullable(metaInfo);
+    }
+
+    /**
+     * Tries to find the first available metadata of an adapter supporting the given VCS type. Works case insensitive.
+     *
+     * @param type The type of VCS to look for. This is the value returned by {@link VcsMetaInfo#getVcsName()}.
+     * @return An optional containing the {@link VcsMetaInfo} or empty.
+     */
+    @NotNull
+    public Optional<VcsMetaInfo> findMetaInfoByVcsType(@NotNull  String type) {
+        VcsMetaInfo metaInfo = null;
+        for (VcsMetaInfo m : metaInfoAdapterMap.keySet()) {
+            if (StringUtils.equalsIgnoreCase(m.getVcsName(), type)) {
+                metaInfo = m;
+            }
+        }
+
+        return Optional.ofNullable(metaInfo);
     }
 
     @PostConstruct

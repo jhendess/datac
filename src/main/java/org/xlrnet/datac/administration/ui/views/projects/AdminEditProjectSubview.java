@@ -106,7 +106,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
     /**
      * Selection box for the VCS development branch.
      */
-    private final ComboBox<Branch> branchSelect = new ComboBox<>("Development branch");
+    private final ComboBox<Branch> vcsDevBranchSelect = new ComboBox<>("Development branch");
 
     /**
      * Poll interval for new VCS.
@@ -156,7 +156,15 @@ public class AdminEditProjectSubview extends AbstractSubview {
      */
     private Project projectBean;
 
+    /**
+     * Flag to indicate if this is a new project.
+     */
     private boolean isNewProject;
+
+    /**
+     * Layout for VCS settings.
+     */
+    private FormLayout vcsSettingsLayout;
 
     @Autowired
     public AdminEditProjectSubview(VersionControlSystemService vcsService, TaskExecutor taskExecutor, ProjectService projectService) {
@@ -204,7 +212,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
 
         changeLogLocationField.addStyleName(DatacTheme.FIELD_WIDE);
         pollIntervalField.addStyleName(DatacTheme.FIELD_WIDE);
-        branchSelect.addStyleName(DatacTheme.FIELD_WIDE);
+        vcsDevBranchSelect.addStyleName(DatacTheme.FIELD_WIDE);
         newBranchesPattern.addStyleName(DatacTheme.FIELD_WIDE);
 
         mainLayout = new VerticalLayout();
@@ -223,6 +231,17 @@ public class AdminEditProjectSubview extends AbstractSubview {
         setupProject();
         if (!isNewProject) {
             changeToBranchSelectionState(projectBean.getBranches());
+            vcsDevBranchSelect.setValue(projectBean.getDevelopmentBranch());
+            Optional<VcsMetaInfo> metaInfo = vcsService.findMetaInfoByAdapterClassName(projectBean.getAdapterClass());
+            if (!metaInfo.isPresent()) {
+                metaInfo = vcsService.findMetaInfoByVcsType(projectBean.getType());
+            }
+            if (metaInfo.isPresent()) {
+                vcsSelect.setValue(metaInfo.get());
+                setVcsFieldEnabled(true);
+            } else {
+                NotificationUtils.showError("The VCS adapter used for creating the project is missing.", true);
+            }
         }
 
         return mainLayout;
@@ -254,7 +273,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
 
     @NotNull
     private Layout buildVcsSetupLayout() {
-        FormLayout layout = new FormLayout();
+        vcsSettingsLayout = new FormLayout();
 
         vcsSelect.setDescription("Version control system that is used");
         vcsUrlField.setDescription("URL which is used for fetching data from a repository");
@@ -266,10 +285,10 @@ public class AdminEditProjectSubview extends AbstractSubview {
             setVcsFieldEnabled(c.getValue() != null);
         });
 
-        layout.addComponent(vcsSelect);
-        layout.addComponent(vcsUrlField);
-        layout.addComponent(vcsUsernameField);
-        layout.addComponent(vcsPasswordField);
+        vcsSettingsLayout.addComponent(vcsSelect);
+        vcsSettingsLayout.addComponent(vcsUrlField);
+        vcsSettingsLayout.addComponent(vcsUsernameField);
+        vcsSettingsLayout.addComponent(vcsPasswordField);
 
         buttonLayout = new HorizontalLayout();
         buttonLayout.setMargin(new MarginInfo(true, false));
@@ -305,10 +324,10 @@ public class AdminEditProjectSubview extends AbstractSubview {
         progressBar.setVisible(false);
         buttonLayout.addComponent(progressBar);
 
-        layout.addComponent(buttonLayout);
+        vcsSettingsLayout.addComponent(buttonLayout);
 
         setVcsFieldEnabled(false);
-        return layout;
+        return vcsSettingsLayout;
     }
 
     @NotNull
@@ -348,18 +367,17 @@ public class AdminEditProjectSubview extends AbstractSubview {
         if (branches == null) {
             NotificationUtils.showError("Fetching branches failed", null, true);
         } else {
+            vcsSettingsLayout.removeAllComponents();
             changeToBranchSelectionState(branches);
         }
     }
 
     private void changeToBranchSelectionState(Collection<Branch> branches) {
-        FormLayout branchSelectionLayout = new FormLayout();
-
         projectBean.setBranches(branches);
 
-        branchSelect.setItems(branches);
-        branchSelect.setItemCaptionGenerator(Branch::getName);
-        branchSelect.addValueChangeListener(vc -> {
+        vcsDevBranchSelect.setItems(branches);
+        vcsDevBranchSelect.setItemCaptionGenerator(Branch::getName);
+        vcsDevBranchSelect.addValueChangeListener(vc -> {
             if (vc.getOldValue() != null) {
                 vc.getOldValue().setDevelopment(false);
             }
@@ -377,7 +395,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
             }
         });
         if (isNewProject) {
-            branchSelect.setValue(projectBean.getDevelopmentBranch());
+            vcsDevBranchSelect.setValue(projectBean.getDevelopmentBranch());
         }
 
         Button continueButton = new Button("Save");
@@ -395,17 +413,12 @@ public class AdminEditProjectSubview extends AbstractSubview {
         buttonLayout.addComponent(continueButton);
         buttonLayout.addComponent(cancelButton);
 
-        branchSelectionLayout.addComponent(changeLogLocationField);
-        branchSelectionLayout.addComponent(pollIntervalField);
-        branchSelectionLayout.addComponent(branchSelect);
-        branchSelectionLayout.addComponent(releaseBranchesCheckboxGroup);
-        branchSelectionLayout.addComponent(newBranchesPattern);
-        branchSelectionLayout.addComponent(buttonLayout);
-
-        if (isNewProject) {
-            mainLayout.removeAllComponents();
-        }
-        mainLayout.addComponent(branchSelectionLayout);
+        vcsSettingsLayout.addComponent(changeLogLocationField);
+        vcsSettingsLayout.addComponent(pollIntervalField);
+        vcsSettingsLayout.addComponent(vcsDevBranchSelect);
+        vcsSettingsLayout.addComponent(releaseBranchesCheckboxGroup);
+        vcsSettingsLayout.addComponent(newBranchesPattern);
+        vcsSettingsLayout.addComponent(buttonLayout);
     }
 
     private void saveProject() {
@@ -418,14 +431,13 @@ public class AdminEditProjectSubview extends AbstractSubview {
                 NotificationUtils.showSuccess("Project saved successfully!");
                 UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME);
             }
-        } catch (ConstraintViolationException cve) {
-            LOGGER.warn("Saving project failed due to constraint violations", cve);
+        } catch (ConstraintViolationException cve) {    // NOSONAR: Logging of exception not necessary
+            LOGGER.warn("Saving project failed due to constraint violations");
             NotificationUtils.showValidationError("Saving failed", cve.getConstraintViolations());
         } catch (RuntimeException e) {
             LOGGER.error("Saving project failed", e);
             NotificationUtils.showError("Saving failed", e.getMessage(), true);
         }
-
     }
 
     private void prepareBeansForSaving() {
@@ -470,7 +482,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
                 Objects.equal(vcsUrlField, that.vcsUrlField) &&
                 Objects.equal(vcsUsernameField, that.vcsUsernameField) &&
                 Objects.equal(vcsPasswordField, that.vcsPasswordField) &&
-                Objects.equal(branchSelect, that.branchSelect) &&
+                Objects.equal(vcsDevBranchSelect, that.vcsDevBranchSelect) &&
                 Objects.equal(pollIntervalField, that.pollIntervalField) &&
                 Objects.equal(releaseBranchesCheckboxGroup, that.releaseBranchesCheckboxGroup) &&
                 Objects.equal(newBranchesPattern, that.newBranchesPattern) &&
@@ -484,6 +496,6 @@ public class AdminEditProjectSubview extends AbstractSubview {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), vcsService, taskExecutor, projectService, nameField, descriptionArea, websiteField, vcsSelect, vcsUrlField, vcsUsernameField, vcsPasswordField, branchSelect, pollIntervalField, releaseBranchesCheckboxGroup, newBranchesPattern, changeLogLocationField, progressBar, mainLayout, buttonLayout, projectBinder, projectBean);
+        return Objects.hashCode(super.hashCode(), vcsService, taskExecutor, projectService, nameField, descriptionArea, websiteField, vcsSelect, vcsUrlField, vcsUsernameField, vcsPasswordField, vcsDevBranchSelect, pollIntervalField, releaseBranchesCheckboxGroup, newBranchesPattern, changeLogLocationField, progressBar, mainLayout, buttonLayout, projectBinder, projectBean);
     }
 }
