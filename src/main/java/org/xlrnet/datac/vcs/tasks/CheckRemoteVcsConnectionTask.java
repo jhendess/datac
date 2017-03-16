@@ -28,8 +28,7 @@ public class CheckRemoteVcsConnectionTask extends AbstractRunnableTask<VcsConnec
     }
 
     @Override
-    public void run() {
-        getRunningStatusHandler().handleStatusChange(true);
+    protected void runTask() {
         LOGGER.info("Begin connection check to VCS using adapter {}", vcsAdapter.getClass().getName());
         VcsConnectionStatus vcsConnectionStatus = VcsConnectionStatus.INTERNAL_ERROR;
         try {
@@ -40,7 +39,6 @@ public class CheckRemoteVcsConnectionTask extends AbstractRunnableTask<VcsConnec
         } catch (Exception e) {
             LOGGER.error("Connection check failed", e);
         }
-        getRunningStatusHandler().handleStatusChange(false);
         getEntityChangeHandler().onChange(vcsConnectionStatus);
     }
 }

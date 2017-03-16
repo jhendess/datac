@@ -1,8 +1,5 @@
 package org.xlrnet.datac;
 
-import java.util.Locale;
-import java.util.Optional;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +10,9 @@ import org.springframework.context.annotation.Bean;
 import org.xlrnet.datac.foundation.configuration.BuildInformation;
 import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.UserService;
+
+import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Main application class for bootstrapping.
@@ -45,13 +45,15 @@ public class Application {
 
             Locale.setDefault(Locale.ENGLISH);  // Reset the locale VM-wide
 
-            User user = new User();
-            user.setFirstName("Internal");
-            user.setLastName("User");
-            user.setLoginName("system");
-            user.setEmail("system@demo.org");
-            Optional<User> systemUser = userService.createNewUser(user, "Sys123");
-            systemUser.ifPresent(user1 -> LOGGER.info("Created technical user system:Sys123"));
+            if (userService.findFirstByLoginNameIgnoreCase("system") == null) {
+                User user = new User();
+                user.setFirstName("Internal");
+                user.setLastName("User");
+                user.setLoginName("system");
+                user.setEmail("system@demo.org");
+                Optional<User> systemUser = userService.createNewUser(user, "Sys123");
+                systemUser.ifPresent(user1 -> LOGGER.info("Created technical user system:Sys123"));
+            }
         };
     }
 }

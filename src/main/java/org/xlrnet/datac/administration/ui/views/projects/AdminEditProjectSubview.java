@@ -27,6 +27,7 @@ import org.xlrnet.datac.vcs.api.VcsAdapter;
 import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 import org.xlrnet.datac.vcs.domain.Branch;
+import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.VersionControlSystemService;
 import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
 import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
@@ -61,6 +62,9 @@ public class AdminEditProjectSubview extends AbstractSubview {
      * The project service.
      */
     private final ProjectService projectService;
+
+    /** The central locking service. */
+    private final LockingService lockingService;
 
     /**
      * Text field for project name.
@@ -167,10 +171,11 @@ public class AdminEditProjectSubview extends AbstractSubview {
     private FormLayout vcsSettingsLayout;
 
     @Autowired
-    public AdminEditProjectSubview(VersionControlSystemService vcsService, TaskExecutor taskExecutor, ProjectService projectService) {
+    public AdminEditProjectSubview(VersionControlSystemService vcsService, TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService) {
         this.vcsService = vcsService;
         this.taskExecutor = taskExecutor;
         this.projectService = projectService;
+        this.lockingService = lockingService;
     }
 
     @NotNull
@@ -424,19 +429,25 @@ public class AdminEditProjectSubview extends AbstractSubview {
     private void saveProject() {
         prepareBeansForSaving();
 
-        try {
-            // TODO: Make this try-catch construct reusable
-            Project saved = projectService.save(projectBean);
-            if (saved != null) {
-                NotificationUtils.showSuccess("Project saved successfully!");
-                UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME);
+        if (lockingService.tryLock(projectBean)) {
+            try {
+                // TODO: Make this try-catch construct reusable
+                Project saved = projectService.save(projectBean);
+                if (saved != null) {
+                    NotificationUtils.showSuccess("Project saved successfully!");
+                    UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME);
+                }
+            } catch (ConstraintViolationException cve) {    // NOSONAR: Logging of exception not necessary
+                LOGGER.warn("Saving project failed due to constraint violations");
+                NotificationUtils.showValidationError("Saving failed", cve.getConstraintViolations());
+            } catch (RuntimeException e) {
+                LOGGER.error("Saving project failed", e);
+                NotificationUtils.showError("Saving failed", e.getMessage(), true);
+            } finally {
+                lockingService.unlock(projectBean);
             }
-        } catch (ConstraintViolationException cve) {    // NOSONAR: Logging of exception not necessary
-            LOGGER.warn("Saving project failed due to constraint violations");
-            NotificationUtils.showValidationError("Saving failed", cve.getConstraintViolations());
-        } catch (RuntimeException e) {
-            LOGGER.error("Saving project failed", e);
-            NotificationUtils.showError("Saving failed", e.getMessage(), true);
+        } else {
+            NotificationUtils.showError("Project locked.", false);
         }
     }
 

@@ -24,7 +24,7 @@ import java.util.Objects;
 @Entity
 @ValidBranches
 @Table(name = "project")
-public class Project extends AbstractEntity implements VcsRemoteCredentials {
+public class Project extends AbstractEntity implements VcsRemoteCredentials, Lockable {
 
     /**
      * Name of the project.
@@ -279,5 +279,11 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials {
     @Override
     public int hashCode() {
         return Objects.hash(name, description, website, type, adapterClass, url, username, password, pollInterval, newBranchPattern, changelogLocation, lastChangeCheck, branches);
+    }
+
+    @org.jetbrains.annotations.NotNull
+    @Override
+    public String getLockKey() {
+        return getId() != null ? getId().toString() : "?";
     }
 }

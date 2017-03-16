@@ -13,6 +13,7 @@ import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
+import org.xlrnet.datac.vcs.services.LockingService;
 
 import java.util.Collection;
 
@@ -45,9 +46,15 @@ public class AdminProjectSubview extends AbstractSubview {
      */
     private Grid<Project> grid = new Grid<>();
 
+    /**
+     * Central locking service.
+     */
+    private final LockingService lockingService;
+
     @Autowired
-    public AdminProjectSubview(ProjectService projectService) {
+    public AdminProjectSubview(ProjectService projectService, LockingService lockingService) {
         this.projectService = projectService;
+        this.lockingService = lockingService;
     }
 
     @NotNull
@@ -96,17 +103,28 @@ public class AdminProjectSubview extends AbstractSubview {
         SimpleOkCancelWindow window = new SimpleOkCancelWindow("Delete project");
         window.setCustomContent(new Label("Do you want to delete the project " + item.getName() + "?<br>This action cannot be reverted!", ContentMode.HTML));
         window.setOkHandler(() -> {
-            projectService.delete(item);
-            NotificationUtils.showSuccess("Project deleted successfully");
-            reloadProjects();
+            if (lockingService.tryLock(item)) {
+                try {
+                    projectService.delete(item);
+                    NotificationUtils.showSuccess("Project deleted successfully");
+                    reloadProjects();
+                } finally {
+                    lockingService.unlock(item);
+                }
+            } else {
+                NotificationUtils.showError("Project is locked", false);
+            }
             window.close();
         });
         UI.getCurrent().addWindow(window);
     }
 
     private void forceUpdate(Project item) {
-        // TODO
-        NotificationUtils.showNotImplemented();
+        if (projectService.queueProjectUpdate(item)) {
+            NotificationUtils.showSuccess("Project update queued");
+        } else {
+            NotificationUtils.showWarning("Project is locked");
+        }
     }
 
     @NotNull

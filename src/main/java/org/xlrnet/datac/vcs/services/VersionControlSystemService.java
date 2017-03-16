@@ -6,9 +6,10 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.Lifecycle;
+import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.xlrnet.datac.foundation.configuration.StartupPhases;
 import org.xlrnet.datac.vcs.api.VcsAdapter;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 
@@ -23,7 +24,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 @Component
 @Scope("singleton")
-public class VersionControlSystemService implements Lifecycle {
+public class VersionControlSystemService implements SmartLifecycle {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VersionControlSystemService.class);
 
@@ -36,6 +37,7 @@ public class VersionControlSystemService implements Lifecycle {
     /** Map for resolving meta infos to the concrete adapter. */
     private Map<VcsMetaInfo, VcsAdapter> metaInfoAdapterMap = new HashMap<>();
 
+    /** Flag if the service is running. */
     private boolean running;
 
     @Autowired
@@ -78,6 +80,42 @@ public class VersionControlSystemService implements Lifecycle {
         return Optional.ofNullable(metaInfo);
     }
 
+    @Override
+    public boolean isAutoStartup() {
+        return true;
+    }
+
+    @Override
+    public void stop(Runnable callback) {
+        stop();
+        callback.run();
+    }
+
+    @Override
+    public int getPhase() {
+        return StartupPhases.CONFIGURATION;
+    }
+
+    @Override
+    public void start() {
+        // TODO: This is probably not necessary
+        if (!running) {
+            init();
+        }
+    }
+
+    @Override
+    public void stop() {
+        LOGGER.info("Shutting down VCS adapters");
+        // TODO: Shut down the adapters
+        running = false;
+    }
+
+    @Override
+    public boolean isRunning() {
+        return running;
+    }
+
     @PostConstruct
     void init() {
         vcsAdapterMetaInfo = new ArrayList<>(vcsAdapters.size());
@@ -111,26 +149,6 @@ public class VersionControlSystemService implements Lifecycle {
     @NotNull
     public Optional<VcsAdapter> findAdapterByMetaInfo(@NotNull VcsMetaInfo vcsMetaInfo) {
         return Optional.ofNullable(metaInfoAdapterMap.get(vcsMetaInfo));
-    }
-
-    @Override
-    public void start() {
-        // TODO: This is probably not necessary
-        if (!running) {
-            init();
-        }
-    }
-
-    @Override
-    public void stop() {
-        LOGGER.info("Shutting down VCS adapters");
-        // TODO: Shut down the adapters
-        running = false;
-    }
-
-    @Override
-    public boolean isRunning() {
-        return running;
     }
 
     private void registerVcsAdapter(@NotNull VcsAdapter vcsAdapter) {

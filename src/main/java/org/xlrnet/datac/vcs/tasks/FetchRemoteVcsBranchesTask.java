@@ -34,9 +34,8 @@ public class FetchRemoteVcsBranchesTask extends AbstractRunnableTask<Collection<
     }
 
     @Override
-    public void run() {
+    protected void runTask() {
         LOGGER.info("Begin fetching remote branches in VCS using adapter {}", vcsAdapter.getClass().getName());
-        getRunningStatusHandler().handleStatusChange(true);
         Collection<Branch> branches = null;
         try {
             VcsRemoteRepositoryConnection vcsRemoteRepository = vcsAdapter.connectRemote(credentials);
@@ -46,7 +45,6 @@ public class FetchRemoteVcsBranchesTask extends AbstractRunnableTask<Collection<
         } catch (Exception e) {
             LOGGER.error("Fetching remote branches failed", e);
         }
-        getRunningStatusHandler().handleStatusChange(false);
         getEntityChangeHandler().onChange(branches);
     }
 }
