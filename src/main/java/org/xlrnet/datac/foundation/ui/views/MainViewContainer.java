@@ -4,7 +4,6 @@ import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.CssLayout;
-import com.vaadin.ui.HorizontalLayout;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +18,7 @@ import javax.annotation.PostConstruct;
  */
 @UIScope
 @SpringComponent
-public class MainViewContainer extends HorizontalLayout {
+public class MainViewContainer extends CssLayout {
 
     private final NavigationMenu navigationMenu;
 
@@ -34,6 +33,7 @@ public class MainViewContainer extends HorizontalLayout {
 
     @PostConstruct
     private void init() {
+        addStyleName("main-container");
         addComponent(navigationMenu);
 
         contentContainer = new CssLayout();

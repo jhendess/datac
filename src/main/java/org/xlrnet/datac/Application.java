@@ -7,6 +7,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.xlrnet.datac.foundation.configuration.BuildInformation;
 import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.UserService;
@@ -17,6 +18,7 @@ import java.util.Optional;
 /**
  * Main application class for bootstrapping.
  */
+@EnableAsync
 @SpringBootApplication
 public class Application {
 

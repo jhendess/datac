@@ -71,7 +71,6 @@ public final class NavigationMenu extends CustomComponent {
         menuContent.addStyleName(ValoTheme.MENU_PART);
         menuContent.addStyleName("no-vertical-drag-hints");
         menuContent.addStyleName("no-horizontal-drag-hints");
-        menuContent.setWidth(null);
         menuContent.setHeight("100%");
 
         menuContent.addComponent(buildTitle());

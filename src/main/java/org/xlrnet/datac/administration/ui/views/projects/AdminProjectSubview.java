@@ -14,6 +14,7 @@ import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.services.LockingService;
+import org.xlrnet.datac.vcs.services.ProjectUpdateService;
 
 import java.util.Collection;
 
@@ -27,6 +28,16 @@ public class AdminProjectSubview extends AbstractSubview {
     public static final String VIEW_NAME = "admin/projects";
 
     /**
+     * The project service for accessing projects.
+     */
+    private final ProjectService projectService;
+
+    /**
+     * The update service for projects.
+     */
+    private final ProjectUpdateService projectUpdateService;
+
+    /**
      * Button for new projects.
      */
     private Button newButton;
@@ -35,11 +46,6 @@ public class AdminProjectSubview extends AbstractSubview {
      * Main layout.
      */
     private VerticalLayout layout;
-
-    /**
-     * The project service for accessing projects.
-     */
-    private final ProjectService projectService;
 
     /**
      * The grid component containing the projects.
@@ -52,8 +58,9 @@ public class AdminProjectSubview extends AbstractSubview {
     private final LockingService lockingService;
 
     @Autowired
-    public AdminProjectSubview(ProjectService projectService, LockingService lockingService) {
+    public AdminProjectSubview(ProjectService projectService, ProjectUpdateService projectUpdateService, LockingService lockingService) {
         this.projectService = projectService;
+        this.projectUpdateService = projectUpdateService;
         this.lockingService = lockingService;
     }
 
@@ -88,7 +95,7 @@ public class AdminProjectSubview extends AbstractSubview {
             deleteProject(clickEvent.getItem());
         }));
 
-        grid.setSizeFull();
+        grid.setWidth("80%");
 
         reloadProjects();
 
@@ -120,7 +127,8 @@ public class AdminProjectSubview extends AbstractSubview {
     }
 
     private void forceUpdate(Project item) {
-        if (projectService.queueProjectUpdate(item)) {
+
+        if (projectUpdateService.queueProjectUpdate(item)) {
             NotificationUtils.showSuccess("Project update queued");
         } else {
             NotificationUtils.showWarning("Project is locked");

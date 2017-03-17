@@ -1,14 +1,12 @@
 @mixin navigation-menu {
 
-  .navigation-menu {
-    position: fixed;
-    height: 100%;
-    width: 201px;
+  #dashboard-menu {
+    width: 201px !important;
   }
 
-  .view-content {
-    margin-left: 201px;
-    min-width: 1000px;
+  .navigation-menu {
+    position: fixed;
+    width: 201px;
   }
 
   .version-numbers {
