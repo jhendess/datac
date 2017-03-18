@@ -30,6 +30,10 @@ public class DummyRemoteRepositoryConnection implements VcsRemoteRepositoryConne
 
     private final Branch v2 = new Branch();
 
+    private final Branch v3 = new Branch();
+
+    private final Branch v4 = new Branch();
+
     DummyRemoteRepositoryConnection() {
         master.setName("master");
         master.setInternalId("1");
@@ -37,6 +41,10 @@ public class DummyRemoteRepositoryConnection implements VcsRemoteRepositoryConne
         v1.setInternalId("2");
         v2.setName("2.0.x");
         v2.setInternalId("3");
+        v3.setName("3.0.x");
+        v3.setInternalId("4");
+        v4.setName("4.0.x");
+        v4.setInternalId("5");
     }
 
     @NotNull
@@ -58,7 +66,7 @@ public class DummyRemoteRepositoryConnection implements VcsRemoteRepositoryConne
         } catch (InterruptedException e) {
             return null;
         }
-        return Lists.newArrayList(master, v1, v2);
+        return Lists.newArrayList(master, v1, v2, v3, v4);
     }
 
     @Override

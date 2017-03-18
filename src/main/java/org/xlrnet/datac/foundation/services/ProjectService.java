@@ -1,15 +1,21 @@
 package org.xlrnet.datac.foundation.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
-import org.xlrnet.datac.vcs.services.LockingService;
-import org.xlrnet.datac.vcs.services.VersionControlSystemService;
+import org.xlrnet.datac.vcs.api.VcsConnectionException;
+import org.xlrnet.datac.vcs.api.VcsLocalRepository;
+import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
+import org.xlrnet.datac.vcs.domain.Branch;
+
+import java.util.Collection;
+import java.util.regex.Pattern;
 
 /**
  * Transactional service for accessing project data.
@@ -19,15 +25,6 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectService.class);
 
-    /** The central locking service. */
-    private final LockingService lockingService;
-
-    /** The task executor. */
-    private final TaskExecutor taskExecutor;
-
-    /** The VCS service. */
-    private final VersionControlSystemService vcsService;
-
     /** The file service. */
     private final FileService fileService;
 
@@ -36,18 +33,35 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
      *
      * @param crudRepository
      *         The crud repository for providing basic crud operations.
-     * @param lockingService
-     * @param taskExecutor
-     * @param vcsService
      * @param fileService
      */
     @Autowired
-    public ProjectService(ProjectRepository crudRepository, LockingService lockingService, TaskExecutor taskExecutor, VersionControlSystemService vcsService, FileService fileService) {
+    public ProjectService(ProjectRepository crudRepository, FileService fileService) {
         super(crudRepository);
-        this.lockingService = lockingService;
-        this.taskExecutor = taskExecutor;
-        this.vcsService = vcsService;
         this.fileService = fileService;
+    }
+
+    @Transactional
+    public Project updateAvailableBranches(Project project, VcsLocalRepository localRepository) throws VcsConnectionException {
+        Pattern pattern = Pattern.compile(project.getNewBranchPattern());
+        VcsRemoteRepositoryConnection remoteRepositoryConnection = localRepository.connectToRemote();
+        Collection<Branch> remoteBranches = remoteRepositoryConnection.listBranches();
+        for (Branch remoteBranch : remoteBranches) {
+            // Check if this remote branch doesn't exist yet
+            if (project.getBranches().stream()
+                    .noneMatch((branch -> StringUtils.equals(branch.getInternalId(), remoteBranch.getInternalId())))) {
+                if (pattern.matcher(remoteBranch.getName()).matches()) {
+                    LOGGER.debug("Found new matching branch {} [id={}]", remoteBranch.getName(), remoteBranch.getInternalId());
+                    remoteBranch.setWatched(true);
+                } else {
+                    LOGGER.trace("Branch {} [id={}] is new but doesn't match pattern {}", remoteBranch.getName(), remoteBranch.getInternalId(), pattern.toString());
+                }
+                project.addBranch(remoteBranch);
+            } else {
+                LOGGER.trace("Branch {} [id={}] is not new", remoteBranch.getName(), remoteBranch.getInternalId());
+            }
+        }
+        return save(project);
     }
 
     /**
@@ -59,6 +73,7 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
      * @throws DatacTechnicalException
      *         Will be thrown in case of an error while deleting the directory structure.
      */
+    @Transactional
     public void deleteClean(Project entity) throws DatacTechnicalException {
         fileService.deleteProjectRepository(entity);
         super.delete(entity);

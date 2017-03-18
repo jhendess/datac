@@ -50,5 +50,5 @@ public interface VcsRemoteRepositoryConnection extends Closeable {
      * @throws IOException
      *         May be thrown if an error occurred while writing to the local file system.
      */
-    void initializeLocalRepository(@NotNull Path repositoryPath, @NotNull Branch branch) throws DatacTechnicalException, IOException;
+    void initializeLocalRepository(@NotNull Path repositoryPath, @NotNull Branch branch) throws DatacTechnicalException, IOException, VcsConnectionException;
 }

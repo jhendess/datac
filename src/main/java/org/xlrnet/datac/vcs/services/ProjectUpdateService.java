@@ -8,10 +8,12 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
+import org.xlrnet.datac.commons.exception.VcsRepositoryException;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.FileService;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.vcs.api.*;
+import org.xlrnet.datac.vcs.domain.Branch;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -56,7 +58,7 @@ public class ProjectUpdateService {
     public void startAsynchronousProjectUpdate(@NotNull Project project) {
         if (lockingService.tryLock(project)) {
             try {
-                LOGGER.info("Begin update of project {} [id={}]", project.getName(), project.getId());
+                LOGGER.info("Begin update of project {}", project.getName());
                 Project reloaded = projectService.findOne(project.getId());
                 updateProject(reloaded);
                 LOGGER.info("Finished updating project {} [id={}] successfully", project.getName(), project.getId());
@@ -91,6 +93,9 @@ public class ProjectUpdateService {
             LOGGER.debug("Opening local repository at {}", repositoryPath.toString());
             VcsLocalRepository localRepository = vcsAdapter.openLocalRepository(project, repositoryPath);
 
+            project = updateRevisions(project, localRepository);
+            indexDatabaseChanges(project);
+
             project.setLastChangeCheck(LocalDateTime.now());
             projectService.save(project);
 
@@ -109,7 +114,7 @@ public class ProjectUpdateService {
      * @throws IOException
      */
     protected void initializeProjectRepository(@NotNull Project project, @NotNull VcsAdapter vcsAdapter) throws DatacTechnicalException, IOException {
-        LOGGER.info("Initializing new repository for project {} [id={}]", project.getName(), project.getId());
+        LOGGER.info("Initializing new repository for project {}", project.getName());
         VcsRemoteRepositoryConnection vcsRemoteRepositoryConnection = vcsAdapter.connectRemote(project);
         VcsConnectionStatus vcsConnectionStatus = vcsRemoteRepositoryConnection.checkConnection();
         if (vcsConnectionStatus != VcsConnectionStatus.ESTABLISHED) {
@@ -141,7 +146,46 @@ public class ProjectUpdateService {
             throw e;
         }
 
-        LOGGER.info("Successfully initialized local repository for project {} [id={}]", project.getName(), project.getId());
+        LOGGER.info("Successfully initialized local repository for project {}", project.getName());
+    }
+
+    /**
+     * Update the internal revision graph of the VCS. Checks for new branches and updates the revisions.
+     *
+     * @param project
+     * @param localRepository
+     */
+    protected Project updateRevisions(Project project, VcsLocalRepository localRepository) throws VcsConnectionException, VcsRepositoryException {
+        LOGGER.debug("Checking for new branches in project {}", project.getName());
+        project = projectService.updateAvailableBranches(project, localRepository);
+
+        LOGGER.debug("Updating revisions in project {}", project.getName());
+
+        for (Branch branch : project.getBranches()) {
+            if (branch.isWatched()) {
+                updateRevisionsOnBranch(project, branch, localRepository);
+            } else {
+                LOGGER.debug("Skipping branch {} in project {}", branch.getName(), project.getName());
+            }
+        }
+        LOGGER.debug("Finished revision update in project {}", project.getName());
+        return project;
+    }
+
+    private void updateRevisionsOnBranch(@NotNull Project project, @NotNull Branch branch, @NotNull VcsLocalRepository localRepository) throws VcsConnectionException, VcsRepositoryException {
+        LOGGER.debug("Updating revisions on branch {} in project {}", branch.getName(), project.getName());
+
+        localRepository.fetchLatestRevisions(branch);
+        Iterable<VcsRevision> revisionIterable = localRepository.listRevisionsInBranch(branch);
+
+
+        // TODO
+    }
+
+    private void indexDatabaseChanges(@NotNull Project project) {
+        LOGGER.info("Begin indexing changes in project {}", project.getName());
+
+        // TODO
     }
 
     /**

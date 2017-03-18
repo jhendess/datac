@@ -110,13 +110,15 @@ public class FileService implements SmartLifecycle {
         Path projectRepositoryPath = getProjectRepositoryPath(project);
         LOGGER.info("Deleting directory {} recursively", projectRepositoryPath.toString());
         try {
-            Files.walk(projectRepositoryPath, FileVisitOption.FOLLOW_LINKS)
-                    .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .peek((f) -> LOGGER.trace("Deleting {}", f))
-                    .forEach(File::delete);
+            if (Files.exists(projectRepositoryPath)) {
+                Files.walk(projectRepositoryPath, FileVisitOption.FOLLOW_LINKS)
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .peek((f) -> LOGGER.trace("Deleting {}", f))
+                        .forEach(File::delete);
+            }
         } catch (IOException e) {
-            LOGGER.error("Deleting directory {} failed - the file system may be in an inconsistent state.", e);
+            LOGGER.error("Deleting directory {} failed - the file system may be in an inconsistent state.", projectRepositoryPath.toString(), e);
             throw new DatacTechnicalException(e);
         }
         LOGGER.info("Deleted directory {} successfully", projectRepositoryPath.toString());

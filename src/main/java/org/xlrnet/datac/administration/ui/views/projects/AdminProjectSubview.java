@@ -7,7 +7,10 @@ import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.*;
 import com.vaadin.ui.renderers.ButtonRenderer;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.ProjectService;
@@ -26,6 +29,8 @@ import java.util.Collection;
 public class AdminProjectSubview extends AbstractSubview {
 
     public static final String VIEW_NAME = "admin/projects";
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdminProjectSubview.class);
 
     /**
      * The project service for accessing projects.
@@ -112,9 +117,12 @@ public class AdminProjectSubview extends AbstractSubview {
         window.setOkHandler(() -> {
             if (lockingService.tryLock(item)) {
                 try {
-                    projectService.delete(item);
+                    projectService.deleteClean(item);
                     NotificationUtils.showSuccess("Project deleted successfully");
                     reloadProjects();
+                } catch (DatacTechnicalException e) {
+                    LOGGER.error("Deleting project failed", e);
+                    NotificationUtils.showError("Deleting project failed", true);
                 } finally {
                     lockingService.unlock(item);
                 }

@@ -180,6 +180,8 @@ public class AdminEditProjectSubview extends AbstractSubview {
      */
     private FormLayout vcsSettingsLayout;
 
+    private Button cancelButton;
+
     @Autowired
     public AdminEditProjectSubview(VersionControlSystemService vcsService, TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService) {
         this.vcsService = vcsService;
@@ -297,9 +299,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
 
         vcsSelect.setItems(vcsService.listSupportedVersionControlSystems());
         vcsSelect.setItemCaptionGenerator(m -> String.format("%s (%s)", m.getVcsName(), m.getAdapterName()));
-        vcsSelect.addValueChangeListener(c -> {
-            setVcsFieldEnabled(c.getValue() != null);
-        });
+        vcsSelect.addValueChangeListener(c -> setVcsFieldEnabled(c.getValue() != null));
 
         vcsSettingsLayout.addComponent(vcsSelect);
         vcsSettingsLayout.addComponent(vcsUrlField);
@@ -329,7 +329,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
                 this.checkConnection((s) -> ui.access(() -> showConnectionNotification(s)));
             }
         });
-        Button cancelButton = new Button("Cancel");
+        cancelButton = new Button("Cancel");
         cancelButton.addClickListener(e -> ui.getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME));
 
         buttonLayout.addComponent(continueButton);
@@ -422,7 +422,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
                 prepareBeansForSaving();
             }
         });
-        Button cancelButton = new Button("Cancel");
+        cancelButton = new Button("Cancel");
         cancelButton.addClickListener(e -> UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME));
 
         buttonLayout.removeAllComponents();
@@ -501,6 +501,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
         vcsUsernameField.setEnabled(enabled);
         vcsPasswordField.setEnabled(enabled);
         buttonLayout.setEnabled(enabled);
+        cancelButton.setEnabled(true);
     }
 
     @Override

@@ -50,8 +50,13 @@ public class LockingService {
      */
     public void unlock(@NotNull Lockable lockable) {
         String key = getLockKey(lockable);
-        internalGetLock(key).unlock();
-        LOGGER.debug("Unlocked object {}", key);
+        ReentrantLock reentrantLock = internalGetLock(key);
+        if (reentrantLock.isLocked()) {
+            reentrantLock.unlock();
+            LOGGER.debug("Unlocked object {}", key);
+        } else {
+            LOGGER.warn("No lock present on object {}", key);
+        }
     }
 
     /**
