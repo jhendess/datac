@@ -1,6 +1,11 @@
 package org.xlrnet.datac.vcs.api;
 
 import org.jetbrains.annotations.NotNull;
+import org.xlrnet.datac.commons.exception.VcsRepositoryException;
+import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.vcs.domain.Branch;
+
+import java.nio.file.Path;
 
 /**
  * Adapter interface used for communicating with a version control system. Adapters must be implemented stateless as
@@ -31,4 +36,19 @@ public interface VcsAdapter {
      */
     @NotNull
     VcsRemoteRepositoryConnection connectRemote(@NotNull VcsRemoteCredentials credentials) throws VcsConnectionException;
+
+    /**
+     * Opens a local VCS repository in a given path. The repository must have been already initialized by calling {@link
+     * VcsRemoteRepositoryConnection#initializeLocalRepository(Path, Branch)}.
+     *
+     * @param project
+     *         The project which belongs to the local repository.
+     * @param repositoryPath
+     *         The path where the repository is stored.
+     * @return A valid {@link VcsLocalRepository} which can be used performing actions on the local repository.
+     * @throws VcsRepositoryException
+     *         May be thrown if opening the repository fails.
+     */
+    @NotNull
+    VcsLocalRepository openLocalRepository(Project project, Path repositoryPath) throws VcsRepositoryException;
 }

@@ -14,7 +14,7 @@ import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.services.LockingService;
-import org.xlrnet.datac.vcs.services.ProjectUpdateService;
+import org.xlrnet.datac.vcs.services.ProjectUpdateStarter;
 
 import java.util.Collection;
 
@@ -35,7 +35,7 @@ public class AdminProjectSubview extends AbstractSubview {
     /**
      * The update service for projects.
      */
-    private final ProjectUpdateService projectUpdateService;
+    private final ProjectUpdateStarter projectUpdateStarter;
 
     /**
      * Button for new projects.
@@ -58,9 +58,9 @@ public class AdminProjectSubview extends AbstractSubview {
     private final LockingService lockingService;
 
     @Autowired
-    public AdminProjectSubview(ProjectService projectService, ProjectUpdateService projectUpdateService, LockingService lockingService) {
+    public AdminProjectSubview(ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, LockingService lockingService) {
         this.projectService = projectService;
-        this.projectUpdateService = projectUpdateService;
+        this.projectUpdateStarter = projectUpdateStarter;
         this.lockingService = lockingService;
     }
 
@@ -128,7 +128,7 @@ public class AdminProjectSubview extends AbstractSubview {
 
     private void forceUpdate(Project item) {
 
-        if (projectUpdateService.queueProjectUpdate(item)) {
+        if (projectUpdateStarter.queueProjectUpdate(item)) {
             NotificationUtils.showSuccess("Project update queued");
         } else {
             NotificationUtils.showWarning("Project is locked");

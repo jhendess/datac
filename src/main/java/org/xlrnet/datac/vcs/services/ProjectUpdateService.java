@@ -7,14 +7,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.FileService;
-import org.xlrnet.datac.vcs.api.VcsAdapter;
-import org.xlrnet.datac.vcs.api.VcsMetaInfo;
+import org.xlrnet.datac.foundation.services.ProjectService;
+import org.xlrnet.datac.vcs.api.*;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Service which is responsible for collecting all database changes in a project.
@@ -33,63 +35,113 @@ public class ProjectUpdateService {
     /** The file service for accessing file resources. */
     private final FileService fileService;
 
+    /** Project service for updating project data. */
+    private final ProjectService projectService;
+
     @Autowired
-    public ProjectUpdateService(VersionControlSystemService vcsService, LockingService lockingService, FileService fileService) {
+    public ProjectUpdateService(VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService) {
         this.vcsService = vcsService;
         this.lockingService = lockingService;
         this.fileService = fileService;
+        this.projectService = projectService;
     }
 
     /**
-     * Try to queue a new project update. If the project is currently locked for writing, no update will be queued.
+     * Asynchronously trigger a project change update.
      *
      * @param project
-     *         The project that should be updated.
-     * @return True if the project update could be queued successfully or false if the project is currently locked for
-     * writing.
-     */
-    public boolean queueProjectUpdate(@NotNull Project project) {
-        checkArgument(project.getId() != null, "Project must be persisted");
-
-        if (!lockingService.isLocked(project)) {
-            startAsynchronousProjectUpdate(project);
-            LOGGER.debug("Successfully queued update task for project {} [{}]", project.getId(), project.getName());
-            return true;
-        }
-        LOGGER.debug("Queuing update task for project {} [{}] failed: project is locked", project.getId(), project.getName());
-        return false;
-    }
-
-    /**
-     * Asynchronously trigger a project change update. 
-     * 
-     * @param project The project to update.
+     *         The project to update.
      */
     @Async
     public void startAsynchronousProjectUpdate(@NotNull Project project) {
         if (lockingService.tryLock(project)) {
             try {
-                LOGGER.info("Begin update of project {} [{}]", project.getName(), project.getId());
-                updateProject(project);
-                LOGGER.info("Finished updated project {} [{}] successfully", project.getName(), project.getId());
+                LOGGER.info("Begin update of project {} [id={}]", project.getName(), project.getId());
+                Project reloaded = projectService.findOne(project.getId());
+                updateProject(reloaded);
+                LOGGER.info("Finished updating project {} [id={}] successfully", project.getName(), project.getId());
             } catch (DatacTechnicalException e) {
-                LOGGER.error("Update of project {} [{}] failed due to unexpected exception", project.getName(), project.getId());
+                LOGGER.error("Update of project {} [id={}] failed because of an unexpected exception", project.getName(), project.getId(), e);
             } finally {
                 lockingService.unlock(project);
             }
         } else {
-            LOGGER.warn("Update of project {} [{}] failed because project is locked", project.getName(), project.getId());
+            LOGGER.warn("Update of project {} [id={}] failed because project is locked", project.getName(), project.getId());
         }
     }
 
     /**
-     * Internal main method for updating the project.
+     * Internal main method for updating a project. If the project repository is not yet initialized, the VCS adapter
+     * will be called to initialize a local repository.
      *
      * @param project
+     *         The project to update.
      * @throws DatacTechnicalException
      */
-    private void updateProject(@NotNull  Project project) throws DatacTechnicalException {
+    protected void updateProject(@NotNull Project project) throws DatacTechnicalException {
         VcsAdapter vcsAdapter = getVcsAdapter(project);
+
+        try {
+            if (!project.isInitialized()) {
+                initializeProjectRepository(project, vcsAdapter);
+            }
+
+            Path repositoryPath = fileService.getProjectRepositoryPath(project);
+
+            LOGGER.debug("Opening local repository at {}", repositoryPath.toString());
+            VcsLocalRepository localRepository = vcsAdapter.openLocalRepository(project, repositoryPath);
+
+            project.setLastChangeCheck(LocalDateTime.now());
+            projectService.save(project);
+
+        } catch (RuntimeException | IOException e) {
+            throw new DatacTechnicalException("Project update failed", e);
+        }
+    }
+
+    /**
+     * Initialize a new project repository. This will first call the file service to create necessary file structures
+     * and afterwards open a remote connection to the project's VCS to initialize local VCS files.
+     *
+     * @param project
+     * @param vcsAdapter
+     * @throws DatacTechnicalException
+     * @throws IOException
+     */
+    protected void initializeProjectRepository(@NotNull Project project, @NotNull VcsAdapter vcsAdapter) throws DatacTechnicalException, IOException {
+        LOGGER.info("Initializing new repository for project {} [id={}]", project.getName(), project.getId());
+        VcsRemoteRepositoryConnection vcsRemoteRepositoryConnection = vcsAdapter.connectRemote(project);
+        VcsConnectionStatus vcsConnectionStatus = vcsRemoteRepositoryConnection.checkConnection();
+        if (vcsConnectionStatus != VcsConnectionStatus.ESTABLISHED) {
+            throw new DatacTechnicalException("Connection check failed. Status was " + vcsConnectionStatus);
+        }
+
+        Path repositoryPath;
+        try {
+            repositoryPath = fileService.prepareProjectRepositoryPath(project);
+        } catch (ProjectAlreadyInitializedException pe) {   // NOSONAR: No logging necessary, since part of logic flow
+            LOGGER.info("Repository for project {} [id={}] was already initialized - cleaning existing repository", project.getName(), project.getId());
+            fileService.deleteProjectRepository(project);
+            repositoryPath = fileService.prepareProjectRepositoryPath(project);
+        }
+
+        try {
+            LOGGER.debug("Calling remote VCS adapter {} to initialize repository in {}", vcsRemoteRepositoryConnection.getClass().getName(), repositoryPath);
+            vcsRemoteRepositoryConnection.initializeLocalRepository(repositoryPath, project.getDevelopmentBranch());
+
+            project.setInitialized(true);
+            projectService.save(project);
+        } catch (DatacTechnicalException | RuntimeException e) {
+            LOGGER.error("Initialization of project {} [id={}] failed - rolling back file system changes", e);
+            try {
+                fileService.deleteProjectRepository(project);
+            } catch (DatacTechnicalException e2) {
+                LOGGER.error("Critical error while cleaning up file system during rollback", e2);
+            }
+            throw e;
+        }
+
+        LOGGER.info("Successfully initialized local repository for project {} [id={}]", project.getName(), project.getId());
     }
 
     /**
@@ -97,7 +149,8 @@ public class ProjectUpdateService {
      * application tries to fall back to a adapter which implements the same VCS type.
      *
      * @return The correct VCS adapter for the project.
-     * @throws DatacTechnicalException Will be thrown if no VCS adapter could be resolved
+     * @throws DatacTechnicalException
+     *         Will be thrown if no VCS adapter could be resolved
      */
     @NotNull
     private VcsAdapter getVcsAdapter(@NotNull Project project) throws DatacTechnicalException {

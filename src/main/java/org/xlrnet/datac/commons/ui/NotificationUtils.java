@@ -19,7 +19,15 @@ public class NotificationUtils {
      */
     private static final int ERROR_NOTIFICATION_DELAY_MS = 5000;
 
+    /**
+     * Message for displaying not implemented.
+     */
     private static final String NOT_IMPLEMENTED = "Not implemented.";
+
+    /**
+     * Default delay for notifications.
+     */
+    private static final int DEFAULT_DELAY = 3000;
 
     private NotificationUtils() {
         // No instantiation possible
@@ -28,17 +36,21 @@ public class NotificationUtils {
     public static void showSuccess(String message) {
         Notification notification = new Notification(message);
         notification.setStyleName(ValoTheme.NOTIFICATION_SUCCESS);
+        notification.setDelayMsec(DEFAULT_DELAY);
         applyDefaultAndShow(notification);
     }
 
     private static void applyDefaultAndShow(Notification notification) {
         notification.setPosition(Position.BOTTOM_RIGHT);
+        notification.setDelayMsec(DEFAULT_DELAY);
+
         notification.show(Page.getCurrent());
     }
 
     public static void showWarning(String message) {
         Notification notification = new Notification(message);
         notification.setStyleName(ValoTheme.NOTIFICATION_WARNING);
+        notification.setDelayMsec(DEFAULT_DELAY);
         applyDefaultAndShow(notification);
     }
 

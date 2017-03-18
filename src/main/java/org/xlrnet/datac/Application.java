@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.jpa.convert.threeten.Jsr310JpaConverters;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.xlrnet.datac.foundation.configuration.BuildInformation;
 import org.xlrnet.datac.session.domain.User;
@@ -20,6 +22,10 @@ import java.util.Optional;
  */
 @EnableAsync
 @SpringBootApplication
+@EntityScan(basePackageClasses = {
+        Application.class,
+        Jsr310JpaConverters.class // Enable new JSR-310 time conversions for hibernate
+})
 public class Application {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);

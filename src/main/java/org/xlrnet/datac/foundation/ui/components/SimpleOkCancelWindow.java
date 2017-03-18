@@ -37,9 +37,9 @@ public class SimpleOkCancelWindow extends Window {
         customContentLayout = new VerticalLayout();
         buttonLayout = new HorizontalLayout();
 
-        okButton = new Button(OK_TEXT);
+        okButton = new Button(okButtonCaption != null ? okButtonCaption : OK_TEXT);
         okButton.setStyleName(ValoTheme.BUTTON_PRIMARY);
-        cancelButton = new Button(CANCEL_TEXT);
+        cancelButton = new Button(cancelButtonCaption != null ? cancelButtonCaption : CANCEL_TEXT);
         cancelButton.addClickListener(e -> close());
 
         buttonLayout.addComponent(okButton);

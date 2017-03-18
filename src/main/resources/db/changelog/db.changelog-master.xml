@@ -124,4 +124,11 @@
             <column name="last_change_check" type="DATETIME"/>
         </addColumn>
     </changeSet>
+    <changeSet id="8" author="jhendess">
+        <addColumn tableName="project">
+            <column name="initialized" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

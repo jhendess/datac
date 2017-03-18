@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.vcs.services.LockingService;
@@ -32,7 +33,8 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
-     *  @param crudRepository
+     *
+     * @param crudRepository
      *         The crud repository for providing basic crud operations.
      * @param lockingService
      * @param taskExecutor
@@ -46,5 +48,19 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
         this.taskExecutor = taskExecutor;
         this.vcsService = vcsService;
         this.fileService = fileService;
+    }
+
+    /**
+     * Performs a clean delete of a project which removes both the entity from the database and working directories from
+     * the filesystem.
+     *
+     * @param entity
+     *         The project to delete.
+     * @throws DatacTechnicalException
+     *         Will be thrown in case of an error while deleting the directory structure.
+     */
+    public void deleteClean(Project entity) throws DatacTechnicalException {
+        fileService.deleteProjectRepository(entity);
+        super.delete(entity);
     }
 }

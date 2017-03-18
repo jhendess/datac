@@ -3,11 +3,13 @@ package org.xlrnet.datac.administration.ui.views.projects;
 import com.google.common.base.Objects;
 import com.vaadin.annotations.PropertyId;
 import com.vaadin.data.BeanValidationBinder;
+import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.shared.ui.MarginInfo;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -22,6 +24,7 @@ import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.foundation.ui.components.BooleanStatusChangeHandler;
 import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
+import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.api.VcsAdapter;
 import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
@@ -63,7 +66,9 @@ public class AdminEditProjectSubview extends AbstractSubview {
      */
     private final ProjectService projectService;
 
-    /** The central locking service. */
+    /**
+     * The central locking service.
+     */
     private final LockingService lockingService;
 
     /**
@@ -166,6 +171,11 @@ public class AdminEditProjectSubview extends AbstractSubview {
     private boolean isNewProject;
 
     /**
+     * The old URL for the remote VCS.
+     */
+    private String oldVcsUrl;
+
+    /**
      * Layout for VCS settings.
      */
     private FormLayout vcsSettingsLayout;
@@ -260,6 +270,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
             projectBean.setChangelogLocation("CHANGEME");
             projectBean.setNewBranchPattern(".+");
         }
+        oldVcsUrl = projectBean.getUrl();
         projectBinder.bindInstanceFields(this);
         projectBinder.setBean(projectBean);
     }
@@ -408,7 +419,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
         continueButton.addClickListener(e -> {
             projectBinder.validate();
             if (projectBinder.isValid()) {
-                saveProject();
+                prepareBeansForSaving();
             }
         });
         Button cancelButton = new Button("Cancel");
@@ -427,8 +438,6 @@ public class AdminEditProjectSubview extends AbstractSubview {
     }
 
     private void saveProject() {
-        prepareBeansForSaving();
-
         if (lockingService.tryLock(projectBean)) {
             try {
                 // TODO: Make this try-catch construct reusable
@@ -455,6 +464,23 @@ public class AdminEditProjectSubview extends AbstractSubview {
         VcsAdapter vcsAdapter = vcsService.findAdapterByMetaInfo(vcsSelect.getValue()).get();
         projectBean.setAdapterClass(vcsAdapter.getClass().getName());
         projectBean.setType(vcsAdapter.getMetaInfo().getVcsName());
+
+        if (!isNewProject && !StringUtils.equalsIgnoreCase(oldVcsUrl, projectBean.getUrl()) && projectBean.isInitialized()) {
+            SimpleOkCancelWindow vcsChangeCheckWindow = new SimpleOkCancelWindow("VCS changed", "Yes", "No");
+            vcsChangeCheckWindow.setCustomContent(new Label("VCS URL has changed.<br>Do you want to reinitialize the VCS on the next update?", ContentMode.HTML));
+            vcsChangeCheckWindow.setOkHandler(() -> {
+                projectBean.setInitialized(false);
+                saveProject();
+                vcsChangeCheckWindow.close();
+            });
+            vcsChangeCheckWindow.setCancelHandler(() -> {
+                saveProject();
+                vcsChangeCheckWindow.close();
+            });
+            UI.getCurrent().addWindow(vcsChangeCheckWindow);
+        } else {
+            saveProject();
+        }
     }
 
     private void showConnectionNotification(@NotNull VcsConnectionStatus e) {

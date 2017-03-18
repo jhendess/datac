@@ -122,6 +122,12 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
     private LocalDateTime lastChangeCheck;
 
     /**
+     * Flag to indicate if the project's VCS has been initialized.
+     */
+    @Column(name = "initialized")
+    private boolean initialized;
+
+    /**
      * Collection of branches in the VCS. Contains both watched and unwatched changes.
      */
     @OneToMany(cascade = CascadeType.ALL, targetEntity = Branch.class, fetch = FetchType.EAGER)
@@ -254,6 +260,14 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
 
     public void setLastChangeCheck(LocalDateTime lastChangeCheck) {
         this.lastChangeCheck = lastChangeCheck;
+    }
+
+    public boolean isInitialized() {
+        return initialized;
+    }
+
+    public void setInitialized(boolean initialized) {
+        this.initialized = initialized;
     }
 
     @Override

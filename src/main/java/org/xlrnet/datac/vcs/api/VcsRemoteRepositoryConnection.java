@@ -1,10 +1,13 @@
 package org.xlrnet.datac.vcs.api;
 
-import java.io.Closeable;
-import java.util.Collection;
-
 import org.jetbrains.annotations.NotNull;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.vcs.domain.Branch;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collection;
 
 /**
  * Connection object to a remote version control system. Implementations of this object may contain stateful data and
@@ -31,5 +34,21 @@ public interface VcsRemoteRepositoryConnection extends Closeable {
      * @throws VcsConnectionException
      *         Will be thrown if any connection errors occurred.
      */
+    @NotNull
     Collection<Branch> listBranches() throws VcsConnectionException;
+
+    /**
+     * Initialize a project repository on the local filesystem. The repository must afterwards be readable by the {@link
+     * VcsLocalRepository} counterpart for this adapter.
+     *
+     * @param repositoryPath
+     *         The target path which should be used as the root directory for the local repository.
+     * @param branch
+     *         The branch that should be used for initializing the local repository.
+     * @throws DatacTechnicalException
+     *         May be thrown in case of an error.
+     * @throws IOException
+     *         May be thrown if an error occurred while writing to the local file system.
+     */
+    void initializeLocalRepository(@NotNull Path repositoryPath, @NotNull Branch branch) throws DatacTechnicalException, IOException;
 }

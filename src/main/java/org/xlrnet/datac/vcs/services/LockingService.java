@@ -23,14 +23,17 @@ public class LockingService {
     private final ConcurrentHashMap<String, ReentrantLock> lockMap = new ConcurrentHashMap<>();
 
     /**
-     * Tries to acquire the lock for the given object.
-     * @param lockable The lockable to lock.
+     * Tries to acquire the lock for the given object. The lock must be manually released by calling {@link
+     * #unlock(Lockable)} after the custom logic has finished.
+     *
+     * @param lockable
+     *         The lockable to lock.
      * @return True if the object could be locked, false if not.
      */
     public boolean tryLock(@NotNull Lockable lockable) {
         String key = getLockKey(lockable);
         Lock lock = internalGetLock(key);
-        boolean locked = lock.tryLock();
+        boolean locked = lock.tryLock();    // NOSONAR: This service is used for centrally managing locks across the application
         if (locked) {
             LOGGER.debug("Successfully acquired lock for object {}", key);
         } else {
@@ -41,7 +44,9 @@ public class LockingService {
 
     /**
      * Unlocks the given object.
-     * @param lockable The object to unlock.
+     *
+     * @param lockable
+     *         The object to unlock.
      */
     public void unlock(@NotNull Lockable lockable) {
         String key = getLockKey(lockable);
@@ -51,7 +56,9 @@ public class LockingService {
 
     /**
      * Checks if the given object is currently locked.
-     * @param lockable The object to check.
+     *
+     * @param lockable
+     *         The object to check.
      * @return True if locked, false otherwise.
      */
     public boolean isLocked(@NotNull Lockable lockable) {
