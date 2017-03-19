@@ -131,4 +131,76 @@
             </column>
         </addColumn>
     </changeSet>
+    <changeSet id="9" author="jhendess">
+        <comment>Add comments to existing columns and tables</comment>
+        <setTableRemarks tableName="user" remarks="User authentication for application users."/>
+        <setColumnRemarks tableName="user" columnName="id" remarks="Primary key."/>
+        <setColumnRemarks tableName="user" columnName="login_name"
+                          remarks="Unique name which will be used for logging in a user."/>
+        <setColumnRemarks tableName="user" columnName="first_name" remarks="First name of a user."/>
+        <setColumnRemarks tableName="user" columnName="last_name" remarks="Last name of a user."/>
+        <setColumnRemarks tableName="user" columnName="email" remarks="E-mail address of a user."/>
+        <setColumnRemarks tableName="user" columnName="password" remarks="Password used login."/>
+        <setColumnRemarks tableName="user" columnName="salt" remarks="Password salt."/>
+        <setColumnRemarks tableName="user" columnName="pw_change_necessary"
+                          remarks="Flag to indicate if the user must change the password on the next login."/>
+        <setTableRemarks tableName="project" remarks="VCS configuration and metadata for projects."/>
+        <setColumnRemarks tableName="project" columnName="id" remarks="Primary key."/>
+        <setColumnRemarks tableName="project" columnName="name" remarks="Name of the project."/>
+        <setColumnRemarks tableName="project" columnName="description" remarks="Short description of the project."/>
+        <setColumnRemarks tableName="project" columnName="website" remarks="Website which belongs to the project."/>
+        <setColumnRemarks tableName="project" columnName="changelog_location"
+                          remarks="Location relative to the VCS root where the main changelog file can be found."/>
+        <setColumnRemarks tableName="project" columnName="type" remarks="VCS type that is used by the project."/>
+        <setColumnRemarks tableName="project" columnName="adapter"
+                          remarks="Concrete adapter class for the VCS system."/>
+        <setColumnRemarks tableName="project" columnName="url" remarks="Root URL of the remote VCS repository."/>
+        <setColumnRemarks tableName="project" columnName="username" remarks="Username for logging into the VCS."/>
+        <setColumnRemarks tableName="project" columnName="password" remarks="Password logging into the VCS."/>
+        <setColumnRemarks tableName="project" columnName="poll_interval"
+                          remarks="Poll interval in minutes to check for new changes."/>
+        <setColumnRemarks tableName="project" columnName="new_branch_pattern"
+                          remarks="Regular expression which is used for matching new branches."/>
+        <setColumnRemarks tableName="project" columnName="last_change_check"
+                          remarks="Time when the last check for changes was performed."/>
+        <setColumnRemarks tableName="project" columnName="initialized"
+                          remarks="Flag to indicate that the local repository has been initialized."/>
+        <setTableRemarks tableName="branch" remarks="VCS branches for projects."/>
+        <setColumnRemarks tableName="branch" columnName="id" remarks="Primary key."/>
+        <setColumnRemarks tableName="branch" columnName="name" remarks="Readable name of the branch."/>
+        <setColumnRemarks tableName="branch" columnName="internal_id" remarks="Internal object id of a branch."/>
+        <setColumnRemarks tableName="branch" columnName="watched"
+                          remarks="Flag to indicate if the branch should be watched for database changes."/>
+        <setColumnRemarks tableName="branch" columnName="development"
+                          remarks="Flag to indicate if this is the main development branch."/>
+        <setColumnRemarks tableName="branch" columnName="project_id"
+                          remarks="The project to which this branch belongs."/>
+    </changeSet>
+    <changeSet id="10" author="jhendess">
+        <comment>Adding tables for revision graph</comment>
+        <createTable tableName="revision" remarks="Versioning states in a VCS.">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Primary key.">
+                <constraints primaryKey="true" primaryKeyName="pk_revision"/>
+            </column>
+            <column name="internal_id" type="VARCHAR(256)"
+                    remarks="Internal id used by the concrete VCS to identify a revision.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="author" type="VARCHAR(256)" remarks="Author who originally created the revision in the VCS."/>
+            <column name="committer" type="VARCHAR(256)"
+                    remarks="User who submitted the reviewed revision to the VCS."/>
+            <column name="message" type="TEXT" remarks="Message that was published with the revision"/>
+            <column name="commit_time" type="DATETIME" remarks="Timestamp when revision was originally created."/>
+        </createTable>
+        <createTable tableName="revision_graph" remarks="Graph representation of the revisions in a VCS.">
+            <column name="revision_id" type="bigint" remarks="Child revision.">
+                <constraints nullable="false" foreignKeyName="fk_revision_child" referencedTableName="revision"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="parent_revision_id" type="bigint" remarks="Parent revision.">
+                <constraints nullable="false" foreignKeyName="fk_revision_parent" referencedTableName="revision"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+        </createTable>
+    </changeSet>
 </databaseChangeLog>

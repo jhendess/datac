@@ -6,8 +6,8 @@
 spring:
   # Database configuration
   datasource:
-    driver-class-name: org.hsqldb.jdbc.JDBCDriver
-    url: jdbc:hsqldb:mem:datac
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:tcp://localhost/~/datac
     username: SA
     password:
     # Configuration for Hikari connection pool

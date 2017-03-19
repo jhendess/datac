@@ -6,7 +6,7 @@ import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
 
 /**
- * TODO: Describe and implement
+ * Service for accessing and manipulating VCS revision graphs.
  */
 @Service
 public class RevisionGraphService extends AbstractTransactionalService {
