@@ -1,42 +1,72 @@
 package org.xlrnet.datac.vcs.domain;
 
-import org.hibernate.validator.constraints.NotEmpty;
-import org.xlrnet.datac.foundation.domain.AbstractEntity;
-
-import javax.persistence.*;
-import javax.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.persistence.*;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
+import org.hibernate.validator.constraints.NotEmpty;
+import org.xlrnet.datac.foundation.domain.AbstractEntity;
+import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.vcs.domain.validation.SameProjectParent;
 
 /**
  * A revision represents a single versioning state in a VCS.
  */
 @Entity
 @Table(name = "revision")
+@SameProjectParent
 public class Revision extends AbstractEntity {
 
+    /**
+     * Internal id used by the concrete VCS to identify a revision.
+     */
     @NotEmpty
     @Size(max = 256)
     @Column(name = "internal_id")
     private String internalId;
 
+    /**
+     * Author who originally created the revision in the VCS.
+     */
     @Size(max = 256)
     @Column(name = "author")
     private String author;
 
+    /**
+     * User who submitted the reviewed revision to the VCS.
+     */
     @NotEmpty
     @Size(max = 256)
     @Column(name = "committer")
     private String committer;
 
+    /**
+     * Message that was published with the revision.
+     */
     @Column(name = "message")
     private String message;
 
+    /**
+     * Timestamp when revision was originally created.
+     */
     @Column(name = "commit_time")
     private LocalDateTime commitTime;
 
-    @ManyToMany(targetEntity = Revision.class, cascade = CascadeType.ALL)
+    /**
+     * Project in which this revision exists.
+     */
+    @NotNull
+    @OneToOne(optional = false)
+    private Project project;
+
+    /**
+     * Parent revisions of this revision.
+     */
+    @ManyToMany(targetEntity = Revision.class, cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinTable(name = "revision_graph",
             joinColumns = @JoinColumn(name = "revision_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "parent_revision_id", referencedColumnName = "id"))
@@ -98,6 +128,15 @@ public class Revision extends AbstractEntity {
 
     public Revision addParent(Revision parent) {
         this.parents.add(parent);
+        return this;
+    }
+
+    public Project getProject() {
+        return project;
+    }
+
+    public Revision setProject(Project project) {
+        this.project = project;
         return this;
     }
 }

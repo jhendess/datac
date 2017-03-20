@@ -203,4 +203,15 @@
             </column>
         </createTable>
     </changeSet>
+    <changeSet id="11" author="jhendess">
+        <comment>Added project to revision table</comment>
+        <setColumnRemarks tableName="revision" columnName="message"
+                          remarks="Message that was published with the revision."/>
+        <addColumn tableName="revision">
+            <column name="project_id" remarks="Project in which this revision exists." type="int">
+                <constraints foreignKeyName="fk_revision__project" referencedTableName="project"
+                             referencedColumnNames="id" nullable="false" deleteCascade="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

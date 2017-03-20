@@ -1,9 +1,10 @@
 package org.xlrnet.datac.foundation.domain.validation;
 
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
+import javax.validation.ConstraintValidator;
+import javax.validation.ConstraintValidatorContext;
 
 /**
  * Validates if something is a valid regular expression.
@@ -15,6 +16,9 @@ public class RegexValidator implements ConstraintValidator<Regex, String> {
     }
 
     public boolean isValid(String obj, ConstraintValidatorContext context) {
+        if (obj == null) {
+            return false;
+        }
         try {
             Pattern.compile(obj);
             return true;

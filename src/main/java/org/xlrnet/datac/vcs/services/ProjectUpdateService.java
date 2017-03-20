@@ -1,5 +1,10 @@
 package org.xlrnet.datac.vcs.services;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,11 +19,6 @@ import org.xlrnet.datac.foundation.services.FileService;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.vcs.api.*;
 import org.xlrnet.datac.vcs.domain.Branch;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.util.Optional;
 
 /**
  * Service which is responsible for collecting all database changes in a project.
@@ -78,7 +78,7 @@ public class ProjectUpdateService {
      *
      * @param project
      *         The project to update.
-     * @throws DatacTechnicalException
+     * @throws DatacTechnicalException Will be thrown if the project update failed.
      */
     protected void updateProject(@NotNull Project project) throws DatacTechnicalException {
         VcsAdapter vcsAdapter = getVcsAdapter(project);
@@ -93,11 +93,11 @@ public class ProjectUpdateService {
             LOGGER.debug("Opening local repository at {}", repositoryPath.toString());
             VcsLocalRepository localRepository = vcsAdapter.openLocalRepository(project, repositoryPath);
 
-            project = updateRevisions(project, localRepository);
-            indexDatabaseChanges(project);
+            Project updatedProject = updateRevisions(project, localRepository);
+            indexDatabaseChanges(updatedProject);
 
-            project.setLastChangeCheck(LocalDateTime.now());
-            projectService.save(project);
+            updatedProject.setLastChangeCheck(LocalDateTime.now());
+            projectService.save(updatedProject);
 
         } catch (RuntimeException | IOException e) {
             throw new DatacTechnicalException("Project update failed", e);
@@ -108,10 +108,10 @@ public class ProjectUpdateService {
      * Initialize a new project repository. This will first call the file service to create necessary file structures
      * and afterwards open a remote connection to the project's VCS to initialize local VCS files.
      *
-     * @param project
-     * @param vcsAdapter
-     * @throws DatacTechnicalException
-     * @throws IOException
+     * @param project    The project to update.
+     * @param vcsAdapter  The adapter to use for updating the project.
+     * @throws DatacTechnicalException Will be thrown if the project update failed
+     * @throws IOException Will be thrown on writing errors
      */
     protected void initializeProjectRepository(@NotNull Project project, @NotNull VcsAdapter vcsAdapter) throws DatacTechnicalException, IOException {
         LOGGER.info("Initializing new repository for project {}", project.getName());
@@ -152,24 +152,24 @@ public class ProjectUpdateService {
     /**
      * Update the internal revision graph of the VCS. Checks for new branches and updates the revisions.
      *
-     * @param project
-     * @param localRepository
+     * @param project The project to update.
+     * @param localRepository Local VCS repository instance for the project to edit.
      */
     protected Project updateRevisions(Project project, VcsLocalRepository localRepository) throws VcsConnectionException, VcsRepositoryException {
         LOGGER.debug("Checking for new branches in project {}", project.getName());
-        project = projectService.updateAvailableBranches(project, localRepository);
+        Project updatedProject = projectService.updateAvailableBranches(project, localRepository);
 
-        LOGGER.debug("Updating revisions in project {}", project.getName());
+        LOGGER.debug("Updating revisions in project {}", updatedProject.getName());
 
-        for (Branch branch : project.getBranches()) {
+        for (Branch branch : updatedProject.getBranches()) {
             if (branch.isWatched()) {
-                updateRevisionsOnBranch(project, branch, localRepository);
+                updateRevisionsOnBranch(updatedProject, branch, localRepository);
             } else {
-                LOGGER.debug("Skipping branch {} in project {}", branch.getName(), project.getName());
+                LOGGER.debug("Skipping branch {} in project {}", branch.getName(), updatedProject.getName());
             }
         }
-        LOGGER.debug("Finished revision update in project {}", project.getName());
-        return project;
+        LOGGER.debug("Finished revision update in project {}", updatedProject.getName());
+        return updatedProject;
     }
 
     private void updateRevisionsOnBranch(@NotNull Project project, @NotNull Branch branch, @NotNull VcsLocalRepository localRepository) throws VcsConnectionException, VcsRepositoryException {

@@ -17,9 +17,9 @@ public interface VcsRevision {
     String getInternalId();
 
     /**
-     * Returns a message of the revision which describes the changes done since the parent.
+     * Returns a message of which describes the changes in this revision.
      *
-     * @return
+     * @return a message of which describes the changes in this revision.
      */
     @NotNull
     String getRevisionMessage();

@@ -1,6 +1,7 @@
 package org.xlrnet.datac.vcs.impl.dummy;
 
-import org.apache.commons.collections.iterators.ArrayIterator;
+import java.util.ArrayList;
+
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.commons.exception.VcsRepositoryException;
 import org.xlrnet.datac.vcs.api.VcsConnectionException;
@@ -30,6 +31,6 @@ public class DummyLocalRepository implements VcsLocalRepository {
     public Iterable<VcsRevision> listRevisionsInBranch(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException {
         // TODO
 
-        return ArrayIterator::new;
+        return new ArrayList<>();
     }
 }

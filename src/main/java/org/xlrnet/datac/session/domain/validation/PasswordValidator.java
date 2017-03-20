@@ -11,7 +11,7 @@ import org.xlrnet.datac.session.services.PasswordService;
  * Validator for checking passwords.
  */
 @Service
-public class PasswordValidator implements ConstraintValidator<ValidPassword, String > {
+public class PasswordValidator implements ConstraintValidator<ValidPassword, String> {
 
     /** Static password service. */
     private static PasswordService passwordService = new PasswordService();
