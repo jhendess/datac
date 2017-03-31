@@ -25,7 +25,7 @@
 package org.xlrnet.datac.commons.exception;
 
 /**
- * A technical exception that may be thrown during a call to metadict
+ * A technical exception that may be thrown by Datac.
  */
 public class DatacTechnicalException extends Exception {
 

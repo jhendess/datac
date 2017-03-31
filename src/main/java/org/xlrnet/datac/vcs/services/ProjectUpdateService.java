@@ -3,7 +3,11 @@ package org.xlrnet.datac.vcs.services;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
+
+import javax.transaction.Transactional;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -13,12 +17,15 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
+import org.xlrnet.datac.commons.exception.RevisionLoopException;
 import org.xlrnet.datac.commons.exception.VcsRepositoryException;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.FileService;
 import org.xlrnet.datac.foundation.services.ProjectService;
+import org.xlrnet.datac.foundation.services.ValidationService;
 import org.xlrnet.datac.vcs.api.*;
 import org.xlrnet.datac.vcs.domain.Branch;
+import org.xlrnet.datac.vcs.domain.Revision;
 
 /**
  * Service which is responsible for collecting all database changes in a project.
@@ -40,12 +47,20 @@ public class ProjectUpdateService {
     /** Project service for updating project data. */
     private final ProjectService projectService;
 
+    /** Service for accessing the revision revision graph. */
+    private final RevisionGraphService revisionGraphService;
+
+    /** Bean validation service. */
+    private final ValidationService validator;
+
     @Autowired
-    public ProjectUpdateService(VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService) {
+    public ProjectUpdateService(VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, RevisionGraphService revisionGraphService, ValidationService validator) {
         this.vcsService = vcsService;
         this.lockingService = lockingService;
         this.fileService = fileService;
         this.projectService = projectService;
+        this.revisionGraphService = revisionGraphService;
+        this.validator = validator;
     }
 
     /**
@@ -80,6 +95,7 @@ public class ProjectUpdateService {
      *         The project to update.
      * @throws DatacTechnicalException Will be thrown if the project update failed.
      */
+    @Transactional
     protected void updateProject(@NotNull Project project) throws DatacTechnicalException {
         VcsAdapter vcsAdapter = getVcsAdapter(project);
 
@@ -155,7 +171,7 @@ public class ProjectUpdateService {
      * @param project The project to update.
      * @param localRepository Local VCS repository instance for the project to edit.
      */
-    protected Project updateRevisions(Project project, VcsLocalRepository localRepository) throws VcsConnectionException, VcsRepositoryException {
+    protected Project updateRevisions(Project project, VcsLocalRepository localRepository) throws VcsConnectionException, VcsRepositoryException, RevisionLoopException {
         LOGGER.debug("Checking for new branches in project {}", project.getName());
         Project updatedProject = projectService.updateAvailableBranches(project, localRepository);
 
@@ -163,7 +179,7 @@ public class ProjectUpdateService {
 
         for (Branch branch : updatedProject.getBranches()) {
             if (branch.isWatched()) {
-                updateRevisionsOnBranch(updatedProject, branch, localRepository);
+                updateRevisionsInBranch(updatedProject, branch, localRepository);
             } else {
                 LOGGER.debug("Skipping branch {} in project {}", branch.getName(), updatedProject.getName());
             }
@@ -172,14 +188,63 @@ public class ProjectUpdateService {
         return updatedProject;
     }
 
-    private void updateRevisionsOnBranch(@NotNull Project project, @NotNull Branch branch, @NotNull VcsLocalRepository localRepository) throws VcsConnectionException, VcsRepositoryException {
+    protected void updateRevisionsInBranch(@NotNull Project project, @NotNull Branch branch, @NotNull VcsLocalRepository localRepository) throws VcsConnectionException, VcsRepositoryException, RevisionLoopException {
         LOGGER.debug("Updating revisions on branch {} in project {}", branch.getName(), project.getName());
-
         localRepository.fetchLatestRevisions(branch);
-        Iterable<VcsRevision> revisionIterable = localRepository.listRevisionsInBranch(branch);
 
+        VcsRevision rootRevision = localRepository.fetchLatestRevisionInBranch(branch);
 
-        // TODO
+        Revision revision = convertRevision(rootRevision, project);
+        LOGGER.trace("Saving revisions on branch {} in project {}", branch.getName(), project.getName());
+        revisionGraphService.save(revision);
+        LOGGER.debug("Finished updating revisions on branch {} in project {}", branch.getName(), project.getName());
+    }
+
+    /**
+     * Recursive implementation which converts external {@link VcsRevision} objects to {@link Revision} entities. If
+     * any of the revision objects already exist in the database, the rest of the graph will be fetched from the
+     * database.
+     *
+     * @param rootRevision The root revision used for starting the conversion.
+     * @param project The project in which the revisions will be stored.
+     */
+    @NotNull
+    protected Revision convertRevision(@NotNull VcsRevision rootRevision, @NotNull Project project) throws RevisionLoopException {
+        Revision revision = revisionGraphService.findRevisionInProject(project, rootRevision.getInternalId());
+        if (revision == null) {
+            validator.checkConstraints(rootRevision);
+            LOGGER.trace("Creating new revision {}", rootRevision.getInternalId());
+            revision = new Revision(rootRevision).setProject(project);
+            return convertRevision(rootRevision, revision, project, new HashSet<String>());
+        } else {
+            return revision;
+        }
+    }
+
+    @NotNull
+    private Revision convertRevision(@NotNull VcsRevision revision, @NotNull Revision converted, @NotNull Project project, @NotNull Set<String> processedIds) throws RevisionLoopException {
+        String internalId = revision.getInternalId();
+        if (processedIds.contains(internalId)) {
+            throw new RevisionLoopException(internalId);
+        }
+        validator.checkConstraints(revision);
+        processedIds.add(internalId);
+        for (VcsRevision rawParent : revision.getParents()) {
+            String rawParentInternalId = rawParent.getInternalId();
+            if (revisionGraphService.existsRevisionInProject(project, rawParentInternalId)) {
+                // Use the existing revision as a parent
+                LOGGER.trace("Found existing revision {} - aborting loop", rawParentInternalId);
+                Revision revisionInProject = revisionGraphService.findRevisionInProject(project, rawParentInternalId);
+                converted.addParent(revisionInProject);
+            } else {
+                // Create a new parent and continue the loop
+                LOGGER.trace("Creating new revision {}", rawParentInternalId);
+                Revision parent = new Revision(rawParent).setProject(project);
+                converted.addParent(parent);
+                convertRevision(rawParent, parent, project, processedIds);
+            }
+        }
+        return converted;
     }
 
     private void indexDatabaseChanges(@NotNull Project project) {

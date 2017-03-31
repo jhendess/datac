@@ -21,7 +21,7 @@ public interface VcsLocalRepository {
     /**
      * Updates the internal list of revisions from remote. Concrete implementations may decide if it is necessary to
      * perform a remote call to retrieve the latest revisions or not. If the fetching would e.g. take too long, it also
-     * sufficient to fetch the revisions directly during {@link #listRevisionsInBranch(Branch)} .
+     * sufficient to fetch the revisions directly during {@link #fetchLatestRevisionInBranch(Branch)} .
      *
      * @param branch
      *         The branch to fetch.
@@ -39,5 +39,5 @@ public interface VcsLocalRepository {
      * @return An {@link Iterable} containing the revisions of the given branch.
      */
     @NotNull
-    Iterable<VcsRevision> listRevisionsInBranch(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException;
+    VcsRevision fetchLatestRevisionInBranch(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException;
 }

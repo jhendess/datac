@@ -214,4 +214,14 @@
             </column>
         </addColumn>
     </changeSet>
+    <changeSet id="12" author="jhendess">
+        <comment>Added unique constraints and indices for revision tables and changed committer to reviewer</comment>
+        <addUniqueConstraint tableName="revision" columnNames="internal_id,project_id"/>
+        <addUniqueConstraint tableName="revision_graph" columnNames="revision_id,parent_revision_id"/>
+        <createIndex tableName="revision_graph" indexName="idx_revision_graph">
+            <column name="revision_id"/>
+            <column name="parent_revision_id"/>
+        </createIndex>
+        <renameColumn tableName="revision" oldColumnName="committer" newColumnName="reviewer"/>
+    </changeSet>
 </databaseChangeLog>

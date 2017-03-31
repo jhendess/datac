@@ -11,6 +11,7 @@ import javax.validation.constraints.Size;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.validation.SameProjectParent;
 
 /**
@@ -19,7 +20,7 @@ import org.xlrnet.datac.vcs.domain.validation.SameProjectParent;
 @Entity
 @Table(name = "revision")
 @SameProjectParent
-public class Revision extends AbstractEntity {
+public class Revision extends AbstractEntity implements VcsRevision {
 
     /**
      * Internal id used by the concrete VCS to identify a revision.
@@ -39,10 +40,9 @@ public class Revision extends AbstractEntity {
     /**
      * User who submitted the reviewed revision to the VCS.
      */
-    @NotEmpty
     @Size(max = 256)
-    @Column(name = "committer")
-    private String committer;
+    @Column(name = "reviewer")
+    private String reviewer;
 
     /**
      * Message that was published with the revision.
@@ -72,6 +72,25 @@ public class Revision extends AbstractEntity {
             inverseJoinColumns = @JoinColumn(name = "parent_revision_id", referencedColumnName = "id"))
     private List<Revision> parents = new ArrayList<>();
 
+
+    public Revision() {
+        // Empty constructor
+    }
+
+    /**
+     * Copy-constructor from an external {@link VcsRevision} object. Parents won't be copied and remain empty.
+     * @param vcsRevision The object from which to create a revision entity.
+     */
+    public Revision(VcsRevision vcsRevision) {
+        setInternalId(vcsRevision.getInternalId());
+        setMessage(vcsRevision.getMessage());
+        setAuthor(vcsRevision.getAuthor());
+        setReviewer(vcsRevision.getReviewer());
+        setCommitTime(vcsRevision.getCommitTime());
+    }
+
+    @Override
+    @org.jetbrains.annotations.NotNull
     public String getInternalId() {
         return internalId;
     }
@@ -81,6 +100,7 @@ public class Revision extends AbstractEntity {
         return this;
     }
 
+    @Override
     public String getAuthor() {
         return author;
     }
@@ -90,15 +110,17 @@ public class Revision extends AbstractEntity {
         return this;
     }
 
-    public String getCommitter() {
-        return committer;
+    @Override
+    public String getReviewer() {
+        return reviewer;
     }
 
-    public Revision setCommitter(String committer) {
-        this.committer = committer;
+    public Revision setReviewer(String reviewer) {
+        this.reviewer = reviewer;
         return this;
     }
 
+    @Override
     public String getMessage() {
         return message;
     }
@@ -108,6 +130,7 @@ public class Revision extends AbstractEntity {
         return this;
     }
 
+    @Override
     public LocalDateTime getCommitTime() {
         return commitTime;
     }
@@ -117,6 +140,8 @@ public class Revision extends AbstractEntity {
         return this;
     }
 
+    @org.jetbrains.annotations.NotNull
+    @Override
     public List<Revision> getParents() {
         return parents;
     }

@@ -1,22 +1,23 @@
 package org.xlrnet.datac.vcs.services;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.time.LocalDateTime;
-import java.util.List;
-
-import javax.validation.ConstraintViolationException;
-
-import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.AbstractSpringBootTest;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.ProjectService;
+import org.xlrnet.datac.test.domain.EntityCreatorUtil;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
+
+import javax.validation.ConstraintViolationException;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.xlrnet.datac.test.domain.EntityCreatorUtil.buildBranch;
+import static org.xlrnet.datac.test.domain.EntityCreatorUtil.buildProject;
 
 /**
  * Tests simple CRUD operations on the revision graph.
@@ -33,32 +34,12 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
 
     @Before
     public void setupTestEntities() {
-        testProject = buildProject();
+        testProject = EntityCreatorUtil.buildProject();
 
-        Branch testBranch = buildBranch();
+        Branch testBranch = EntityCreatorUtil.buildBranch();
         testProject.addBranch(testBranch);
 
         testProject = projectService.save(testProject);
-    }
-
-    @NotNull
-    private Branch buildBranch() {
-        Branch testBranch = new Branch();
-        testBranch.setName("1");
-        testBranch.setDevelopment(true);
-        testBranch.setInternalId("1");
-        return testBranch;
-    }
-
-    private Project buildProject() {
-        Project p = new Project();
-        p.setChangelogLocation("/");
-        p.setAdapterClass("TEST");
-        p.setType("TEST");
-        p.setUrl("Some_URL");
-        p.setNewBranchPattern(".*");
-        p.setName("TEST");
-        return p;
     }
 
     @Test
@@ -66,14 +47,14 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
         Revision child = new Revision()
                 .setInternalId("child")
                 .setAuthor("someAuthor")
-                .setCommitter("someCommitter")
+                .setReviewer("someCommitter")
                 .setCommitTime(LocalDateTime.now())
                 .setMessage("This is a child")
                 .setProject(testProject);
         Revision parent = new Revision()
                 .setInternalId("parent")
                 .setAuthor("someAuthor")
-                .setCommitter("someCommitter")
+                .setReviewer("someCommitter")
                 .setCommitTime(LocalDateTime.now())
                 .setMessage("This is a parent")
                 .setProject(testProject);
@@ -105,14 +86,14 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
         Revision child = new Revision()
                 .setInternalId("child")
                 .setAuthor("someAuthor")
-                .setCommitter("someCommitter")
+                .setReviewer("someCommitter")
                 .setCommitTime(LocalDateTime.now())
                 .setMessage("This is a child")
                 .setProject(testProject);
         Revision parent = new Revision()
                 .setInternalId("parent")
                 .setAuthor("someAuthor")
-                .setCommitter("someCommitter")
+                .setReviewer("someCommitter")
                 .setCommitTime(LocalDateTime.now())
                 .setMessage("This is a parent")
                 .setProject(project2);

@@ -15,4 +15,9 @@ public interface RevisionRepository extends CrudRepository<Revision, Long> {
     @Transactional(readOnly = true)
     List<Revision> findAllByProject(Project project);
 
+    @Transactional(readOnly = true)
+    Revision findByInternalIdAndProject(String revisionId, Project project);
+
+    @Transactional(readOnly = true)
+    long countRevisionByInternalIdAndProject(String revisionId, Project project);
 }
