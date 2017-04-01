@@ -20,7 +20,7 @@ public class DummyLocalRepository implements VcsLocalRepository {
     }
 
     @Override
-    public void fetchLatestRevisions(@NotNull Branch branch) throws VcsConnectionException {
+    public void updateRevisionsFromRemote(@NotNull Branch branch) throws VcsConnectionException {
         // TODO
     }
 

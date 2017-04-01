@@ -11,7 +11,7 @@ import java.util.Collection;
 
 /**
  * Connection object to a remote version control system. Implementations of this object may contain stateful data and
- * do not have to be thread-safe.
+ * does not have to be thread-safe.
  */
 public interface VcsRemoteRepositoryConnection extends Closeable {
 

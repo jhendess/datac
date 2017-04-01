@@ -1,18 +1,18 @@
 package org.xlrnet.datac.vcs.domain;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-
 import org.hibernate.validator.constraints.NotEmpty;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.validation.SameProjectParent;
+
+import javax.persistence.*;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * A revision represents a single versioning state in a VCS.
@@ -54,7 +54,7 @@ public class Revision extends AbstractEntity implements VcsRevision {
      * Timestamp when revision was originally created.
      */
     @Column(name = "commit_time")
-    private LocalDateTime commitTime;
+    private Instant commitTime;
 
     /**
      * Project in which this revision exists.
@@ -131,11 +131,11 @@ public class Revision extends AbstractEntity implements VcsRevision {
     }
 
     @Override
-    public LocalDateTime getCommitTime() {
+    public Instant getCommitTime() {
         return commitTime;
     }
 
-    public Revision setCommitTime(LocalDateTime commitTime) {
+    public Revision setCommitTime(Instant commitTime) {
         this.commitTime = commitTime;
         return this;
     }
@@ -151,8 +151,10 @@ public class Revision extends AbstractEntity implements VcsRevision {
         return this;
     }
 
-    public Revision addParent(Revision parent) {
-        this.parents.add(parent);
+    public Revision addParent(@org.jetbrains.annotations.NotNull Revision parent) {
+        if (!parents.contains(parent)) {
+            this.parents.add(parent);
+        }
         return this;
     }
 
@@ -163,5 +165,23 @@ public class Revision extends AbstractEntity implements VcsRevision {
     public Revision setProject(Project project) {
         this.project = project;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Revision)) return false;
+        Revision revision = (Revision) o;
+        return Objects.equals(internalId, revision.internalId) &&
+                Objects.equals(author, revision.author) &&
+                Objects.equals(reviewer, revision.reviewer) &&
+                Objects.equals(message, revision.message) &&
+                Objects.equals(commitTime, revision.commitTime) &&
+                Objects.equals(project, revision.project);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(internalId, author, reviewer, message, commitTime, project);
     }
 }

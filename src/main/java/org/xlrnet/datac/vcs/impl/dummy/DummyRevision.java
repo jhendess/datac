@@ -3,7 +3,7 @@ package org.xlrnet.datac.vcs.impl.dummy;
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +35,7 @@ public class DummyRevision implements VcsRevision {
     /**
      * Timestamp when DummyRevision was originally created.
      */
-    private LocalDateTime commitTime;
+    private Instant commitTime;
 
     private List<DummyRevision> parents = new ArrayList<>();
 
@@ -100,11 +100,11 @@ public class DummyRevision implements VcsRevision {
     }
 
     @Override
-    public LocalDateTime getCommitTime() {
+    public Instant getCommitTime() {
         return commitTime;
     }
 
-    public DummyRevision setCommitTime(LocalDateTime commitTime) {
+    public DummyRevision setCommitTime(Instant commitTime) {
         this.commitTime = commitTime;
         return this;
     }

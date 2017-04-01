@@ -6,7 +6,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.AbstractSpringBootTest;
-import org.xlrnet.datac.commons.exception.RevisionLoopException;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.test.domain.EntityCreatorUtil;
@@ -70,14 +69,6 @@ public class ProjectUpdateServiceTest extends AbstractSpringBootTest {
                         .addParent(new DummyRevision().setInternalId("4"))
         );
         return root;
-    }
-
-    @Test(expected = RevisionLoopException.class)
-    public void testUpdateRevisionInBranch_loop() throws Exception {
-        VcsLocalRepository mockedRepository = Mockito.mock(VcsLocalRepository.class);
-        DummyRevision root = new DummyRevision().setInternalId("1").addParent(new DummyRevision().setInternalId("1"));
-        when(mockedRepository.fetchLatestRevisionInBranch(testBranch)).thenReturn(root);
-        projectUpdateService.updateRevisionsInBranch(testProject, testBranch, mockedRepository);
     }
 
     @Test

@@ -1,13 +1,12 @@
 package org.xlrnet.datac.vcs.api;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-import javax.validation.constraints.Size;
-
 import org.hibernate.validator.constraints.NotEmpty;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.validation.constraints.Size;
+import java.time.Instant;
+import java.util.List;
 
 /**
  * A revision in a VCS describes a single versioning state. Revisions are always chained and resemble a graph.
@@ -54,7 +53,7 @@ public interface VcsRevision {
      *
      * @return the time when the revision was originally created.
      */
-    LocalDateTime getCommitTime();
+    Instant getCommitTime();
 
     /**
      * Lists all direct parents of this revision. If there are no parents, an empty list must be returned.

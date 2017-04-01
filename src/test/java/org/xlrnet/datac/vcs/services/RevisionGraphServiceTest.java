@@ -11,7 +11,7 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 
 import javax.validation.ConstraintViolationException;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -48,14 +48,14 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
                 .setInternalId("child")
                 .setAuthor("someAuthor")
                 .setReviewer("someCommitter")
-                .setCommitTime(LocalDateTime.now())
+                .setCommitTime(Instant.now())
                 .setMessage("This is a child")
                 .setProject(testProject);
         Revision parent = new Revision()
                 .setInternalId("parent")
                 .setAuthor("someAuthor")
                 .setReviewer("someCommitter")
-                .setCommitTime(LocalDateTime.now())
+                .setCommitTime(Instant.now())
                 .setMessage("This is a parent")
                 .setProject(testProject);
 
@@ -87,14 +87,14 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
                 .setInternalId("child")
                 .setAuthor("someAuthor")
                 .setReviewer("someCommitter")
-                .setCommitTime(LocalDateTime.now())
+                .setCommitTime(Instant.now())
                 .setMessage("This is a child")
                 .setProject(testProject);
         Revision parent = new Revision()
                 .setInternalId("parent")
                 .setAuthor("someAuthor")
                 .setReviewer("someCommitter")
-                .setCommitTime(LocalDateTime.now())
+                .setCommitTime(Instant.now())
                 .setMessage("This is a parent")
                 .setProject(project2);
 

@@ -48,13 +48,14 @@ public class VersionControlSystemService implements SmartLifecycle {
     /**
      * Tries to find the specific metadata for a given adapter class name.
      *
-     * @param adapterClass The class of the adapter to whom the metadata belongs.
+     * @param adapterClass
+     *         The class of the adapter to whom the metadata belongs.
      * @return An optional containing the {@link VcsMetaInfo} object or empty.
      */
     @NotNull
     public Optional<VcsMetaInfo> findMetaInfoByAdapterClassName(@NotNull String adapterClass) {
         VcsMetaInfo metaInfo = null;
-        for (Map.Entry<VcsMetaInfo, VcsAdapter> entry: metaInfoAdapterMap.entrySet()) {
+        for (Map.Entry<VcsMetaInfo, VcsAdapter> entry : metaInfoAdapterMap.entrySet()) {
             if (StringUtils.equalsIgnoreCase(entry.getValue().getClass().getName(), adapterClass)) {
                 metaInfo = entry.getKey();
             }
@@ -65,11 +66,12 @@ public class VersionControlSystemService implements SmartLifecycle {
     /**
      * Tries to find the first available metadata of an adapter supporting the given VCS type. Works case insensitive.
      *
-     * @param type The type of VCS to look for. This is the value returned by {@link VcsMetaInfo#getVcsName()}.
+     * @param type
+     *         The type of VCS to look for. This is the value returned by {@link VcsMetaInfo#getVcsName()}.
      * @return An optional containing the {@link VcsMetaInfo} or empty.
      */
     @NotNull
-    public Optional<VcsMetaInfo> findMetaInfoByVcsType(@NotNull  String type) {
+    public Optional<VcsMetaInfo> findMetaInfoByVcsType(@NotNull String type) {
         VcsMetaInfo metaInfo = null;
         for (VcsMetaInfo m : metaInfoAdapterMap.keySet()) {
             if (StringUtils.equalsIgnoreCase(m.getVcsName(), type)) {
@@ -143,7 +145,8 @@ public class VersionControlSystemService implements SmartLifecycle {
      * Returns an {@link Optional} with the adapter that matches a given meta info. If no adapter could be found, the
      * optional will be empty.
      *
-     * @param vcsMetaInfo The meta info to use for searching.
+     * @param vcsMetaInfo
+     *         The meta info to use for searching.
      * @return An {@link Optional} containing the requested {@link VcsAdapter} if it is registered.
      */
     @NotNull

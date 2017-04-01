@@ -8,7 +8,7 @@ public class RevisionLoopException extends DatacTechnicalException {
     private String internalId;
 
     public RevisionLoopException(String internalId) {
-        super("Encountered loop in revision" + internalId);
+        super("Encountered loop in revision " + internalId);
         this.internalId = internalId;
     }
 

@@ -1,11 +1,14 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import java.util.Collection;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import javax.validation.ConstraintViolationException;
-
+import com.google.common.base.Objects;
+import com.vaadin.annotations.PropertyId;
+import com.vaadin.data.BeanValidationBinder;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.shared.ui.MarginInfo;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
+import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
@@ -32,15 +35,10 @@ import org.xlrnet.datac.vcs.services.VersionControlSystemService;
 import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
 import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
 
-import com.google.common.base.Objects;
-import com.vaadin.annotations.PropertyId;
-import com.vaadin.data.BeanValidationBinder;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.shared.ui.MarginInfo;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import javax.validation.ConstraintViolationException;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Assistant for creating new projects.
@@ -353,6 +351,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
         return (s) -> {
             // Only show a notification if something went wrong
             if (!(VcsConnectionStatus.ESTABLISHED.equals(s))) {
+                changeLogLocationField.setValue("CHANGEME");
                 ui.access(() -> showConnectionNotification(s));
                 return;
             }

@@ -224,4 +224,8 @@
         </createIndex>
         <renameColumn tableName="revision" oldColumnName="committer" newColumnName="reviewer"/>
     </changeSet>
+    <changeSet id="13" author="jhendess">
+        <comment>Increase size of branch name</comment>
+        <modifyDataType tableName="branch" columnName="name" newDataType="VARCHAR(256)"/>
+    </changeSet>
 </databaseChangeLog>

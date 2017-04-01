@@ -1,6 +1,7 @@
 package org.xlrnet.datac.vcs.domain;
 
 import com.google.common.base.MoreObjects;
+import org.hibernate.validator.constraints.NotEmpty;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.domain.Project;
 
@@ -16,8 +17,8 @@ import java.util.Objects;
 @Table(name = "branch")
 public class Branch extends AbstractEntity {
 
-    @NotNull
-    @Size(max = 50)
+    @NotEmpty
+    @Size(max = 256)
     @Column(name = "name")
     private String name;
 
@@ -69,6 +70,7 @@ public class Branch extends AbstractEntity {
                 .add("name", name)
                 .add("internalId", internalId)
                 .add("watched", watched)
+                .add("development", development)
                 .toString();
     }
 
