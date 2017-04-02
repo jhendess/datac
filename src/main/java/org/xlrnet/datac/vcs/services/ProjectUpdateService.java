@@ -8,8 +8,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
-import org.xlrnet.datac.commons.exception.RevisionLoopException;
-import org.xlrnet.datac.commons.exception.VcsRepositoryException;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.FileService;
 import org.xlrnet.datac.foundation.services.ProjectService;
@@ -22,9 +20,7 @@ import javax.transaction.Transactional;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Service which is responsible for collecting all database changes in a project.
@@ -34,22 +30,34 @@ public class ProjectUpdateService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectUpdateService.class);
 
-    /** The VCS Adapter that will be used for updating the project. */
+    /**
+     * The VCS Adapter that will be used for updating the project.
+     */
     private final VersionControlSystemService vcsService;
 
-    /** Central locking service. */
+    /**
+     * Central locking service.
+     */
     private final LockingService lockingService;
 
-    /** The file service for accessing file resources. */
+    /**
+     * The file service for accessing file resources.
+     */
     private final FileService fileService;
 
-    /** Project service for updating project data. */
+    /**
+     * Project service for updating project data.
+     */
     private final ProjectService projectService;
 
-    /** Service for accessing the revision revision graph. */
+    /**
+     * Service for accessing the revision revision graph.
+     */
     private final RevisionGraphService revisionGraphService;
 
-    /** Bean validation service. */
+    /**
+     * Bean validation service.
+     */
     private final ValidationService validator;
 
     @Autowired
@@ -177,14 +185,14 @@ public class ProjectUpdateService {
      * @param localRepository
      *         Local VCS repository instance for the project to edit.
      */
-    protected Project updateRevisions(Project project, VcsLocalRepository localRepository) throws VcsConnectionException, VcsRepositoryException, RevisionLoopException {
+    protected Project updateRevisions(Project project, VcsLocalRepository localRepository) throws DatacTechnicalException {
         LOGGER.debug("Checking for new branches in project {}", project.getName());
         Project updatedProject = projectService.updateAvailableBranches(project, localRepository);
 
         LOGGER.debug("Updating revisions in project {}", updatedProject.getName());
 
         for (Branch branch : updatedProject.getBranches()) {
-            if (branch.isWatched()) {
+            if (branch.isWatched() || branch.isDevelopment()) {
                 updateRevisionsInBranch(updatedProject, branch, localRepository);
             } else {
                 LOGGER.debug("Skipping branch {} in project {}", branch.getName(), updatedProject.getName());
@@ -194,7 +202,7 @@ public class ProjectUpdateService {
         return updatedProject;
     }
 
-    protected void updateRevisionsInBranch(@NotNull Project project, @NotNull Branch branch, @NotNull VcsLocalRepository localRepository) throws VcsConnectionException, VcsRepositoryException, RevisionLoopException {
+    protected void updateRevisionsInBranch(@NotNull Project project, @NotNull Branch branch, @NotNull VcsLocalRepository localRepository) throws DatacTechnicalException {
         LOGGER.debug("Updating revisions on branch {} in project {}", branch.getName(), project.getName());
         localRepository.updateRevisionsFromRemote(branch);
 
@@ -217,47 +225,73 @@ public class ProjectUpdateService {
      *         The project in which the revisions will be stored.
      */
     @NotNull
-    protected Revision convertRevision(@NotNull VcsRevision rootRevision, @NotNull Project project) throws RevisionLoopException {
-        Revision revision = revisionGraphService.findRevisionInProject(project, rootRevision.getInternalId());
-        if (revision == null) {
-            validator.checkConstraints(rootRevision);
-            LOGGER.trace("Creating new revision {}", rootRevision.getInternalId());
-            revision = new Revision(rootRevision).setProject(project);
-            return convertRevision(rootRevision, revision, project, new HashMap<>());
-        } else {
-            return revision;
+    protected Revision convertRevision(@NotNull VcsRevision rootRevision, @NotNull Project project) {
+        Map<String, Revision> revisionMap = buildRevisionMap(rootRevision, project);
+        collectParents(rootRevision, revisionMap);
+
+        return revisionMap.get(rootRevision.getInternalId());
+    }
+
+    private void collectParents(@NotNull VcsRevision rootRevision, Map<String, Revision> revisionMap) {
+        Set<String> importedRevisions = new HashSet<>(revisionMap.size());
+        Queue<VcsRevision> revisionsToImport = new LinkedList<>();
+        revisionsToImport.add(rootRevision);
+
+        while (!revisionsToImport.isEmpty()) {
+            VcsRevision revision = revisionsToImport.poll();
+            String internalId = revision.getInternalId();
+            if (importedRevisions.contains(internalId)) {
+                LOGGER.trace("Encountered visited revision {}", internalId);
+                continue;
+            } else {
+                importedRevisions.add(internalId);
+            }
+            Revision converted = revisionMap.get(internalId);
+            if (converted == null) {
+                LOGGER.trace("Revision {} is already imported", internalId);
+                continue;
+            }
+            for (VcsRevision parent : revision.getParents()) {
+                Revision convertedParent = revisionMap.get(parent.getInternalId());
+                if (convertedParent == null) {
+                    // The parent will be missing, because its child already exists
+                    continue;
+                }
+                LOGGER.trace("Adding revision {} as parent of {}", parent.getInternalId(), internalId);
+                converted.addParent(convertedParent);
+                revisionsToImport.add(parent);
+            }
         }
     }
 
     @NotNull
-    private Revision convertRevision(@NotNull VcsRevision revision, @NotNull Revision converted, @NotNull Project project, @NotNull Map<String, Revision> processRevisions) throws RevisionLoopException {
-        String internalId = revision.getInternalId();
-        if (processRevisions.containsKey(internalId)) {
-            LOGGER.debug("Encountered visited revision {}", internalId);
-            return processRevisions.get(internalId);
-        }
-        validator.checkConstraints(revision);
-        for (VcsRevision rawParent : revision.getParents()) {
-            String rawParentInternalId = rawParent.getInternalId();
-            if (revisionGraphService.existsRevisionInProject(project, rawParentInternalId)) {
-                // Use the existing revision as a parent
-                LOGGER.trace("Found existing revision {} - aborting loop", rawParentInternalId);
-                Revision revisionInProject = revisionGraphService.findRevisionInProject(project, rawParentInternalId);
-                converted.addParent(revisionInProject);
-                processRevisions.put(internalId, revisionInProject);
-            } else if (processRevisions.containsKey(rawParentInternalId)) {
-                LOGGER.trace("Found processed revision {} - aborting loop", rawParentInternalId);
-                converted.addParent(processRevisions.get(rawParentInternalId));
-            } else {
-                // Create a new parent and continue the loop
-                LOGGER.trace("Creating new revision {}", rawParentInternalId);
-                Revision parent = new Revision(rawParent).setProject(project);
-                converted.addParent(parent);
-                processRevisions.put(internalId, parent);
-                convertRevision(rawParent, parent, project, processRevisions);
+    private Map<String, Revision> buildRevisionMap(@NotNull VcsRevision rootRevision, @NotNull Project project) {
+        Map<String, Revision> revisionMap = new HashMap<>();
+        Queue<VcsRevision> revisionsToConvert = new LinkedList<>();
+        revisionsToConvert.add(rootRevision);
+
+        while (!revisionsToConvert.isEmpty()) {
+            VcsRevision revision = revisionsToConvert.poll();
+            validator.checkConstraints(revision);
+            String internalId = revision.getInternalId();
+            if (revisionMap.containsKey(internalId)) {
+                // Already visited this revision - skip other parents
+                LOGGER.trace("Found visited revision {}", internalId);
+                continue;
             }
+            Revision converted = revisionGraphService.findRevisionInProject(project, internalId);
+            if (converted != null) {
+                // Existing revision means that all parents have already been persisted - skip other parents
+                LOGGER.trace("Found existing revision {} in database", internalId);
+            } else {
+                // Convert new revision and add all its parents to the queue
+                converted = new Revision(revision).setProject(project);
+                LOGGER.trace("Found new revision {}", internalId);
+                revisionsToConvert.addAll(revision.getParents());
+            }
+            revisionMap.put(internalId, converted);
         }
-        return converted;
+        return revisionMap;
     }
 
     private void indexDatabaseChanges(@NotNull Project project) {

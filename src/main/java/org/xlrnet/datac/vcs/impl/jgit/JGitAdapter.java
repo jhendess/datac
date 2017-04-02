@@ -28,6 +28,7 @@ public class JGitAdapter implements VcsAdapter {
     }
 
     @NotNull
+    @Override
     public VcsLocalRepository openLocalRepository(@NotNull Path repositoryPath, @NotNull VcsRemoteCredentials credentials) throws VcsRepositoryException {
         UsernamePasswordCredentialsProvider provider = buildCredentialsProvider(credentials);
         return new JGitLocalRepository(repositoryPath, provider, credentials.getUrl());

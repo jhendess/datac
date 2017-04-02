@@ -1,7 +1,7 @@
 package org.xlrnet.datac.vcs.api;
 
 import org.jetbrains.annotations.NotNull;
-import org.xlrnet.datac.commons.exception.VcsRepositoryException;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.vcs.domain.Branch;
 
 /**
@@ -26,7 +26,7 @@ public interface VcsLocalRepository {
      * @param branch
      *         The branch to fetch.
      */
-    void updateRevisionsFromRemote(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException;
+    void updateRevisionsFromRemote(@NotNull Branch branch) throws DatacTechnicalException;
 
     /**
      * Returns the latest revision in the given branch. The returned revision contains a tree-structure for all parent
@@ -37,5 +37,5 @@ public interface VcsLocalRepository {
      * @return An {@link Iterable} containing the revisions of the given branch.
      */
     @NotNull
-    VcsRevision fetchLatestRevisionInBranch(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException;
+    VcsRevision fetchLatestRevisionInBranch(@NotNull Branch branch) throws DatacTechnicalException;
 }

@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * A revision represents a single versioning state in a VCS.
  */
@@ -64,9 +66,10 @@ public class Revision extends AbstractEntity implements VcsRevision {
     private Project project;
 
     /**
-     * Parent revisions of this revision.
+     * Parent revisions of this revision. Persisting and merging must be executed manually in order to avoid stack
+     * overflow errors.
      */
-    @ManyToMany(targetEntity = Revision.class, cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @ManyToMany(targetEntity = Revision.class, cascade = {CascadeType.DETACH, CascadeType.REMOVE}, fetch = FetchType.EAGER)
     @JoinTable(name = "revision_graph",
             joinColumns = @JoinColumn(name = "revision_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "parent_revision_id", referencedColumnName = "id"))
@@ -79,7 +82,9 @@ public class Revision extends AbstractEntity implements VcsRevision {
 
     /**
      * Copy-constructor from an external {@link VcsRevision} object. Parents won't be copied and remain empty.
-     * @param vcsRevision The object from which to create a revision entity.
+     *
+     * @param vcsRevision
+     *         The object from which to create a revision entity.
      */
     public Revision(VcsRevision vcsRevision) {
         setInternalId(vcsRevision.getInternalId());
@@ -155,6 +160,15 @@ public class Revision extends AbstractEntity implements VcsRevision {
         if (!parents.contains(parent)) {
             this.parents.add(parent);
         }
+        return this;
+    }
+
+    public Revision replaceParent(@org.jetbrains.annotations.NotNull Revision oldParent, @org.jetbrains.annotations.NotNull Revision newParent) {
+        checkArgument(parents.contains(oldParent), "Parents don't contain expected old parent");
+
+        parents.remove(oldParent);
+        addParent(newParent);
+
         return this;
     }
 

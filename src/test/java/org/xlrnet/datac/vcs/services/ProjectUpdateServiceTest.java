@@ -105,11 +105,11 @@ public class ProjectUpdateServiceTest extends AbstractSpringBootTest {
         assertEquals("First parent revision parent count't doesn't match", 2, firstParent.getParents().size());
         Revision firstSecondParent = firstParent.getParents().get(0);
         assertNotNull(firstSecondParent);
-        assertEquals("First second parent revision id doesn't match", "3", firstSecondParent.getInternalId());
+        assertEquals("First second parent revision id doesn't match", "4", firstSecondParent.getInternalId());
         assertEquals("First second parent revision parent count't doesn't match", 0, firstSecondParent.getParents().size());
         Revision secondSecondParent = firstParent.getParents().get(1);
         assertNotNull(secondSecondParent);
-        assertEquals("Second second parent revision id doesn't match", "4", secondSecondParent.getInternalId());
+        assertEquals("Second second parent revision id doesn't match", "3", secondSecondParent.getInternalId());
         assertEquals("Second second parent revision parent count't doesn't match", 0, secondSecondParent.getParents().size());
     }
 

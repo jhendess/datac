@@ -102,4 +102,54 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
         revisionGraphService.save(child);
     }
 
+    @Test
+    public void testSaveStackOverflow() {
+        Revision newRoot = new Revision().setInternalId("0").setProject(testProject);
+        Revision revision = newRoot;
+
+
+        for (int i = 1; i < 1000; i++) {
+            Revision parent = new Revision().setInternalId(Integer.toString(i)).setProject(testProject);
+            revision.addParent(parent);
+            revision = parent;
+        }
+
+        revisionGraphService.save(newRoot);
+    }
+
+    @Test
+    public void testSaveMultipleParents() {
+        Revision root = new Revision().setInternalId("0").setProject(testProject);
+
+        root.addParent(new Revision().setInternalId("1").setProject(testProject));
+        root.addParent(new Revision().setInternalId("2").setProject(testProject));
+
+        revisionGraphService.save(root);
+
+        Revision savedRevision = revisionGraphService.findRevisionInProject(testProject, "0");
+        assertNotNull(savedRevision);
+        assertEquals(2, savedRevision.getParents().size());
+    }
+
+    @Test
+    public void testSaveMultipleParentsSameRoot() {
+        Revision root = new Revision().setInternalId("0").setProject(testProject);
+
+        Revision parent1 = new Revision().setInternalId("1").setProject(testProject);
+        Revision parent2 = new Revision().setInternalId("2").setProject(testProject);
+        Revision oldestParent = new Revision().setInternalId("3").setProject(testProject);
+
+        root.addParent(parent1);
+        root.addParent(parent2);
+
+        parent1.addParent(oldestParent);
+        parent2.addParent(oldestParent);
+
+        revisionGraphService.save(root);
+
+        Revision savedRevision = revisionGraphService.findRevisionInProject(testProject, "0");
+        assertNotNull(savedRevision);
+        assertEquals(2, savedRevision.getParents().size());
+    }
+
 }

@@ -228,4 +228,12 @@
         <comment>Increase size of branch name</comment>
         <modifyDataType tableName="branch" columnName="name" newDataType="VARCHAR(256)"/>
     </changeSet>
+    <changeSet id="14" author="jhendess">
+        <comment>Fixed missing delete cascade constraint on revision table</comment>
+        <dropForeignKeyConstraint baseTableName="revision" constraintName="fk_revision__project"/>
+        <addForeignKeyConstraint baseTableName="revision" baseColumnNames="project_id"
+                                 constraintName="fk_revision__project"
+                                 referencedTableName="project"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+    </changeSet>
 </databaseChangeLog>

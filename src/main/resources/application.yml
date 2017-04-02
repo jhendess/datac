@@ -26,4 +26,3 @@ liquibase:
 logging:
   level:
     org.xlrnet.datac: trace
-
