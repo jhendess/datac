@@ -11,6 +11,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.convert.threeten.Jsr310JpaConverters;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.xlrnet.datac.foundation.configuration.BuildInformation;
+import org.xlrnet.datac.foundation.domain.EventType;
+import org.xlrnet.datac.foundation.domain.MessageSeverity;
+import org.xlrnet.datac.foundation.services.EventLogService;
 import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.UserService;
 
@@ -36,10 +39,13 @@ public class Application {
 
     private final UserService userService;
 
+    private final EventLogService eventLogService;
+
     @Autowired
-    public Application(BuildInformation buildInformation, UserService userService) {
+    public Application(BuildInformation buildInformation, UserService userService, EventLogService eventLogService) {
         this.buildInformation = buildInformation;
         this.userService = userService;
+        this.eventLogService = eventLogService;
     }
 
     public static void main(String[] args) {
@@ -62,6 +68,8 @@ public class Application {
                 Optional<User> systemUser = userService.createNewUser(user, "Sys123");
                 systemUser.ifPresent(user1 -> LOGGER.info("Created technical user system:Sys123"));
             }
+
+            eventLogService.logSimpleEventMessage(EventType.STARTUP, MessageSeverity.INFO, "Application startup complete");
         };
     }
 }

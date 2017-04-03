@@ -236,4 +236,53 @@
                                  referencedTableName="project"
                                  referencedColumnNames="id" onDelete="CASCADE"/>
     </changeSet>
+    <changeSet id="15" author="jhendess">
+        <comment>Added tables for event logging</comment>
+        <createTable tableName="eventlog" remarks="Event logs of logged messages.">
+            <column name="id" type="int" autoIncrement="true" remarks="Primary key.">
+                <constraints primaryKey="true" primaryKeyName="pk_eventlog"/>
+            </column>
+            <column name="type" type="VARCHAR(20)" remarks="Type of event that is logged.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created" type="DATETIME" remarks="Time when writing the log started.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="project_id" type="int" remarks="Project that triggered the event log (if any)."/>
+            <column name="user_id" type="int" remarks="The user who triggered the event log (if any)."/>
+        </createTable>
+        <createTable tableName="eventlog_message" remarks="Single log message in a event log.">
+            <column name="id" type="bigint" autoIncrement="true" remarks="Primary key.">
+                <constraints primaryKey="true" primaryKeyName="pk_eventlog_message"/>
+            </column>
+            <column name="short_message" type="VARCHAR(1024)" remarks="Short message.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="detailed_message" type="TEXT" remarks="Detailed message for e.g. stack traces."/>
+            <column name="created_at" type="DATETIME" remarks="Datetime when the message was created">
+                <constraints nullable="false"/>
+            </column>
+            <column name="severity" type="VARCHAR(20)" remarks="Severity of the message.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="eventlog_id" type="int" remarks="Event log to which this message belongs.">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="eventlog" baseColumnNames="project_id"
+                                 constraintName="fk_eventlog__project"
+                                 referencedTableName="project"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="eventlog" baseColumnNames="user_id"
+                                 constraintName="fk_eventlog__user"
+                                 referencedTableName="user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="eventlog_message" baseColumnNames="eventlog_id"
+                                 constraintName="fk_eventlog_message__eventlog"
+                                 referencedTableName="eventlog"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex indexName="idx_eventlog_message" tableName="eventlog_message">
+            <column name="eventlog_id"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>

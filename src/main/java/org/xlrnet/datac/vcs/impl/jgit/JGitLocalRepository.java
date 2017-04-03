@@ -99,7 +99,7 @@ public class JGitLocalRepository implements VcsLocalRepository {
 
             do {
                 // Just walk over all commits to initialize them correctly...
-                LOGGER.trace("ID: {}, Time: {}, Parents: {}, Message: {}", next.getId(), next.getCommitTime(), next.getParentCount(), next.getFullMessage().trim());
+                LOGGER.trace("ID: {}, Time: {}, Parents: {}, Message: {}", next.getId(), next.getCommitTime(), next.getParentCount(), next.getShortMessage().trim());
                 next = iterator.hasNext() ? iterator.next() : null;
             } while (next != null);
 
