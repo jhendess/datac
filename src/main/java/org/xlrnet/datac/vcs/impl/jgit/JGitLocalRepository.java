@@ -1,11 +1,12 @@
 package org.xlrnet.datac.vcs.impl.jgit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.FetchResult;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,15 +20,17 @@ import org.xlrnet.datac.vcs.domain.Branch;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Iterator;
 
 /**
  * Implementation of a local git repository using JGit.
  */
 public class JGitLocalRepository implements VcsLocalRepository {
 
-    private static final int MAXIMUM_FETCH_INTERVAL = 10000;
-
     private static Logger LOGGER = LoggerFactory.getLogger(JGitLocalRepository.class);
+
+    /** The interval in which fetches may be performed. */
+    private static final int MAXIMUM_FETCH_INTERVAL = 30000;
 
     /** Local file path of the repository. */
     private final Path repositoryPath;
@@ -37,6 +40,9 @@ public class JGitLocalRepository implements VcsLocalRepository {
 
     /** The credentials provider for accessing the remote repository. */
     private final CredentialsProvider credentialsProvider;
+
+    /** Timestamp when the last remote fetch was performed. */
+    private long lastFetch;
 
     JGitLocalRepository(Path repositoryPath, CredentialsProvider credentialsProvider, String remoteRepositoryUrl) {
         this.repositoryPath = repositoryPath;
@@ -52,16 +58,20 @@ public class JGitLocalRepository implements VcsLocalRepository {
 
     @Override
     public synchronized void updateRevisionsFromRemote(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException {
+        if (System.currentTimeMillis() - lastFetch < MAXIMUM_FETCH_INTERVAL) {
+            LOGGER.debug("Skipping fetch request");
+            return;
+        }
+        lastFetch = System.currentTimeMillis();
         String branchName = branch.getName();
-        LOGGER.debug("Pulling latest revisions from remote {} on branch {}", remoteRepositoryUrl, branchName);
-        try (Git git = Git.open(repositoryPath.toFile())) {
-            PullResult result = git.pull()
-                    .setRemoteBranchName(branchName)
+        LOGGER.debug("Fetching latest revisions from remote {} on branch {}", remoteRepositoryUrl, branchName);
+        try (Git git = openRepository()) {
+            FetchResult result = git.fetch()
                     .setCredentialsProvider(credentialsProvider)
                     .call();
-            if (!result.isSuccessful()) {
-                LOGGER.error("Pull from remote {} on branch {} failed", remoteRepositoryUrl, branchName);
-                throw new VcsRepositoryException("Pull from remote " + remoteRepositoryUrl + " on branch " + branchName + " failed");
+            if (StringUtils.isNotBlank(result.getMessages())) {
+                LOGGER.debug("Fetch from remote {} returned messages: {}", result.getMessages());
+                //throw new VcsRepositoryException("Pull from remote " + remoteRepositoryUrl + " on branch " + branchName + " failed");
             }
             LOGGER.debug("Finished fetching latest revisions from remote {} on branch {}", remoteRepositoryUrl, branchName);
         } catch (GitAPIException e) {
@@ -77,18 +87,21 @@ public class JGitLocalRepository implements VcsLocalRepository {
     @Override
     public VcsRevision fetchLatestRevisionInBranch(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException {
         LOGGER.debug("Reading revisions on branch {} in repository {}", branch.getName(), repositoryPath.toString());
-        try (Git git = Git.open(repositoryPath.toFile())) {
+        try (Git git = openRepository()) {
             Repository repository = git.getRepository();
             Iterable<RevCommit> call = git.log()
                     .add(repository.resolve(branch.getInternalId()))
                     .call();
 
-            CommitToRevisionWrapper commitToRevisionWrapper = new CommitToRevisionWrapper(call.iterator().next());
+            Iterator<RevCommit> iterator = call.iterator();
+            RevCommit next = iterator.next();
+            CommitToRevisionWrapper commitToRevisionWrapper = new CommitToRevisionWrapper(next);
 
-            for (RevCommit revCommit : call) {
+            do {
                 // Just walk over all commits to initialize them correctly...
-                LOGGER.trace("ID: {}, Time: {}, Parents: {}, Message: {}", revCommit.getId(), revCommit.getCommitTime(), revCommit.getParentCount(), revCommit.getFullMessage().trim());
-            }
+                LOGGER.trace("ID: {}, Time: {}, Parents: {}, Message: {}", next.getId(), next.getCommitTime(), next.getParentCount(), next.getFullMessage().trim());
+                next = iterator.hasNext() ? iterator.next() : null;
+            } while (next != null);
 
             LOGGER.debug("Finished reading revisions on branch {} in repository {}", branch.getName(), repositoryPath.toString());
             return commitToRevisionWrapper;
@@ -99,5 +112,10 @@ public class JGitLocalRepository implements VcsLocalRepository {
             LOGGER.error("Unexpected IOException", e);
             throw new DatacRuntimeException(e);
         }
+    }
+
+    @NotNull
+    private Git openRepository() throws IOException {
+        return Git.open(repositoryPath.toFile());
     }
 }
