@@ -20,6 +20,7 @@ public class EventLog extends AbstractEntity {
      */
     @NotNull
     @Column(name = "type")
+    @Enumerated(EnumType.STRING)
     private EventType type;
 
     /**

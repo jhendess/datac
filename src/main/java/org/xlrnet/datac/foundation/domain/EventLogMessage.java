@@ -1,10 +1,9 @@
 package org.xlrnet.datac.foundation.domain;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import javax.validation.constraints.NotNull;
 import java.time.Instant;
+
+import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 
 /**
  * A single log message in a {@link EventLog}.
@@ -26,6 +25,7 @@ public class EventLogMessage extends AbstractEntity {
 
     @NotNull
     @Column(name = "severity")
+    @Enumerated(EnumType.STRING)
     private MessageSeverity severity = MessageSeverity.INFO;
 
     public String getShortMessage() {
