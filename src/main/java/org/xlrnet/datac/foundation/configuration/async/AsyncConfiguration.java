@@ -1,18 +1,17 @@
-package org.xlrnet.datac.foundation.configuration;
+package org.xlrnet.datac.foundation.configuration.async;
+
+import java.util.concurrent.Executor;
 
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
-
-import java.util.concurrent.Executor;
 
 /**
  * Configuration for asynchronous task execution using {@link EnableAsync}.
  */
-@EnableAsync
-@Configuration
+//@EnableAsync
+//@Configuration
 public class AsyncConfiguration implements AsyncConfigurer {
 
     private final TaskExecutorFactory taskExecutorFactory;

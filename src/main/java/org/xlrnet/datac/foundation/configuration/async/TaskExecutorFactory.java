@@ -1,4 +1,6 @@
-package org.xlrnet.datac.foundation.configuration;
+package org.xlrnet.datac.foundation.configuration.async;
+
+import javax.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,8 +8,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
 
 /**
  * Factory for creating instances of {@link TaskExecutor}.

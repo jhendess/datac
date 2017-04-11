@@ -18,11 +18,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+#    show-sql: true
 
 liquibase:
   change-log: classpath:db/changelog/db.changelog-master.xml       # Use XML changelog for liquibase
 
 logging:
   level:
-    org.xlrnet.datac: trace
+    org.xlrnet.datac: debug

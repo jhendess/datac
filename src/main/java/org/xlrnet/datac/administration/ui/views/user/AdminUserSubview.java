@@ -1,10 +1,7 @@
 package org.xlrnet.datac.administration.ui.views.user;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
+import java.util.Objects;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +16,11 @@ import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.PasswordService;
 import org.xlrnet.datac.session.services.UserService;
 
-import java.util.Objects;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
 
 /**
  * Admin view which is responsible for managing the available users.
@@ -97,8 +98,7 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
         });
 
         grid = new Grid<>();
-        grid.setSizeFull();
-        grid.addColumn(User::getId).setCaption("ID");
+        grid.setWidth("80%");
         grid.addColumn(User::getLoginName).setCaption("Login");
         grid.addColumn(User::getFirstName).setCaption("First name");
         grid.addColumn(User::getLastName).setCaption("Last name");

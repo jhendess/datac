@@ -1,11 +1,7 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.renderers.ButtonRenderer;
+import java.util.Collection;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +15,12 @@ import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.ProjectUpdateStarter;
 
-import java.util.Collection;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
+import com.vaadin.ui.renderers.ButtonRenderer;
 
 /**
  * Admin view for managing projects responsible for managing the available users.
@@ -85,7 +86,6 @@ public class AdminProjectSubview extends AbstractSubview {
     }
 
     private Component buildGrid() {
-        grid.addColumn(Project::getId).setCaption("ID");
         grid.addColumn(Project::getName).setCaption("Name");
         grid.addColumn(Project::getUrl).setCaption("VCS Url");
         grid.addColumn(Project::getLastChangeCheck).setCaption("Last check for changes");

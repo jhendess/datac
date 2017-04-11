@@ -1,26 +1,34 @@
 package org.xlrnet.datac.vcs.services;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.*;
+
+import javax.transaction.Transactional;
+
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
+import org.xlrnet.datac.foundation.components.EventLogProxy;
+import org.xlrnet.datac.foundation.domain.EventLogMessage;
+import org.xlrnet.datac.foundation.domain.EventType;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.services.EventLogService;
 import org.xlrnet.datac.foundation.services.FileService;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.foundation.services.ValidationService;
 import org.xlrnet.datac.vcs.api.*;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
-
-import javax.transaction.Transactional;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.util.*;
 
 /**
  * Service which is responsible for collecting all database changes in a project.
@@ -60,14 +68,26 @@ public class ProjectUpdateService {
      */
     private final ValidationService validator;
 
+    /**
+     * Event logging service.
+     */
+    private final EventLogService eventLogService;
+
+    /**
+     * Request-scoped event log proxy.
+     */
+    private final EventLogProxy eventLog;
+
     @Autowired
-    public ProjectUpdateService(VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, RevisionGraphService revisionGraphService, ValidationService validator) {
+    public ProjectUpdateService(VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, RevisionGraphService revisionGraphService, ValidationService validator, EventLogService eventLogService, EventLogProxy eventLog) {
         this.vcsService = vcsService;
         this.lockingService = lockingService;
         this.fileService = fileService;
         this.projectService = projectService;
         this.revisionGraphService = revisionGraphService;
         this.validator = validator;
+        this.eventLogService = eventLogService;
+        this.eventLog = eventLog;
     }
 
     /**
@@ -81,13 +101,23 @@ public class ProjectUpdateService {
         if (lockingService.tryLock(project)) {
             try {
                 LOGGER.info("Begin update of project {}", project.getName());
+                eventLog.setDelegate(eventLogService.newEventLog().setType(EventType.PROJECT_UPDATE));
                 Project reloaded = projectService.findOne(project.getId());
                 updateProject(reloaded);
                 LOGGER.info("Finished updating project {} [id={}] successfully", project.getName(), project.getId());
+                eventLog.setProject(project);
+                eventLog.addMessage(new EventLogMessage("Project update finished successfully"));
             } catch (DatacTechnicalException e) {
                 LOGGER.error("Update of project {} [id={}] failed because of an unexpected exception", project.getName(), project.getId(), e);
+                eventLogService.addExceptionToEventLog(eventLog, "Project update failed because of an unexpected exception", e);
             } finally {
-                lockingService.unlock(project);
+                try {
+                    eventLogService.save(eventLog);
+                } catch (DatacRuntimeException e) {
+                    LOGGER.error("Writing eventlog after project update failed", e);
+                } finally {
+                    lockingService.unlock(project);
+                }
             }
         } else {
             LOGGER.warn("Update of project {} [id={}] failed because project is locked", project.getName(), project.getId());
@@ -166,26 +196,28 @@ public class ProjectUpdateService {
             projectService.save(project);
         } catch (DatacTechnicalException | RuntimeException e) {
             LOGGER.error("Initialization of project {} [id={}] failed - rolling back file system changes", e);
+            eventLogService.addExceptionToEventLog(eventLog, "Initialization of local repository failed", e);
             try {
                 fileService.deleteProjectRepository(project);
             } catch (DatacTechnicalException e2) {
+                eventLogService.addExceptionToEventLog(eventLog, "Cleaning up file system during rollback failed", e);
                 LOGGER.error("Critical error while cleaning up file system during rollback", e2);
             }
             throw e;
         }
 
+        eventLog.addMessage(new EventLogMessage("Successfully initialized local repository"));
         LOGGER.info("Successfully initialized local repository for project {}", project.getName());
     }
 
     /**
      * Update the internal revision graph of the VCS. Checks for new branches and updates the revisions.
-     *
-     * @param project
+     *  @param project
      *         The project to update.
      * @param localRepository
-     *         Local VCS repository instance for the project to edit.
+     *         The local repository to interact with a VCS.
      */
-    protected Project updateRevisions(Project project, VcsLocalRepository localRepository) throws DatacTechnicalException {
+    protected Project updateRevisions(@NotNull Project project, @NotNull VcsLocalRepository localRepository) throws DatacTechnicalException {
         LOGGER.debug("Checking for new branches in project {}", project.getName());
         Project updatedProject = projectService.updateAvailableBranches(project, localRepository);
 
@@ -208,10 +240,13 @@ public class ProjectUpdateService {
 
         VcsRevision rootRevision = localRepository.fetchLatestRevisionInBranch(branch);
 
-        Revision revision = convertRevision(rootRevision, project);
+        Pair<Revision, Long> revision = convertRevision(rootRevision, project);
         LOGGER.trace("Saving revisions on branch {} in project {}", branch.getName(), project.getName());
-        revisionGraphService.save(revision);
+        revisionGraphService.save(revision.getLeft());
         LOGGER.debug("Finished updating revisions on branch {} in project {}", branch.getName(), project.getName());
+        if (revision.getRight() != null && revision.getRight() > 0) {
+            eventLog.addMessage(new EventLogMessage(String.format("Found %d new revisions in branch %s", revision.getRight(), branch.getName())));
+        }
     }
 
     /**
@@ -225,17 +260,18 @@ public class ProjectUpdateService {
      *         The project in which the revisions will be stored.
      */
     @NotNull
-    protected Revision convertRevision(@NotNull VcsRevision rootRevision, @NotNull Project project) {
+    protected Pair<Revision, Long> convertRevision(@NotNull VcsRevision rootRevision, @NotNull Project project) {
         Map<String, Revision> revisionMap = buildRevisionMap(rootRevision, project);
-        collectParents(rootRevision, revisionMap);
+        long newRevisions = collectParents(rootRevision, revisionMap);
 
-        return revisionMap.get(rootRevision.getInternalId());
+        return ImmutablePair.of(revisionMap.get(rootRevision.getInternalId()), newRevisions);
     }
 
-    private void collectParents(@NotNull VcsRevision rootRevision, Map<String, Revision> revisionMap) {
+    private long collectParents(@NotNull VcsRevision rootRevision, Map<String, Revision> revisionMap) {
         Set<String> importedRevisions = new HashSet<>(revisionMap.size());
         Queue<VcsRevision> revisionsToImport = new LinkedList<>();
         revisionsToImport.add(rootRevision);
+        long newRevisions = 0;
 
         while (!revisionsToImport.isEmpty()) {
             VcsRevision revision = revisionsToImport.poll();
@@ -260,8 +296,10 @@ public class ProjectUpdateService {
                 LOGGER.trace("Adding revision {} as parent of {}", parent.getInternalId(), internalId);
                 converted.addParent(convertedParent);
                 revisionsToImport.add(parent);
+                newRevisions++;
             }
         }
+        return newRevisions;
     }
 
     @NotNull

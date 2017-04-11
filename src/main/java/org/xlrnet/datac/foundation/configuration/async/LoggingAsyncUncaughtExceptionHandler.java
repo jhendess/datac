@@ -1,4 +1,6 @@
-package org.xlrnet.datac.foundation.configuration;
+package org.xlrnet.datac.foundation.configuration.async;
+
+import java.lang.reflect.Method;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,8 +8,6 @@ import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.xlrnet.datac.foundation.services.EventLogService;
-
-import java.lang.reflect.Method;
 
 /**
  * Implementation of {@link AsyncUncaughtExceptionHandler} which logs events also to the database.

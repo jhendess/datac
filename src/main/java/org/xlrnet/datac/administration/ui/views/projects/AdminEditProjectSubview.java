@@ -1,14 +1,11 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import com.google.common.base.Objects;
-import com.vaadin.annotations.PropertyId;
-import com.vaadin.data.BeanValidationBinder;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.shared.ui.MarginInfo;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.validation.ConstraintViolationException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
@@ -35,10 +32,15 @@ import org.xlrnet.datac.vcs.services.VersionControlSystemService;
 import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
 import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
 
-import javax.validation.ConstraintViolationException;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.google.common.base.Objects;
+import com.vaadin.annotations.PropertyId;
+import com.vaadin.data.BeanValidationBinder;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.shared.ui.MarginInfo;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Assistant for creating new projects.
@@ -181,6 +183,8 @@ public class AdminEditProjectSubview extends AbstractSubview {
     private FormLayout vcsSettingsLayout;
 
     private Button cancelButton;
+    private Button checkConnectionButton;
+    private Button continueButton;
 
     @Autowired
     public AdminEditProjectSubview(VersionControlSystemService vcsService, TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService) {
@@ -312,7 +316,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
 
         UI ui = UI.getCurrent();
 
-        Button continueButton = new Button("Continue");
+        continueButton = new Button("Continue");
         continueButton.setStyleName(ValoTheme.BUTTON_PRIMARY);
         continueButton.addClickListener(e -> {
             projectBinder.validate();
@@ -321,7 +325,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
                 changeLogLocationField.setValue("");
             }
         });
-        Button checkConnectionButton = new Button("Test connection");
+        checkConnectionButton = new Button("Test connection");
         checkConnectionButton.setStyleName(ValoTheme.BUTTON_PRIMARY);
         checkConnectionButton.addClickListener(e -> {
             projectBinder.validate();
@@ -507,7 +511,8 @@ public class AdminEditProjectSubview extends AbstractSubview {
         vcsUrlField.setEnabled(enabled);
         vcsUsernameField.setEnabled(enabled);
         vcsPasswordField.setEnabled(enabled);
-        buttonLayout.setEnabled(enabled);
+        checkConnectionButton.setEnabled(enabled);
+        continueButton.setEnabled(enabled);
         cancelButton.setEnabled(true);
     }
 

@@ -28,6 +28,14 @@ public class EventLogMessage extends AbstractEntity {
     @Enumerated(EnumType.STRING)
     private MessageSeverity severity = MessageSeverity.INFO;
 
+    public EventLogMessage() {
+        // Default public constructor
+    }
+
+    public EventLogMessage(String shortMessage) {
+        this.shortMessage = shortMessage;
+    }
+
     public String getShortMessage() {
         return shortMessage;
     }

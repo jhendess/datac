@@ -1,6 +1,7 @@
 package org.xlrnet.datac.foundation.services;
 
-import com.google.common.base.Throwables;
+import java.time.Instant;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -9,13 +10,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
+import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.EventLog;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
 import org.xlrnet.datac.foundation.domain.EventType;
 import org.xlrnet.datac.foundation.domain.MessageSeverity;
 import org.xlrnet.datac.foundation.domain.repository.EventLogRepository;
 
-import java.time.Instant;
+import com.google.common.base.Throwables;
 
 /**
  * Service for high-level event logging. Provides convenient methods for creating and reading event logs.
@@ -137,11 +139,36 @@ public class EventLogService extends AbstractTransactionalService<EventLog, Even
      */
     @NotNull
     @Transactional(propagation = Propagation.SUPPORTS)
-    public EventLog addExceptionToEventLog(@NotNull EventLog targetLog, @NotNull String message, @NotNull Throwable exception) {
+    public void addExceptionToEventLog(@NotNull EventLog targetLog, @NotNull String message, @NotNull Throwable exception) {
         EventLogMessage eventLogMessage = new EventLogMessage()
                 .setSeverity(MessageSeverity.ERROR)
                 .setShortMessage(message)
                 .setDetailedMessage(Throwables.getStackTraceAsString(exception));
-        return targetLog.addMessage(eventLogMessage);
+        targetLog.addMessage(eventLogMessage);
+    }
+    /**
+     * Adds an exception to an existing {@link EventLog}.
+     *
+     * @param targetLog
+     *         The event log to which the exception should be logged.
+     * @param message
+     *         Custom message to log.
+     * @param exception
+     *         The exception to log.
+     * @return The given event log.
+     */
+    @NotNull
+    @Transactional(propagation = Propagation.SUPPORTS)
+    public void addExceptionToEventLog(@NotNull EventLogProxy targetLog, @NotNull String message, @NotNull Throwable exception) {
+        if (targetLog.getDelegate().isPresent()) {
+            addExceptionToEventLog(targetLog.getDelegate().get(), message, exception);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void save(EventLogProxy eventLog) {
+        if (eventLog.getDelegate().isPresent()) {
+            save(eventLog.getDelegate().get());
+        }
     }
 }
