@@ -1,12 +1,14 @@
 package org.xlrnet.datac.foundation.domain;
 
-import org.xlrnet.datac.session.domain.User;
-
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
+
+import javax.persistence.*;
+import javax.validation.constraints.NotNull;
+
+import org.jetbrains.annotations.Nullable;
+import org.xlrnet.datac.session.domain.User;
 
 /**
  * Eventlog which consists of logged event messages.
@@ -34,7 +36,7 @@ public class EventLog extends AbstractEntity {
      * The project to which the event log belongs (if any).
      */
     @JoinColumn(name = "project_id")
-    @OneToOne(cascade = {CascadeType.REMOVE, CascadeType.REFRESH}, fetch = FetchType.LAZY)
+    @OneToOne(cascade = {CascadeType.REMOVE, CascadeType.REFRESH}, fetch = FetchType.EAGER)
     private Project project;
 
     /**
@@ -88,8 +90,25 @@ public class EventLog extends AbstractEntity {
     }
 
     public EventLog addMessage(EventLogMessage message) {
-        this.messages.add(message);
+        if (message != null && !this.messages.contains(message)) {
+            this.messages.add(message);
+            message.setEventLog(this);
+        }
         return this;
+    }
+
+    public int getMessageCount() {
+        return this.messages.size();
+    }
+
+    public MessageSeverity getHighestMessageSeverity() {
+        MessageSeverity highestSeverity = MessageSeverity.INFO;
+        for (EventLogMessage message : messages) {
+            if (message.getSeverity().getSeverityLevel() > highestSeverity.getSeverityLevel()) {
+                highestSeverity = message.getSeverity();
+            }
+        }
+        return highestSeverity;
     }
 
     public List<EventLogMessage> getMessages() {
@@ -99,5 +118,15 @@ public class EventLog extends AbstractEntity {
     public EventLog setMessages(List<EventLogMessage> messages) {
         this.messages = messages;
         return this;
+    }
+
+    @Nullable
+    public String getProjectName() {
+        return getProject() != null ? getProject().getName() : null;
+    }
+
+    @Nullable
+    public String getUserName() {
+        return getUser() != null ? getUser().getFirstName() : null;
     }
 }

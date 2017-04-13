@@ -7,7 +7,7 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.repository.BranchRepository;
 
 /**
- * Created by jhendess on 06.03.2017.
+ * Service for accessing and manipulating branches.
  */
 @Service
 public class BranchService extends AbstractTransactionalService<Branch, BranchRepository> {

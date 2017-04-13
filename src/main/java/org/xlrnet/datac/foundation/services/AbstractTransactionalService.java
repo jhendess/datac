@@ -1,13 +1,18 @@
 package org.xlrnet.datac.foundation.services;
 
+import java.util.List;
+
+import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.transaction.annotation.Transactional;
+import org.xlrnet.datac.commons.domain.LimitOffsetPageable;
 
 /**
  * Abstract base class for all services which perform transactional operations.
  */
 @Transactional
-public class AbstractTransactionalService<T, R extends CrudRepository<T, Long>> {
+public class AbstractTransactionalService<T, R extends PagingAndSortingRepository<T, Long>> {
 
     // TODO: Discuss if it makes in most cases sense to have a separate layer above CrudRepository (Spring Data API seems to be a viable alternative for custom queries)
 
@@ -84,6 +89,41 @@ public class AbstractTransactionalService<T, R extends CrudRepository<T, Long>> 
     @Transactional
     public <S extends T> Iterable<S> save(Iterable<S> entities) {
         return crudRepository.save(entities);
+    }
+
+    /**
+     *
+     * @param limit
+     * @param offset
+     * @param <S>
+     * @return
+     */
+    @Transactional(readOnly = true)
+    public <S extends T> List<S> findAllByLimitAndOffset(int limit, int offset) {
+        return findAllByLimitAndOffset(limit, offset, null);
+    }
+
+    /**
+     * Finds all entities using a paging mechanism.
+     * @param limit     Maximum amount of entities to retrieve.
+     * @param offset    The offset where the query should begin.
+     * @param sort The sort order to use.
+     * @param <S> The entity that will be returned.
+     * @return All entities using a paging mechanism.
+     */
+    @Transactional(readOnly = true)
+    public <S extends T> List<S> findAllByLimitAndOffset(int limit, int offset, Sort sort) {
+        return (List<S>) getRepository().findAll(new LimitOffsetPageable(limit, offset, sort)).getContent();
+    }
+
+
+    /**
+     * Counts all entities.
+     * @return number of entities.
+     */
+    @Transactional(readOnly = true)
+    public long countAll() {
+        return getRepository().count();
     }
 
     /**

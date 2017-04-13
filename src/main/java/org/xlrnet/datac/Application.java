@@ -1,5 +1,8 @@
 package org.xlrnet.datac;
 
+import java.util.Locale;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +19,6 @@ import org.xlrnet.datac.foundation.domain.MessageSeverity;
 import org.xlrnet.datac.foundation.services.EventLogService;
 import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.UserService;
-
-import java.util.Locale;
-import java.util.Optional;
 
 /**
  * Main application class for bootstrapping.

@@ -1,20 +1,25 @@
 package org.xlrnet.datac.foundation.services;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.xlrnet.datac.commons.domain.LimitOffsetPageable;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.EventLog;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
 import org.xlrnet.datac.foundation.domain.EventType;
 import org.xlrnet.datac.foundation.domain.MessageSeverity;
+import org.xlrnet.datac.foundation.domain.repository.EventLogMessageRepository;
 import org.xlrnet.datac.foundation.domain.repository.EventLogRepository;
 
 import com.google.common.base.Throwables;
@@ -27,14 +32,19 @@ public class EventLogService extends AbstractTransactionalService<EventLog, Even
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EventLogService.class);
 
+    private final EventLogMessageRepository eventLogMessageRepository;
+
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
      *
      * @param crudRepository
      *         The crud repository for providing basic crud operations.
+     * @param eventLogMessageRepository
      */
-    public EventLogService(EventLogRepository crudRepository) {
+    @Autowired
+    public EventLogService(EventLogRepository crudRepository, EventLogMessageRepository eventLogMessageRepository) {
         super(crudRepository);
+        this.eventLogMessageRepository = eventLogMessageRepository;
     }
 
     /***
@@ -137,7 +147,6 @@ public class EventLogService extends AbstractTransactionalService<EventLog, Even
      *         The exception to log.
      * @return The given event log.
      */
-    @NotNull
     @Transactional(propagation = Propagation.SUPPORTS)
     public void addExceptionToEventLog(@NotNull EventLog targetLog, @NotNull String message, @NotNull Throwable exception) {
         EventLogMessage eventLogMessage = new EventLogMessage()
@@ -157,7 +166,6 @@ public class EventLogService extends AbstractTransactionalService<EventLog, Even
      *         The exception to log.
      * @return The given event log.
      */
-    @NotNull
     @Transactional(propagation = Propagation.SUPPORTS)
     public void addExceptionToEventLog(@NotNull EventLogProxy targetLog, @NotNull String message, @NotNull Throwable exception) {
         if (targetLog.getDelegate().isPresent()) {
@@ -170,5 +178,15 @@ public class EventLogService extends AbstractTransactionalService<EventLog, Even
         if (eventLog.getDelegate().isPresent()) {
             save(eventLog.getDelegate().get());
         }
+    }
+
+    public List<EventLogMessage> findAllMessagesPaged(int limit, int offset, @Nullable Sort sortOrder) {
+        Sort querySortOrder;
+        if (sortOrder == null) {
+            querySortOrder = new Sort(Sort.Direction.DESC, "createdAt");
+        } else {
+            querySortOrder = sortOrder;
+        }
+        return eventLogMessageRepository.findAll(new LimitOffsetPageable(limit, offset, querySortOrder)).getContent();
     }
 }

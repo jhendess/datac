@@ -1,21 +1,23 @@
 package org.xlrnet.datac.foundation.domain;
 
-import org.hibernate.validator.constraints.NotEmpty;
-import org.hibernate.validator.constraints.URL;
-import org.xlrnet.datac.foundation.domain.validation.Regex;
-import org.xlrnet.datac.foundation.domain.validation.ValidBranches;
-import org.xlrnet.datac.vcs.api.VcsRemoteCredentials;
-import org.xlrnet.datac.vcs.domain.Branch;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
 import javax.persistence.*;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Objects;
+
+import org.hibernate.validator.constraints.NotEmpty;
+import org.hibernate.validator.constraints.URL;
+import org.xlrnet.datac.foundation.domain.validation.Regex;
+import org.xlrnet.datac.foundation.domain.validation.ValidBranches;
+import org.xlrnet.datac.vcs.api.VcsRemoteCredentials;
+import org.xlrnet.datac.vcs.domain.Branch;
 
 /**
  * A project represents the main configuration entity in the application. It contains both meta information (e.g. name)
@@ -132,7 +134,7 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
      */
     @OneToMany(cascade = CascadeType.ALL, targetEntity = Branch.class, fetch = FetchType.EAGER)
     @JoinColumn(name = "project_id", referencedColumnName = "id", nullable = false)
-    private Collection<Branch> branches = new ArrayList<>();
+    private Set<Branch> branches = new HashSet<>();
 
     public String getName() {
         return name;

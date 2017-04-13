@@ -5,6 +5,8 @@ import java.time.Instant;
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * A single log message in a {@link EventLog}.
  */
@@ -27,6 +29,10 @@ public class EventLogMessage extends AbstractEntity {
     @Column(name = "severity")
     @Enumerated(EnumType.STRING)
     private MessageSeverity severity = MessageSeverity.INFO;
+
+    @ManyToOne(targetEntity = EventLog.class)
+    @JoinColumn(name = "eventlog_id", insertable = false, updatable = false)
+    private EventLog eventLog;
 
     public EventLogMessage() {
         // Default public constructor
@@ -70,5 +76,24 @@ public class EventLogMessage extends AbstractEntity {
     public EventLogMessage setSeverity(MessageSeverity severity) {
         this.severity = severity;
         return this;
+    }
+
+    @Nullable
+    public String getProjectName() {
+        return this.eventLog.getProject() != null ? this.eventLog.getProject().getName() : null;
+    }
+
+    @Nullable
+    public String getUserName() {
+        return this.eventLog.getUser() != null ? this.eventLog.getUser().getFirstName() : null;
+    }
+
+    public EventLog getEventLog() {
+        return eventLog;
+    }
+
+    void setEventLog(EventLog eventLog) {
+        this.eventLog = eventLog;
+        eventLog.addMessage(this);
     }
 }
