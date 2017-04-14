@@ -1,23 +1,22 @@
 package org.xlrnet.datac.foundation.domain;
 
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
-
-import javax.persistence.*;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-
 import org.hibernate.validator.constraints.NotEmpty;
 import org.hibernate.validator.constraints.URL;
 import org.xlrnet.datac.foundation.domain.validation.Regex;
 import org.xlrnet.datac.foundation.domain.validation.ValidBranches;
 import org.xlrnet.datac.vcs.api.VcsRemoteCredentials;
 import org.xlrnet.datac.vcs.domain.Branch;
+
+import javax.persistence.*;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * A project represents the main configuration entity in the application. It contains both meta information (e.g. name)
@@ -128,6 +127,14 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
      */
     @Column(name = "initialized")
     private boolean initialized;
+
+    /**
+     * The current state of the project.
+     */
+    @NotNull
+    @Column(name = "state")
+    @Enumerated(EnumType.STRING)
+    private ProjectState state;
 
     /**
      * Collection of branches in the VCS. Contains both watched and unwatched changes.
@@ -272,6 +279,15 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
         this.initialized = initialized;
     }
 
+    public ProjectState getState() {
+        return state;
+    }
+
+    public Project setState(ProjectState state) {
+        this.state = state;
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -287,14 +303,12 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
                 Objects.equals(username, project.username) &&
                 Objects.equals(password, project.password) &&
                 Objects.equals(newBranchPattern, project.newBranchPattern) &&
-                Objects.equals(changelogLocation, project.changelogLocation) &&
-                Objects.equals(lastChangeCheck, project.lastChangeCheck) &&
-                Objects.equals(branches, project.branches);
+                Objects.equals(changelogLocation, project.changelogLocation);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, website, type, adapterClass, url, username, password, pollInterval, newBranchPattern, changelogLocation, lastChangeCheck, branches);
+        return Objects.hash(name, description, website, type, adapterClass, url, username, password, pollInterval, newBranchPattern, changelogLocation);
     }
 
     @org.jetbrains.annotations.NotNull

@@ -1,11 +1,14 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import java.util.Collection;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import javax.validation.ConstraintViolationException;
-
+import com.google.common.base.Objects;
+import com.vaadin.annotations.PropertyId;
+import com.vaadin.data.BeanValidationBinder;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.shared.ui.MarginInfo;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
+import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
@@ -18,6 +21,7 @@ import org.xlrnet.datac.commons.tasks.RunnableTask;
 import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.foundation.ui.components.BooleanStatusChangeHandler;
 import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
@@ -32,15 +36,10 @@ import org.xlrnet.datac.vcs.services.VersionControlSystemService;
 import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
 import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
 
-import com.google.common.base.Objects;
-import com.vaadin.annotations.PropertyId;
-import com.vaadin.data.BeanValidationBinder;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.shared.ui.MarginInfo;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import javax.validation.ConstraintViolationException;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Assistant for creating new projects.
@@ -275,6 +274,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
             isNewProject = true;
             projectBean.setChangelogLocation("CHANGEME");
             projectBean.setNewBranchPattern(".+");
+            projectBean.setState(ProjectState.NEW);
         }
         oldVcsUrl = projectBean.getUrl();
         projectBinder.bindInstanceFields(this);

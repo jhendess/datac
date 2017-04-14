@@ -2,6 +2,7 @@ package org.xlrnet.datac.test.domain;
 
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.vcs.domain.Branch;
 
 /**
@@ -30,6 +31,7 @@ public class EntityCreatorUtil {
         p.setUrl("Some_URL");
         p.setNewBranchPattern(".*");
         p.setName("TEST");
+        p.setState(ProjectState.NEW);
         return p;
     }
 }

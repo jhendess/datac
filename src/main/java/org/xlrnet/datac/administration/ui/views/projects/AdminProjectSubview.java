@@ -1,30 +1,38 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import java.util.Collection;
-
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.server.VaadinSession;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.spring.annotation.ViewScope;
+import com.vaadin.ui.*;
+import com.vaadin.ui.renderers.ButtonRenderer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.spring.events.EventBus;
+import org.vaadin.spring.events.annotation.EventBusListenerMethod;
+import org.vaadin.spring.events.annotation.EventBusListenerTopic;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
+import org.xlrnet.datac.foundation.EventTopics;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.ProjectService;
+import org.xlrnet.datac.foundation.services.ProjectUpdateEvent;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.ProjectUpdateStarter;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.renderers.ButtonRenderer;
+import javax.annotation.PostConstruct;
+import java.util.Collection;
 
 /**
  * Admin view for managing projects responsible for managing the available users.
  */
+@ViewScope
 @SpringComponent
 @SpringView(name = AdminProjectSubview.VIEW_NAME)
 public class AdminProjectSubview extends AbstractSubview {
@@ -32,6 +40,11 @@ public class AdminProjectSubview extends AbstractSubview {
     public static final String VIEW_NAME = "admin/projects";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AdminProjectSubview.class);
+
+    /**
+     * Event bus for application scoped events.
+     */
+    private final EventBus.ApplicationEventBus applicationEventBus;
 
     /**
      * The project service for accessing projects.
@@ -63,11 +76,20 @@ public class AdminProjectSubview extends AbstractSubview {
      */
     private final LockingService lockingService;
 
+    private VaadinSession vaadinSession;
+
     @Autowired
-    public AdminProjectSubview(ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, LockingService lockingService) {
+    public AdminProjectSubview(EventBus.ApplicationEventBus viewEventBus, ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, LockingService lockingService) {
+        this.applicationEventBus = viewEventBus;
         this.projectService = projectService;
         this.projectUpdateStarter = projectUpdateStarter;
         this.lockingService = lockingService;
+    }
+
+    @PostConstruct
+    public void init() {
+        vaadinSession = VaadinSession.getCurrent();
+        applicationEventBus.subscribe(this);
     }
 
     @NotNull
@@ -86,11 +108,12 @@ public class AdminProjectSubview extends AbstractSubview {
     }
 
     private Component buildGrid() {
+        grid.addColumn(Project::getState).setCaption("State").setMaximumWidth(150);
         grid.addColumn(Project::getName).setCaption("Name");
         grid.addColumn(Project::getUrl).setCaption("VCS Url");
         grid.addColumn(Project::getLastChangeCheck).setCaption("Last check for changes");
 
-        grid.addColumn(project -> "Check for changes", new ButtonRenderer<>(clickEvent -> {
+        grid.addColumn(project -> "Update", new ButtonRenderer<>(clickEvent -> {
             forceUpdate(clickEvent.getItem());
         }));
         grid.addColumn(project -> "Edit", new ButtonRenderer<>(clickEvent -> {
@@ -103,8 +126,13 @@ public class AdminProjectSubview extends AbstractSubview {
         grid.setWidth("80%");
 
         reloadProjects();
-
         return grid;
+    }
+
+    @EventBusListenerMethod
+    @EventBusListenerTopic(topic = EventTopics.PROJECT_UPDATE)
+    private void handeProjectStateUpdate(ProjectUpdateEvent event) {
+        vaadinSession.access(() -> grid.getDataProvider().refreshItem(event.getProject()));
     }
 
     private void reloadProjects() {
@@ -135,7 +163,6 @@ public class AdminProjectSubview extends AbstractSubview {
     }
 
     private void forceUpdate(Project item) {
-
         if (projectUpdateStarter.queueProjectUpdate(item)) {
             NotificationUtils.showSuccess("Project update queued");
         } else {

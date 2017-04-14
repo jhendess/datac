@@ -1,12 +1,5 @@
 package org.xlrnet.datac.vcs.services;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.util.*;
-
-import javax.transaction.Transactional;
-
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -15,20 +8,26 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.vaadin.spring.events.EventBus;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
+import org.xlrnet.datac.foundation.EventTopics;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
 import org.xlrnet.datac.foundation.domain.EventType;
 import org.xlrnet.datac.foundation.domain.Project;
-import org.xlrnet.datac.foundation.services.EventLogService;
-import org.xlrnet.datac.foundation.services.FileService;
-import org.xlrnet.datac.foundation.services.ProjectService;
-import org.xlrnet.datac.foundation.services.ValidationService;
+import org.xlrnet.datac.foundation.domain.ProjectState;
+import org.xlrnet.datac.foundation.services.*;
 import org.xlrnet.datac.vcs.api.*;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
+
+import javax.transaction.Transactional;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.*;
 
 /**
  * Service which is responsible for collecting all database changes in a project.
@@ -37,6 +36,11 @@ import org.xlrnet.datac.vcs.domain.Revision;
 public class ProjectUpdateService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectUpdateService.class);
+
+    /**
+     * Application-wide event bus.
+     */
+    private final EventBus.ApplicationEventBus applicationEventBus;
 
     /**
      * The VCS Adapter that will be used for updating the project.
@@ -79,7 +83,8 @@ public class ProjectUpdateService {
     private final EventLogProxy eventLog;
 
     @Autowired
-    public ProjectUpdateService(VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, RevisionGraphService revisionGraphService, ValidationService validator, EventLogService eventLogService, EventLogProxy eventLog) {
+    public ProjectUpdateService(EventBus.ApplicationEventBus applicationEventBus, VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, RevisionGraphService revisionGraphService, ValidationService validator, EventLogService eventLogService, EventLogProxy eventLog) {
+        this.applicationEventBus = applicationEventBus;
         this.vcsService = vcsService;
         this.lockingService = lockingService;
         this.fileService = fileService;
@@ -103,12 +108,13 @@ public class ProjectUpdateService {
                 LOGGER.info("Begin update of project {}", project.getName());
                 eventLog.setDelegate(eventLogService.newEventLog().setType(EventType.PROJECT_UPDATE));
                 Project reloaded = projectService.findOne(project.getId());
+                eventLog.setProject(reloaded);
                 updateProject(reloaded);
                 LOGGER.info("Finished updating project {} [id={}] successfully", project.getName(), project.getId());
-                eventLog.setProject(project);
                 eventLog.addMessage(new EventLogMessage("Project update finished successfully"));
             } catch (DatacTechnicalException e) {
                 LOGGER.error("Update of project {} [id={}] failed because of an unexpected exception", project.getName(), project.getId(), e);
+                projectService.markProjectAsFailedUpdate(project);
                 eventLogService.addExceptionToEventLog(eventLog, "Project update failed because of an unexpected exception", e);
             } finally {
                 try {
@@ -136,6 +142,8 @@ public class ProjectUpdateService {
     @Transactional
     protected void updateProject(@NotNull Project project) throws DatacTechnicalException {
         VcsAdapter vcsAdapter = getVcsAdapter(project);
+        project.setState(ProjectState.UPDATING);
+        applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(project));
 
         try {
             if (!project.isInitialized()) {
@@ -151,8 +159,9 @@ public class ProjectUpdateService {
             indexDatabaseChanges(updatedProject);
 
             updatedProject.setLastChangeCheck(LocalDateTime.now());
+            updatedProject.setState(ProjectState.FINISHED);
+            applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(updatedProject));
             projectService.save(updatedProject);
-
         } catch (RuntimeException | IOException e) {
             throw new DatacTechnicalException("Project update failed", e);
         }

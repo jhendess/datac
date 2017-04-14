@@ -15,4 +15,16 @@
     width: 100%;
   }
 
+  .severity-error {
+    background-color: #f2dede;
+    border-color: #ebcccc;
+    color: #a94442;
+  }
+
+  .severity-warning {
+    background-color: #fcf8e3;
+    border-color: #faf2cc;
+    color: #8a6d3b;
+  }
+
 }

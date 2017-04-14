@@ -285,4 +285,12 @@
             <column name="eventlog_id"/>
         </createIndex>
     </changeSet>
+    <changeSet id="16" author="jhendess">
+        <comment>Added additional state column to project</comment>
+        <addColumn tableName="project">
+            <column name="state" type="VARCHAR(20)" remarks="Current state of the project" defaultValue="NEW">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

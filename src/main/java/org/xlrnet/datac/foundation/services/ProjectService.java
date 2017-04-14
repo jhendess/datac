@@ -1,24 +1,30 @@
 package org.xlrnet.datac.foundation.services;
 
-import java.util.Collection;
-import java.util.regex.Pattern;
-
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.vaadin.spring.events.EventBus;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.foundation.EventTopics;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.vcs.api.VcsConnectionException;
 import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.domain.Branch;
+
+import java.util.Collection;
+import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Transactional service for accessing project data.
@@ -28,6 +34,11 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectService.class);
 
+    /**
+     * The application event bus.
+     */
+    private final EventBus.ApplicationEventBus applicationEventBus;
+
     /** The file service. */
     private final FileService fileService;
 
@@ -36,16 +47,17 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
-     *  @param crudRepository
+     * @param crudRepository
      *         The crud repository for providing basic crud operations.
+     * @param applicationEventBus
      * @param fileService
      *         Service used for accessing files.
      * @param eventLog
-     *         The proxied event log used for logging events.
      */
     @Autowired
-    public ProjectService(ProjectRepository crudRepository, FileService fileService, EventLogProxy eventLog) {
+    public ProjectService(ProjectRepository crudRepository, EventBus.ApplicationEventBus applicationEventBus, FileService fileService, EventLogProxy eventLog) {
         super(crudRepository);
+        this.applicationEventBus = applicationEventBus;
         this.fileService = fileService;
         this.eventLog = eventLog;
     }
@@ -88,5 +100,21 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
     public void deleteClean(Project entity) throws DatacTechnicalException {
         fileService.deleteProjectRepository(entity);
         super.delete(entity);
+    }
+
+    /**
+     * Reloads the given project and marks it as failed. Any changes to the given entity won't be persisted. Runs in a
+     * separate transaction and fires a project update event.
+     *
+     * @param project
+     *         The project to mark as failed.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markProjectAsFailedUpdate(Project project) {
+        checkArgument(project.isPersisted(), "Entity is not persisted");
+        Project reloaded = findOne(project.getId());
+        reloaded.setState(ProjectState.ERROR);
+        applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(reloaded));
+        save(reloaded);
     }
 }

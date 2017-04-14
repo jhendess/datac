@@ -1,13 +1,9 @@
 package org.xlrnet.datac.foundation.services;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
+import com.google.common.collect.Lists;
 import org.junit.Before;
 import org.junit.Test;
+import org.vaadin.spring.events.EventBus;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
@@ -16,7 +12,11 @@ import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.domain.Branch;
 
-import com.google.common.collect.Lists;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link ProjectService}.
@@ -48,7 +48,7 @@ public class ProjectServiceTest {
         repository = mock(ProjectRepository.class);
         when(repository.save(any(Project.class))).thenAnswer(new ReturnFirstArgumentAnswer());
         fileService = mock(FileService.class);
-        projectService = new ProjectService(repository, fileService, new EventLogProxy());
+        projectService = new ProjectService(repository, mock(EventBus.ApplicationEventBus.class), fileService, new EventLogProxy());
 
         // Configure branch dummies
         existingBranch = new Branch();

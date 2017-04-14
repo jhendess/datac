@@ -1,11 +1,10 @@
 package org.xlrnet.datac.foundation.domain;
 
-import java.time.Instant;
+import org.jetbrains.annotations.Nullable;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-
-import org.jetbrains.annotations.Nullable;
+import java.time.Instant;
 
 /**
  * A single log message in a {@link EventLog}.
@@ -85,7 +84,7 @@ public class EventLogMessage extends AbstractEntity {
 
     @Nullable
     public String getUserName() {
-        return this.eventLog.getUser() != null ? this.eventLog.getUser().getFirstName() : null;
+        return this.eventLog.getUser() != null ? this.eventLog.getUser().getLoginName() : null;
     }
 
     public EventLog getEventLog() {

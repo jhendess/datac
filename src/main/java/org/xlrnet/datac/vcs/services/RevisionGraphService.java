@@ -14,10 +14,9 @@ import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
 
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
-import java.util.Stack;
 
 /**
  * Service for accessing and manipulating VCS revision graphs.
@@ -93,8 +92,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
     public Revision save(@NotNull Revision revision) {
         LOGGER.trace("Begin safe saving of revision graph");
         Multimap<Revision, Revision> revisionChildMap = MultimapBuilder.hashKeys().linkedListValues().build();
-        Queue<Revision> saveBuffer = new LinkedList<>(); // Buffer with elements to save
-        Stack<Revision> revisionStack = new Stack<>();
+        Deque<Revision> revisionStack = new LinkedList<>();
         revisionStack.push(revision);
 
         while (!revisionStack.isEmpty()) {

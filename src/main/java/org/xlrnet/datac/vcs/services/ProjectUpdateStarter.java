@@ -36,7 +36,7 @@ public class ProjectUpdateStarter {
      * writing.
      */
     public boolean queueProjectUpdate(@NotNull Project project) {
-        checkArgument(project.getId() != null, "Project must be persisted");
+        checkArgument(project.isPersisted(), "Project must be persisted");
 
         if (!lockingService.isLocked(project)) {
             projectUpdateService.startAsynchronousProjectUpdate(project);
