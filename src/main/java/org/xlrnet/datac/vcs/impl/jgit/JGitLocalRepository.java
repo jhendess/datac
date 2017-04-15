@@ -10,7 +10,6 @@ import org.eclipse.jgit.transport.FetchResult;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.VcsRepositoryException;
 import org.xlrnet.datac.vcs.api.VcsConnectionException;
 import org.xlrnet.datac.vcs.api.VcsLocalRepository;
@@ -20,7 +19,9 @@ import org.xlrnet.datac.vcs.domain.Branch;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Implementation of a local git repository using JGit.
@@ -110,7 +111,35 @@ public class JGitLocalRepository implements VcsLocalRepository {
             throw new VcsConnectionException(e);
         } catch (IOException e) {
             LOGGER.error("Unexpected IOException", e);
-            throw new DatacRuntimeException(e);
+            throw new VcsRepositoryException(e);
+        }
+    }
+
+    @NotNull
+    @Override
+    public Iterable<VcsRevision> listRevisionsWithChangesInPath(String path) throws VcsRepositoryException {
+        String cleanedPath = StringUtils.removeStart(path, "/");
+        LOGGER.debug("Listing affected revisions for path {} in repository {}", path, cleanedPath);
+        try (Git git = openRepository()) {
+            Iterable<RevCommit> call = git.log()
+                    .addPath(cleanedPath)
+                    .call();
+
+            List<VcsRevision> affectedRevisions = new ArrayList<>();
+
+            for (RevCommit revCommit : call) {
+                affectedRevisions.add(new CommitToRevisionWrapper(revCommit));
+                LOGGER.trace("ID: {}, Time: {}, Parents: {}, Message: {}", revCommit.getId(), revCommit.getCommitTime(), revCommit.getParentCount(), revCommit.getShortMessage().trim());
+            }
+
+            LOGGER.debug("Found {} affected revisions for path {} in repository {}", affectedRevisions.size(), path, cleanedPath);
+            return affectedRevisions;
+        } catch (GitAPIException e) {
+            LOGGER.error("Unexpected exception while communicating with git", e);
+            throw new VcsRepositoryException(e);
+        } catch (IOException e) {
+            LOGGER.error("Unexpected IOException", e);
+            throw new VcsRepositoryException(e);
         }
     }
 

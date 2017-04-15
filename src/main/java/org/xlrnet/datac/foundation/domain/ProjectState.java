@@ -21,6 +21,11 @@ public enum ProjectState {
     UPDATING,
 
     /**
+     * No changelog file was found.
+     */
+    MISSING_LOG,
+
+    /**
      * The last update failed.
      */
     ERROR,

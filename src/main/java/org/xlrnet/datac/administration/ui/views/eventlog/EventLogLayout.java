@@ -1,9 +1,11 @@
 package org.xlrnet.datac.administration.ui.views.eventlog;
 
 import com.vaadin.data.provider.QuerySortOrder;
-import com.vaadin.spring.annotation.ViewScope;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.spring.annotation.UIScope;
+import com.vaadin.ui.Button;
 import com.vaadin.ui.Grid;
-import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.VerticalLayout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -19,8 +21,8 @@ import java.util.stream.Stream;
  * Re-usable layout which displays events.
  */
 @Component
-@ViewScope
-public class EventLogLayout extends HorizontalLayout {
+@UIScope
+public class EventLogLayout extends VerticalLayout {
 
     private final EventLogService eventLogService;
 
@@ -43,7 +45,7 @@ public class EventLogLayout extends HorizontalLayout {
                 .setCaption("Time");
         logMessageGrid.addColumn(EventLogMessage::getSeverity)
                 .setCaption("Severity")
-                .setMaximumWidth(95)
+                .setMaximumWidth(115)
                 .setSortProperty("severity");       // TODO: Convert to icon
         logMessageGrid.addColumn(EventLogMessage::getProjectName)
                 .setCaption("Project")
@@ -75,6 +77,11 @@ public class EventLogLayout extends HorizontalLayout {
                 () -> Math.toIntExact(eventLogService.countAll())
         );
 
+        Button refreshButton = new Button("Refresh");
+        refreshButton.setIcon(VaadinIcons.REFRESH);
+        refreshButton.addClickListener(e -> logMessageGrid.getDataProvider().refreshAll());
+
+        addComponent(refreshButton);
         addComponent(logMessageGrid);
     }
 

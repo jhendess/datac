@@ -8,6 +8,8 @@ import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
 
+import java.util.ArrayList;
+
 /**
  * Dummy implementation of {@link VcsLocalRepository}.
  */
@@ -28,5 +30,11 @@ public class DummyLocalRepository implements VcsLocalRepository {
     @Override
     public VcsRevision fetchLatestRevisionInBranch(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException {
         return new DummyRevision().setInternalId("1");
+    }
+
+    @NotNull
+    @Override
+    public Iterable<VcsRevision> listRevisionsWithChangesInPath(String path) {
+        return new ArrayList<>();
     }
 }

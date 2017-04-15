@@ -2,6 +2,7 @@ package org.xlrnet.datac.vcs.api;
 
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.exception.VcsRepositoryException;
 import org.xlrnet.datac.vcs.domain.Branch;
 
 /**
@@ -38,4 +39,21 @@ public interface VcsLocalRepository {
      */
     @NotNull
     VcsRevision fetchLatestRevisionInBranch(@NotNull Branch branch) throws DatacTechnicalException;
+
+    /**
+     * Returns an {@link Iterable} of {@link VcsRevision} with all revisions where the given path was modified. This
+     * method ignores the currently set branch and lists affected revisions in the whole repository. The returned
+     * instances of {@link VcsRevision} don't need to have parents if the underlying implementation is lazy-loading,
+     * since only the revisions affected by the change are important. The returned iterable does not have to be in any
+     * specific order. If the given path doesn't exist, an empty iterable must be returned.
+     *
+     * @param path
+     *         The path of the file or directory relative to the root of the repository which should be checked for
+     *         modifying revisions.
+     * @return An {@link Iterable} of all revisions where the given path was modified.
+     * @throws VcsRepositoryException
+     *         Will be thrown if the VCS repository encountered an internal error.
+     */
+    @NotNull
+    Iterable<VcsRevision> listRevisionsWithChangesInPath(String path) throws VcsRepositoryException;
 }

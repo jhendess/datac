@@ -1,5 +1,6 @@
 package org.xlrnet.datac.vcs.services;
 
+import com.google.common.collect.Iterables;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -12,12 +13,10 @@ import org.vaadin.spring.events.EventBus;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
+import org.xlrnet.datac.commons.exception.VcsRepositoryException;
 import org.xlrnet.datac.foundation.EventTopics;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
-import org.xlrnet.datac.foundation.domain.EventLogMessage;
-import org.xlrnet.datac.foundation.domain.EventType;
-import org.xlrnet.datac.foundation.domain.Project;
-import org.xlrnet.datac.foundation.domain.ProjectState;
+import org.xlrnet.datac.foundation.domain.*;
 import org.xlrnet.datac.foundation.services.*;
 import org.xlrnet.datac.vcs.api.*;
 import org.xlrnet.datac.vcs.domain.Branch;
@@ -109,9 +108,11 @@ public class ProjectUpdateService {
                 eventLog.setDelegate(eventLogService.newEventLog().setType(EventType.PROJECT_UPDATE));
                 Project reloaded = projectService.findOne(project.getId());
                 eventLog.setProject(reloaded);
-                updateProject(reloaded);
-                LOGGER.info("Finished updating project {} [id={}] successfully", project.getName(), project.getId());
-                eventLog.addMessage(new EventLogMessage("Project update finished successfully"));
+                reloaded = updateProject(reloaded);
+                if (reloaded.getState() != ProjectState.MISSING_LOG) {
+                    LOGGER.info("Finished updating project {} [id={}] successfully", project.getName(), project.getId());
+                    eventLog.addMessage(new EventLogMessage("Project update finished successfully"));
+                }
             } catch (DatacTechnicalException e) {
                 LOGGER.error("Update of project {} [id={}] failed because of an unexpected exception", project.getName(), project.getId(), e);
                 projectService.markProjectAsFailedUpdate(project);
@@ -140,7 +141,7 @@ public class ProjectUpdateService {
      *         Will be thrown if the project update failed.
      */
     @Transactional
-    protected void updateProject(@NotNull Project project) throws DatacTechnicalException {
+    protected Project updateProject(@NotNull Project project) throws DatacTechnicalException {
         VcsAdapter vcsAdapter = getVcsAdapter(project);
         project.setState(ProjectState.UPDATING);
         applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(project));
@@ -156,12 +157,14 @@ public class ProjectUpdateService {
             VcsLocalRepository localRepository = vcsAdapter.openLocalRepository(repositoryPath, project);
 
             Project updatedProject = updateRevisions(project, localRepository);
-            indexDatabaseChanges(updatedProject);
+            indexDatabaseChanges(updatedProject, localRepository);
 
             updatedProject.setLastChangeCheck(LocalDateTime.now());
-            updatedProject.setState(ProjectState.FINISHED);
+            if (updatedProject.getState() != ProjectState.MISSING_LOG) {
+                updatedProject.setState(ProjectState.FINISHED);
+            }
             applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(updatedProject));
-            projectService.save(updatedProject);
+            return projectService.save(updatedProject);
         } catch (RuntimeException | IOException e) {
             throw new DatacTechnicalException("Project update failed", e);
         }
@@ -341,8 +344,21 @@ public class ProjectUpdateService {
         return revisionMap;
     }
 
-    private void indexDatabaseChanges(@NotNull Project project) {
+    private void indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository) throws VcsRepositoryException {
         LOGGER.info("Begin indexing changes in project {}", project.getName());
+
+        // Find revisions where only the changelog file itself changed
+        Iterable<VcsRevision> changeLogRevisions = localRepository.listRevisionsWithChangesInPath(project.getChangelogLocation());
+
+        if (Iterables.isEmpty(changeLogRevisions)) {
+            eventLog.addMessage(new EventLogMessage("Changelog file " + project.getChangelogLocation() + " could not be found").setSeverity(MessageSeverity.WARNING));
+            project.setState(ProjectState.MISSING_LOG);
+            LOGGER.warn("Couldn't find change log file {} for project {}", project.getChangelogLocation(), project.getName());
+            return;
+        }
+
+        // Parse each revision if there are includes defined; if there are, request all change revisions of them
+
 
         // TODO
     }
