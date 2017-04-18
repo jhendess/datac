@@ -1,6 +1,5 @@
 package org.xlrnet.datac.vcs.services;
 
-import com.google.common.collect.Iterables;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -10,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.vaadin.spring.events.EventBus;
+import org.xlrnet.datac.commons.domain.BreadthFirstTraverser;
+import org.xlrnet.datac.commons.domain.DepthFirstTraverser;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
@@ -81,8 +82,23 @@ public class ProjectUpdateService {
      */
     private final EventLogProxy eventLog;
 
+    /**
+     * Service for accessing and parsing changelog files.
+     */
+    private final LiquibaseProcessService liquibaseProcessService;
+
+    /**
+     * Helper class for performing breadth first traversals on revision graphs.
+     */
+    private BreadthFirstTraverser<Revision> breadthFirstTraverser = new BreadthFirstTraverser<>();
+
+    /**
+     * Helper class for performing depth first traversals on revision graphs.
+     */
+    private DepthFirstTraverser<Revision> depthFirstTraverser = new DepthFirstTraverser<>();
+
     @Autowired
-    public ProjectUpdateService(EventBus.ApplicationEventBus applicationEventBus, VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, RevisionGraphService revisionGraphService, ValidationService validator, EventLogService eventLogService, EventLogProxy eventLog) {
+    public ProjectUpdateService(EventBus.ApplicationEventBus applicationEventBus, VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, RevisionGraphService revisionGraphService, ValidationService validator, EventLogService eventLogService, EventLogProxy eventLog, LiquibaseProcessService liquibaseProcessService) {
         this.applicationEventBus = applicationEventBus;
         this.vcsService = vcsService;
         this.lockingService = lockingService;
@@ -92,6 +108,7 @@ public class ProjectUpdateService {
         this.validator = validator;
         this.eventLogService = eventLogService;
         this.eventLog = eventLog;
+        this.liquibaseProcessService = liquibaseProcessService;
     }
 
     /**
@@ -157,7 +174,7 @@ public class ProjectUpdateService {
             VcsLocalRepository localRepository = vcsAdapter.openLocalRepository(repositoryPath, project);
 
             Project updatedProject = updateRevisions(project, localRepository);
-            indexDatabaseChanges(updatedProject, localRepository);
+            updatedProject = indexDatabaseChanges(updatedProject, localRepository);
 
             updatedProject.setLastChangeCheck(LocalDateTime.now());
             if (updatedProject.getState() != ProjectState.MISSING_LOG) {
@@ -224,7 +241,8 @@ public class ProjectUpdateService {
 
     /**
      * Update the internal revision graph of the VCS. Checks for new branches and updates the revisions.
-     *  @param project
+     *
+     * @param project
      *         The project to update.
      * @param localRepository
      *         The local repository to interact with a VCS.
@@ -344,23 +362,85 @@ public class ProjectUpdateService {
         return revisionMap;
     }
 
-    private void indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository) throws VcsRepositoryException {
+    private Project indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository) throws DatacTechnicalException {
         LOGGER.info("Begin indexing changes in project {}", project.getName());
 
         // Find revisions where only the changelog file itself changed
-        Iterable<VcsRevision> changeLogRevisions = localRepository.listRevisionsWithChangesInPath(project.getChangelogLocation());
+        Collection<VcsRevision> changeLogRevisions = localRepository.listRevisionsWithChangesInPath(project.getChangelogLocation());
 
-        if (Iterables.isEmpty(changeLogRevisions)) {
+        if (changeLogRevisions.isEmpty()) {
             eventLog.addMessage(new EventLogMessage("Changelog file " + project.getChangelogLocation() + " could not be found").setSeverity(MessageSeverity.WARNING));
             project.setState(ProjectState.MISSING_LOG);
             LOGGER.warn("Couldn't find change log file {} for project {}", project.getChangelogLocation(), project.getName());
-            return;
+            return project;
         }
 
-        // Parse each revision if there are includes defined; if there are, request all change revisions of them
+        // Convert the external revisions to internal ones
+        Collection<Revision> internalChangeLogRevisions = revisionGraphService.findMatchingInternalRevisions(project, changeLogRevisions);
 
+        // Find the closest revisions to the root revision; this way we don't need to parse through every possible revision
+        // TODO: Begin after the last indexed revisions
+        Revision rootRevision = revisionGraphService.findProjectRootRevision(project);
+        Collection<Revision> bestRevisionsToBeginIndexing = findFirstRevisionsAfterRevision(rootRevision, internalChangeLogRevisions);
 
-        // TODO
+        LOGGER.trace("Begin with revisions {} for indexing", bestRevisionsToBeginIndexing);
+
+        // TODO: As of now we can't just index the revisions where a change happened, since we cannot detect included changes at the moment
+
+        indexDatabaseChanges(project, localRepository, bestRevisionsToBeginIndexing);
+
+        return project;
+    }
+
+    /**
+     * Performs indexing of database changes in the given project using the given local repository. The algorithm will
+     * perform a depth-first traversal by the children of the given revisions. For each revision during the traversal,
+     * the whole local repository will checkout the given revision.
+     * The traversal will abort when an already visited revision is met.
+     *
+     * @param project
+     *         The project for which database changes shall be indexed.
+     * @param localRepository
+     *         The local repository connection.
+     * @param beginIndexing
+     *         The revisions where indexing should begin.
+     */
+    private void indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository, @NotNull Collection<Revision> beginIndexing) throws DatacTechnicalException {
+        Set<Revision> visitedRevisions = new HashSet<>();
+        for (Revision revision : beginIndexing) {
+            depthFirstTraverser.traverseChildrenAbortOnCondition(revision,
+                    (r -> !visitedRevisions.contains(r)),
+                    (r) -> {
+                        visitedRevisions.add(r);
+                        indexDatabaseChangesInRevision(project, localRepository, r);
+                    });
+        }
+    }
+
+    private void indexDatabaseChangesInRevision(Project project, VcsLocalRepository localRepository, Revision r) throws VcsRepositoryException {
+        LOGGER.debug("Indexing database changes of project {} in revision {}", project.getName(), r.getInternalId());
+
+        localRepository.checkoutRevision(r);
+        // TODO: Perform the actual indexing
+    }
+
+    /**
+     * Find those children which appear first after a given revision. This performs a breadth-first traversal of child
+     * elements. The elements will be returned ordered by their distance to the given root node (i.e. the first element
+     * will be the closest, and the last the farthest). If one element on a single branch in this graph matches, all
+     * succeeding elements won't be returned.
+     *
+     * @param revision
+     *         The revision whose children will be traversed.
+     * @param revisionsToFind
+     *         The revisions that will be searched for.
+     * @return Those revisions of the given collection which appear closest to the given revision itself.
+     */
+    @NotNull
+    List<Revision> findFirstRevisionsAfterRevision(@NotNull Revision revision, Collection<Revision> revisionsToFind) throws DatacTechnicalException {
+        List<Revision> revisionsToBeginWith = new ArrayList<>();
+        breadthFirstTraverser.traverseChildrenCutOnMatch(revision, revisionsToFind::contains, revisionsToBeginWith::add);
+        return revisionsToBeginWith;
     }
 
     /**

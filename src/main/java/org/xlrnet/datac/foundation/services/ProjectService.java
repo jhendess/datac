@@ -70,7 +70,7 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
         for (Branch remoteBranch : remoteBranches) {
             // Check if this remote branch doesn't exist yet
             if (project.getBranches().stream()
-                    .noneMatch((branch -> StringUtils.equals(branch.getInternalId(), remoteBranch.getInternalId())))) {
+                    .noneMatch((branch -> StringUtils.equals(branch.getName(), remoteBranch.getName())))) {
                 if (pattern.matcher(remoteBranch.getName()).matches()) {
                     LOGGER.debug("Found new matching branch {} [id={}]", remoteBranch.getName(), remoteBranch.getInternalId());
                     remoteBranch.setWatched(true);

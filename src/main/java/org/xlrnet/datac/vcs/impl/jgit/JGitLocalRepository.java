@@ -20,6 +20,7 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -117,7 +118,7 @@ public class JGitLocalRepository implements VcsLocalRepository {
 
     @NotNull
     @Override
-    public Iterable<VcsRevision> listRevisionsWithChangesInPath(String path) throws VcsRepositoryException {
+    public Collection<VcsRevision> listRevisionsWithChangesInPath(@NotNull String path) throws VcsRepositoryException {
         String cleanedPath = StringUtils.removeStart(path, "/");
         LOGGER.debug("Listing affected revisions for path {} in repository {}", path, cleanedPath);
         try (Git git = openRepository()) {
@@ -134,6 +135,26 @@ public class JGitLocalRepository implements VcsLocalRepository {
 
             LOGGER.debug("Found {} affected revisions for path {} in repository {}", affectedRevisions.size(), path, cleanedPath);
             return affectedRevisions;
+        } catch (GitAPIException e) {
+            LOGGER.error("Unexpected exception while communicating with git", e);
+            throw new VcsRepositoryException(e);
+        } catch (IOException e) {
+            LOGGER.error("Unexpected IOException", e);
+            throw new VcsRepositoryException(e);
+        }
+    }
+
+    @Override
+    public void checkoutRevision(@NotNull VcsRevision revision) throws VcsRepositoryException {
+        String internalId = revision.getInternalId();
+        LOGGER.debug("Checking out revision {} in repository {}", internalId, repositoryPath);
+
+        try (Git git = openRepository()) {
+            git.checkout()
+                    .setAllPaths(true)
+                    .setName(internalId)
+                    .call();
+
         } catch (GitAPIException e) {
             LOGGER.error("Unexpected exception while communicating with git", e);
             throw new VcsRepositoryException(e);

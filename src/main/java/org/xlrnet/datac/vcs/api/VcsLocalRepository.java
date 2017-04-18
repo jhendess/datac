@@ -5,6 +5,8 @@ import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.VcsRepositoryException;
 import org.xlrnet.datac.vcs.domain.Branch;
 
+import java.util.Collection;
+
 /**
  * Local representation of a VCS repository. Local repositories are usually not thread-safe since they may modify the
  * local filesystem.
@@ -41,11 +43,11 @@ public interface VcsLocalRepository {
     VcsRevision fetchLatestRevisionInBranch(@NotNull Branch branch) throws DatacTechnicalException;
 
     /**
-     * Returns an {@link Iterable} of {@link VcsRevision} with all revisions where the given path was modified. This
+     * Returns a {@link Collection} of {@link VcsRevision} with all revisions where the given path was modified. This
      * method ignores the currently set branch and lists affected revisions in the whole repository. The returned
      * instances of {@link VcsRevision} don't need to have parents if the underlying implementation is lazy-loading,
-     * since only the revisions affected by the change are important. The returned iterable does not have to be in any
-     * specific order. If the given path doesn't exist, an empty iterable must be returned.
+     * since only the revisions affected by the change are important. The returned collection does not have to be in any
+     * specific order. If the given path doesn't exist, an empty collection must be returned.
      *
      * @param path
      *         The path of the file or directory relative to the root of the repository which should be checked for
@@ -55,5 +57,16 @@ public interface VcsLocalRepository {
      *         Will be thrown if the VCS repository encountered an internal error.
      */
     @NotNull
-    Iterable<VcsRevision> listRevisionsWithChangesInPath(String path) throws VcsRepositoryException;
+    Collection<VcsRevision> listRevisionsWithChangesInPath(@NotNull String path) throws VcsRepositoryException;
+
+    /**
+     * Performs a checkout operation for the local repository. This will reset all files in the local repository to the
+     * exact state represented by the given revision. This method may modify the file system and is explicitly not
+     * thread-safe. Note, that the given revision object is only guaranteed to have a valid internal id (i.e. {@link
+     * VcsRevision#getInternalId()} returns a non-null value.
+     *
+     * @param revision
+     *         The revision which should be checked out.
+     */
+    void checkoutRevision(@NotNull VcsRevision revision) throws VcsRepositoryException;
 }

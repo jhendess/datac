@@ -125,7 +125,7 @@ public class FileService implements SmartLifecycle {
     }
 
     /**
-     * Returns a {@link Path} object which points to the project repository for a given project.
+     * Returns an absolute {@link Path} object which points to the project repository for a given project.
      *
      * @param project
      *         The project for which the path should be returned.

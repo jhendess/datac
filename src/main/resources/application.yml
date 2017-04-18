@@ -18,7 +18,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    #show-sql: true
 
 liquibase:
   change-log: classpath:db/changelog/db.changelog-master.xml       # Use XML changelog for liquibase

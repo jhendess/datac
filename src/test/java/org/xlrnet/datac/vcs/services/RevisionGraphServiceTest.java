@@ -10,6 +10,7 @@ import org.xlrnet.datac.test.domain.EntityCreatorUtil;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 
+import javax.transaction.Transactional;
 import javax.validation.ConstraintViolationException;
 import java.time.Instant;
 import java.util.List;
@@ -20,8 +21,9 @@ import static org.xlrnet.datac.test.domain.EntityCreatorUtil.buildBranch;
 import static org.xlrnet.datac.test.domain.EntityCreatorUtil.buildProject;
 
 /**
- * Tests simple CRUD operations on the revision graph.
+ * Tests simple CRUD operations on the revision graph.  Tests run using {@link Transactional} to avoid errors.
  */
+@Transactional
 public class RevisionGraphServiceTest extends AbstractSpringBootTest {
 
     @Autowired
@@ -150,6 +152,19 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
         Revision savedRevision = revisionGraphService.findRevisionInProject(testProject, "0");
         assertNotNull(savedRevision);
         assertEquals(2, savedRevision.getParents().size());
+    }
+
+    @Test
+    public void testFindRootRevision() {
+        Revision root = new Revision().setInternalId("0").setProject(testProject);
+        Revision parent1 = new Revision().setInternalId("1").setProject(testProject);
+        root.addParent(parent1);
+
+        revisionGraphService.save(root);
+        Revision projectRootRevision = revisionGraphService.findProjectRootRevision(testProject);
+
+        assertNotNull(projectRootRevision);
+        assertEquals("1", projectRootRevision.getInternalId());
     }
 
 }

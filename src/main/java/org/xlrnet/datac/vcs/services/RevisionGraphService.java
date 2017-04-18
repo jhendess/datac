@@ -11,12 +11,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
+import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
 
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Service for accessing and manipulating VCS revision graphs.
@@ -119,6 +121,42 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         LOGGER.trace("Finished safe saving of revision graph");
 
         return findRevisionInProject(revision.getProject(), revision.getInternalId());
+    }
+
+
+    /**
+     * Returns the root revision in a project - i.e. the revision without any parents.
+     *
+     * @param project
+     *         The project to check
+     * @return
+     */
+    @Transactional(readOnly = true)
+    public Revision findProjectRootRevision(Project project) {
+        checkArgument(project.isPersisted(), "Project must be persisted");
+        return getRepository().findProjectRootRevision(project.getId());
+    }
+
+    /**
+     * Finds all internal {@link Revision} objects which have the same internal id as the {@link VcsRevision} objects in
+     * the given collection. If an object does not exist, it will throw a null pointer exception.
+     *
+     * @param project
+     *         The project in which the revisions must exist
+     * @param externalRevisions
+     *         The external revisions from a VCS that should be found.
+     * @return Internal revision objects with the same internal ids as the given external revision objects.
+     */
+    @Transactional(readOnly = true)
+    public Collection<Revision> findMatchingInternalRevisions(Project project, Collection<VcsRevision> externalRevisions) {
+        Set<Revision> internalRevisions = new HashSet<>();
+        for (VcsRevision externalRevision : externalRevisions) {
+            Revision internalRevision = getRepository().findByInternalIdAndProject(externalRevision.getInternalId(), project);
+            checkNotNull(internalRevision, "Revision " + externalRevision.getInternalId() + " was not found in project");
+            internalRevisions.add(internalRevision);
+        }
+
+        return internalRevisions;
     }
 
     private void saveAndReplaceChildren(Revision revisionToPersist, Multimap<Revision, Revision> revisionChildMap) {

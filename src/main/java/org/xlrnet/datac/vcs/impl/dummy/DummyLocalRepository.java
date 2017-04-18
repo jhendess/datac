@@ -9,6 +9,7 @@ import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * Dummy implementation of {@link VcsLocalRepository}.
@@ -34,7 +35,12 @@ public class DummyLocalRepository implements VcsLocalRepository {
 
     @NotNull
     @Override
-    public Iterable<VcsRevision> listRevisionsWithChangesInPath(String path) {
+    public Collection<VcsRevision> listRevisionsWithChangesInPath(@NotNull String path) {
         return new ArrayList<>();
+    }
+
+    @Override
+    public void checkoutRevision(@NotNull VcsRevision revision) throws VcsRepositoryException {
+        // Do nothing
     }
 }

@@ -1,6 +1,7 @@
 package org.xlrnet.datac.vcs.domain;
 
 import org.hibernate.validator.constraints.NotEmpty;
+import org.xlrnet.datac.commons.domain.TraversableNode;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.api.VcsRevision;
@@ -22,7 +23,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 @Entity
 @Table(name = "revision")
 @SameProjectParent
-public class Revision extends AbstractEntity implements VcsRevision {
+public class Revision extends AbstractEntity implements VcsRevision, TraversableNode<Revision> {
 
     /**
      * Internal id used by the concrete VCS to identify a revision.
@@ -74,6 +75,12 @@ public class Revision extends AbstractEntity implements VcsRevision {
             joinColumns = @JoinColumn(name = "revision_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "parent_revision_id", referencedColumnName = "id"))
     private List<Revision> parents = new ArrayList<>();
+
+    /**
+     * Direct children of this revision (inverse relationship).
+     */
+    @ManyToMany(mappedBy = "parents", fetch = FetchType.EAGER)
+    private List<Revision> children = new ArrayList<>();
 
 
     public Revision() {
@@ -159,6 +166,15 @@ public class Revision extends AbstractEntity implements VcsRevision {
     public Revision addParent(@org.jetbrains.annotations.NotNull Revision parent) {
         if (!parents.contains(parent)) {
             this.parents.add(parent);
+            parent.addChild(this);
+        }
+        return this;
+    }
+
+    public Revision addChild(@org.jetbrains.annotations.NotNull Revision child) {
+        if (!children.contains(child)) {
+            this.children.add(child);
+            child.addParent(this);
         }
         return this;
     }
@@ -179,6 +195,12 @@ public class Revision extends AbstractEntity implements VcsRevision {
     public Revision setProject(Project project) {
         this.project = project;
         return this;
+    }
+
+    @org.jetbrains.annotations.NotNull
+    @Override
+    public List<Revision> getChildren() {
+        return children;
     }
 
     @Override
