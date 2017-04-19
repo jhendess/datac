@@ -1,5 +1,12 @@
 package org.xlrnet.datac.vcs.services;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.*;
+
+import javax.transaction.Transactional;
+
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -22,12 +29,6 @@ import org.xlrnet.datac.foundation.services.*;
 import org.xlrnet.datac.vcs.api.*;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
-
-import javax.transaction.Transactional;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.util.*;
 
 /**
  * Service which is responsible for collecting all database changes in a project.
@@ -160,8 +161,9 @@ public class ProjectUpdateService {
     @Transactional
     protected Project updateProject(@NotNull Project project) throws DatacTechnicalException {
         VcsAdapter vcsAdapter = getVcsAdapter(project);
-        project.setState(ProjectState.UPDATING);
-        applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(project));
+        project.setState(ProjectState.INITIALIZING);
+        updateProjectState(project, 0);
+        projectService.save(project);
 
         try {
             if (!project.isInitialized()) {
@@ -180,7 +182,7 @@ public class ProjectUpdateService {
             if (updatedProject.getState() != ProjectState.MISSING_LOG) {
                 updatedProject.setState(ProjectState.FINISHED);
             }
-            applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(updatedProject));
+            updateProjectState(updatedProject, 0);
             return projectService.save(updatedProject);
         } catch (RuntimeException | IOException e) {
             throw new DatacTechnicalException("Project update failed", e);
@@ -250,12 +252,19 @@ public class ProjectUpdateService {
     protected Project updateRevisions(@NotNull Project project, @NotNull VcsLocalRepository localRepository) throws DatacTechnicalException {
         LOGGER.debug("Checking for new branches in project {}", project.getName());
         Project updatedProject = projectService.updateAvailableBranches(project, localRepository);
+        updatedProject.setState(ProjectState.UPDATING);
+        updateProjectState(updatedProject, 0);
+        updatedProject = projectService.save(updatedProject);
 
         LOGGER.debug("Updating revisions in project {}", updatedProject.getName());
 
+        long branchCount = updatedProject.getBranches().stream().filter(b -> b.isWatched() || b.isDevelopment()).count();
+        int updatedBranches = 0;
         for (Branch branch : updatedProject.getBranches()) {
+            updateProjectState(updatedProject, updatedBranches / (double) branchCount * 100.f);
             if (branch.isWatched() || branch.isDevelopment()) {
                 updateRevisionsInBranch(updatedProject, branch, localRepository);
+                updatedBranches++;
             } else {
                 LOGGER.debug("Skipping branch {} in project {}", branch.getName(), updatedProject.getName());
             }
@@ -375,6 +384,10 @@ public class ProjectUpdateService {
             return project;
         }
 
+        project.setState(ProjectState.INDEXING);
+        project = projectService.save(project);
+        updateProjectState(project, 0);
+
         // Convert the external revisions to internal ones
         Collection<Revision> internalChangeLogRevisions = revisionGraphService.findMatchingInternalRevisions(project, changeLogRevisions);
 
@@ -406,15 +419,25 @@ public class ProjectUpdateService {
      *         The revisions where indexing should begin.
      */
     private void indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository, @NotNull Collection<Revision> beginIndexing) throws DatacTechnicalException {
+        List<Revision> revisionsToIndex = new ArrayList<>();    // Hold all revisions to index in this list to be able to provide a progress indicator
         Set<Revision> visitedRevisions = new HashSet<>();
         for (Revision revision : beginIndexing) {
             depthFirstTraverser.traverseChildrenAbortOnCondition(revision,
                     (r -> !visitedRevisions.contains(r)),
                     (r) -> {
                         visitedRevisions.add(r);
-                        indexDatabaseChangesInRevision(project, localRepository, r);
+                        revisionsToIndex.add(r);
                     });
         }
+
+        int indexed = 0;
+        for (Revision toIndex : revisionsToIndex) {
+            double progress = (indexed / (double) revisionsToIndex.size()) * 100.0;
+            updateProjectState(project, progress);
+            indexDatabaseChangesInRevision(project, localRepository, toIndex);
+            indexed++;
+        }
+
     }
 
     private void indexDatabaseChangesInRevision(Project project, VcsLocalRepository localRepository, Revision r) throws VcsRepositoryException {
@@ -468,5 +491,9 @@ public class ProjectUpdateService {
         } else {
             throw new DatacTechnicalException("Resolving VCS adapter failed");
         }
+    }
+
+    private void updateProjectState(@NotNull Project project, double progress) {
+        applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(project, progress));
     }
 }

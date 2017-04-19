@@ -1,13 +1,11 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.server.VaadinSession;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.spring.annotation.ViewScope;
-import com.vaadin.ui.*;
-import com.vaadin.ui.renderers.ButtonRenderer;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import javax.annotation.PostConstruct;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +17,7 @@ import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.foundation.EventTopics;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.foundation.services.ProjectUpdateEvent;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
@@ -26,8 +25,18 @@ import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.ProjectUpdateStarter;
 
-import javax.annotation.PostConstruct;
-import java.util.Collection;
+import com.vaadin.data.ValueProvider;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.server.VaadinSession;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.spring.annotation.ViewScope;
+import com.vaadin.ui.*;
+import com.vaadin.ui.renderers.ButtonRenderer;
+import com.vaadin.ui.renderers.TextRenderer;
+
+import elemental.json.JsonValue;
 
 /**
  * Admin view for managing projects responsible for managing the available users.
@@ -76,7 +85,12 @@ public class AdminProjectSubview extends AbstractSubview {
      */
     private final LockingService lockingService;
 
+    /**
+     * The vaadin session used for accessing the UI on a separate thread.
+     */
     private VaadinSession vaadinSession;
+
+    private static ConcurrentMap<Long, Double> PROGRESS_MAP = new ConcurrentHashMap<>();
 
     @Autowired
     public AdminProjectSubview(EventBus.ApplicationEventBus viewEventBus, ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, LockingService lockingService) {
@@ -108,7 +122,8 @@ public class AdminProjectSubview extends AbstractSubview {
     }
 
     private Component buildGrid() {
-        grid.addColumn(Project::getState).setCaption("State").setMaximumWidth(150);
+        grid.addColumn(ValueProvider.identity(), new ProjectStateRenderer())
+                .setCaption("State").setWidth(180);
         grid.addColumn(Project::getName).setCaption("Name");
         grid.addColumn(Project::getUrl).setCaption("VCS Url");
         grid.addColumn(Project::getLastChangeCheck).setCaption("Last check for changes");
@@ -132,6 +147,7 @@ public class AdminProjectSubview extends AbstractSubview {
     @EventBusListenerMethod
     @EventBusListenerTopic(topic = EventTopics.PROJECT_UPDATE)
     private void handeProjectStateUpdate(ProjectUpdateEvent event) {
+        PROGRESS_MAP.put(event.getProject().getId(), event.getProgress());
         vaadinSession.access(() -> grid.getDataProvider().refreshItem(event.getProject()));
     }
 
@@ -180,5 +196,15 @@ public class AdminProjectSubview extends AbstractSubview {
     @Override
     protected String getTitle() {
         return "Project administration";
+    }
+
+    private class ProjectStateRenderer extends TextRenderer {
+        @Override
+        public JsonValue encode(Object value) {
+            Project project = (Project) value;
+            ProjectState projectState = project.getState();
+            String renderText = projectState.isProgressable() ? String.format("%s (%.0f %%)", projectState.toString(), PROGRESS_MAP.get(project.getId())) : projectState.toString();
+            return super.encode(renderText);
+        }
     }
 }

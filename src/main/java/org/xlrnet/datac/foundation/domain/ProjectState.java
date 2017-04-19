@@ -8,25 +8,48 @@ public enum ProjectState {
     /**
      * The project has never been updated.
      */
-    NEW,
+    NEW(false),
 
     /**
      * The project update finished successfully.
      */
-    FINISHED,
+    FINISHED(false),
+
+    /**
+     * The project repository is being initialized.
+     */
+    INITIALIZING(false),
 
     /**
      * The project is currently being updated.
      */
-    UPDATING,
+    UPDATING(true),
+
+    /**
+     * Database changes are currently being indexed.
+     */
+    INDEXING(true),
 
     /**
      * No changelog file was found.
      */
-    MISSING_LOG,
+    MISSING_LOG(false),
 
     /**
      * The last update failed.
      */
-    ERROR,
+    ERROR(false);
+
+    private final boolean progressable;
+
+    ProjectState(boolean progressable) {
+        this.progressable = progressable;
+    }
+
+    /**
+     * Flag to check if the given progress state can contain progress information.
+     */
+    public boolean isProgressable() {
+        return progressable;
+    }
 }

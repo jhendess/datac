@@ -8,19 +8,32 @@ import org.xlrnet.datac.foundation.domain.Project;
  */
 public class ProjectUpdateEvent {
 
+    private final Project project;
+
+    private final double progress;
+
     /**
      * Create a new project update event.
      *
      * @param project
      *         The project which is updated.
+     * @param progress
+     *         Update progress (if any).
      */
-    public ProjectUpdateEvent(Project project) {
+    public ProjectUpdateEvent(Project project, double progress) {
         this.project = project;
+        this.progress = progress;
     }
 
-    private final Project project;
+    public ProjectUpdateEvent(Project project) {
+        this(project, 0);
+    }
 
     public Project getProject() {
         return project;
+    }
+
+    public double getProgress() {
+        return progress;
     }
 }

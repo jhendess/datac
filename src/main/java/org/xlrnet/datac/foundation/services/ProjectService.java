@@ -1,5 +1,10 @@
 package org.xlrnet.datac.foundation.services;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Collection;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -20,11 +25,6 @@ import org.xlrnet.datac.vcs.api.VcsConnectionException;
 import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.domain.Branch;
-
-import java.util.Collection;
-import java.util.regex.Pattern;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Transactional service for accessing project data.
