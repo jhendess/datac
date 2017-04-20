@@ -117,4 +117,15 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
         applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(reloaded));
         save(reloaded);
     }
+
+    /**
+     * Finds all projects in the given {@link ProjectState}.
+     *
+     * @param states The states to look for.
+     * @return All projects in that state.
+     */
+    @Transactional(readOnly = true)
+    public Collection<Project> findAllProjectsInState(Iterable<ProjectState> states) {
+        return getRepository().findAllByStateIn(states);
+    }
 }

@@ -1,18 +1,27 @@
 package org.xlrnet.datac.vcs.impl.jgit;
 
+import java.nio.file.Path;
+
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.xlrnet.datac.commons.exception.VcsRepositoryException;
+import org.xlrnet.datac.foundation.services.FileService;
 import org.xlrnet.datac.vcs.api.*;
-
-import java.nio.file.Path;
 
 /**
  * {@link org.xlrnet.datac.vcs.api.VcsAdapter} implementation for git using Eclipse JGit.
  */
 @Component
 public class JGitAdapter implements VcsAdapter {
+
+    private final FileService fileService;
+
+    @Autowired
+    public JGitAdapter(FileService fileService) {
+        this.fileService = fileService;
+    }
 
     @NotNull
     @Override
@@ -31,7 +40,7 @@ public class JGitAdapter implements VcsAdapter {
     @Override
     public VcsLocalRepository openLocalRepository(@NotNull Path repositoryPath, @NotNull VcsRemoteCredentials credentials) throws VcsRepositoryException {
         UsernamePasswordCredentialsProvider provider = buildCredentialsProvider(credentials);
-        return new JGitLocalRepository(repositoryPath, provider, credentials.getUrl());
+        return new JGitLocalRepository(repositoryPath, provider, credentials.getUrl(), fileService);
     }
 
     @NotNull

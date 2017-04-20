@@ -1,11 +1,11 @@
 package org.xlrnet.datac.vcs.api;
 
+import java.util.Collection;
+
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.VcsRepositoryException;
 import org.xlrnet.datac.vcs.domain.Branch;
-
-import java.util.Collection;
 
 /**
  * Local representation of a VCS repository. Local repositories are usually not thread-safe since they may modify the
@@ -69,4 +69,13 @@ public interface VcsLocalRepository {
      *         The revision which should be checked out.
      */
     void checkoutRevision(@NotNull VcsRevision revision) throws VcsRepositoryException;
+
+    /**
+     * Performs a cleanup operation in the local repository if necessary. Depending on the concrete implementation, this
+     * may e.g. reset lock files or remove dirty files which prevent regular operation. If no cleaning is necessary, the
+     * method should return immediately.
+     *
+     * @throws VcsRepositoryException Will be thrown if the VCS repository encountered an internal error.
+     */
+    void cleanupIfNecessary() throws VcsRepositoryException;
 }

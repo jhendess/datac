@@ -38,7 +38,12 @@ public enum ProjectState {
     /**
      * The last update failed.
      */
-    ERROR(false);
+    ERROR(false),
+
+    /**
+     * Cleaning the project failed. Work folder must be manually analyzed
+     */
+    DIRTY(false);
 
     private final boolean progressable;
 

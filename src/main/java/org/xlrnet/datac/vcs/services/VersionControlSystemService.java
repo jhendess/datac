@@ -1,6 +1,11 @@
 package org.xlrnet.datac.vcs.services;
 
-import com.google.common.collect.ImmutableList;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.*;
+
+import javax.annotation.PostConstruct;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -9,14 +14,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.foundation.configuration.StartupPhases;
+import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.api.VcsAdapter;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 
-import javax.annotation.PostConstruct;
-import java.util.*;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Service which provides central access to the available VCS adapters. The adapters will be registered on application
@@ -80,6 +84,33 @@ public class VersionControlSystemService implements SmartLifecycle {
         }
 
         return Optional.ofNullable(metaInfo);
+    }
+
+    /**
+     * Try to resolve the correct VCS adapter for a given project. If no adapter with the same class could be found, the
+     * application tries to fall back to a adapter which implements the same VCS type.
+     *
+     * @return The correct VCS adapter for the project.
+     * @throws DatacTechnicalException
+     *         Will be thrown if no VCS adapter could be resolved
+     */
+    @NotNull
+    public VcsAdapter getVcsAdapter(@NotNull Project project) throws DatacTechnicalException {
+        Optional<VcsMetaInfo> metaInfo = findMetaInfoByAdapterClassName(project.getAdapterClass());
+        if (!metaInfo.isPresent()) {
+            metaInfo = findMetaInfoByVcsType(project.getType());
+            metaInfo.ifPresent(m -> LOGGER.warn("No VCS of class {} found - falling back to adapter {} with same type {}", project.getAdapterClass(), m.getAdapterName(), m.getVcsName()));
+        }
+        if (!metaInfo.isPresent()) {
+            throw new DatacTechnicalException("No VCS adapter of type " + project.getType() + " or class " + project.getAdapterClass() + " is available");
+        }
+
+        Optional<VcsAdapter> adapterByMetaInfo = findAdapterByMetaInfo(metaInfo.get());
+        if (adapterByMetaInfo.isPresent()) {
+            return adapterByMetaInfo.get();
+        } else {
+            throw new DatacTechnicalException("Resolving VCS adapter failed");
+        }
     }
 
     @Override

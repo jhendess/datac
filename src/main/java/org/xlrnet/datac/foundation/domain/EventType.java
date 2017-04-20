@@ -10,5 +10,5 @@ public enum EventType {
     /** An uncaught exception was thrown. */
     UNCAUGHT_EXCEPTION,
     /** Application startup. */
-    STARTUP;
+    STARTUP, PROJECT_CLEANUP;
 }

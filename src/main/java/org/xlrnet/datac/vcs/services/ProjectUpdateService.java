@@ -160,7 +160,7 @@ public class ProjectUpdateService {
      */
     @Transactional
     protected Project updateProject(@NotNull Project project) throws DatacTechnicalException {
-        VcsAdapter vcsAdapter = getVcsAdapter(project);
+        VcsAdapter vcsAdapter = vcsService.getVcsAdapter(project);
         project.setState(ProjectState.INITIALIZING);
         updateProjectState(project, 0);
         projectService.save(project);
@@ -464,33 +464,6 @@ public class ProjectUpdateService {
         List<Revision> revisionsToBeginWith = new ArrayList<>();
         breadthFirstTraverser.traverseChildrenCutOnMatch(revision, revisionsToFind::contains, revisionsToBeginWith::add);
         return revisionsToBeginWith;
-    }
-
-    /**
-     * Try to resolve the correct VCS adapter for this project. If no adapter with the same class could be found, the
-     * application tries to fall back to a adapter which implements the same VCS type.
-     *
-     * @return The correct VCS adapter for the project.
-     * @throws DatacTechnicalException
-     *         Will be thrown if no VCS adapter could be resolved
-     */
-    @NotNull
-    private VcsAdapter getVcsAdapter(@NotNull Project project) throws DatacTechnicalException {
-        Optional<VcsMetaInfo> metaInfo = vcsService.findMetaInfoByAdapterClassName(project.getAdapterClass());
-        if (!metaInfo.isPresent()) {
-            metaInfo = vcsService.findMetaInfoByVcsType(project.getType());
-            metaInfo.ifPresent(m -> LOGGER.warn("No VCS of class {} found - falling back to adapter {} with same type {}", project.getAdapterClass(), m.getAdapterName(), m.getVcsName()));
-        }
-        if (!metaInfo.isPresent()) {
-            throw new DatacTechnicalException("No VCS adapter of type " + project.getType() + " or class " + project.getAdapterClass() + " is available");
-        }
-
-        Optional<VcsAdapter> adapterByMetaInfo = vcsService.findAdapterByMetaInfo(metaInfo.get());
-        if (adapterByMetaInfo.isPresent()) {
-            return adapterByMetaInfo.get();
-        } else {
-            throw new DatacTechnicalException("Resolving VCS adapter failed");
-        }
     }
 
     private void updateProjectState(@NotNull Project project, double progress) {

@@ -1,8 +1,18 @@
 package org.xlrnet.datac.vcs.impl.jgit;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.JGitInternalException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
@@ -11,24 +21,19 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xlrnet.datac.commons.exception.VcsRepositoryException;
+import org.xlrnet.datac.foundation.services.FileService;
 import org.xlrnet.datac.vcs.api.VcsConnectionException;
 import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-
 /**
  * Implementation of a local git repository using JGit.
  */
 public class JGitLocalRepository implements VcsLocalRepository {
 
+    public static final String HEAD = "HEAD";
     private static Logger LOGGER = LoggerFactory.getLogger(JGitLocalRepository.class);
 
     /** The interval in which fetches may be performed. */
@@ -46,10 +51,14 @@ public class JGitLocalRepository implements VcsLocalRepository {
     /** Timestamp when the last remote fetch was performed. */
     private long lastFetch;
 
-    JGitLocalRepository(Path repositoryPath, CredentialsProvider credentialsProvider, String remoteRepositoryUrl) {
+    /** Service for accessing the filesystem. */
+    private final FileService fileService;
+
+    JGitLocalRepository(Path repositoryPath, CredentialsProvider credentialsProvider, String remoteRepositoryUrl, FileService fileService) {
         this.repositoryPath = repositoryPath;
         this.credentialsProvider = credentialsProvider;
         this.remoteRepositoryUrl = remoteRepositoryUrl;
+        this.fileService = fileService;
     }
 
     @NotNull
@@ -76,7 +85,7 @@ public class JGitLocalRepository implements VcsLocalRepository {
                 //throw new VcsRepositoryException("Pull from remote " + remoteRepositoryUrl + " on branch " + branchName + " failed");
             }
             LOGGER.debug("Finished fetching latest revisions from remote {} on branch {}", remoteRepositoryUrl, branchName);
-        } catch (GitAPIException e) {
+        } catch (JGitInternalException | GitAPIException e) {
             LOGGER.error("Unexpected exception while communicating with git", e);
             throw new VcsConnectionException(e);
         } catch (IOException e) {
@@ -107,7 +116,7 @@ public class JGitLocalRepository implements VcsLocalRepository {
 
             LOGGER.debug("Finished reading revisions on branch {} in repository {}", branch.getName(), repositoryPath.toString());
             return commitToRevisionWrapper;
-        } catch (GitAPIException e) {
+        } catch (JGitInternalException | GitAPIException e) {
             LOGGER.error("Unexpected exception while communicating with git", e);
             throw new VcsConnectionException(e);
         } catch (IOException e) {
@@ -135,7 +144,7 @@ public class JGitLocalRepository implements VcsLocalRepository {
 
             LOGGER.debug("Found {} affected revisions for path {} in repository {}", affectedRevisions.size(), path, cleanedPath);
             return affectedRevisions;
-        } catch (GitAPIException e) {
+        } catch (JGitInternalException | GitAPIException e) {
             LOGGER.error("Unexpected exception while communicating with git", e);
             throw new VcsRepositoryException(e);
         } catch (IOException e) {
@@ -155,7 +164,7 @@ public class JGitLocalRepository implements VcsLocalRepository {
                     .setName(internalId)
                     .call();
 
-        } catch (GitAPIException e) {
+        } catch (JGitInternalException | GitAPIException e) {
             LOGGER.error("Unexpected exception while communicating with git", e);
             throw new VcsRepositoryException(e);
         } catch (IOException e) {
@@ -164,8 +173,49 @@ public class JGitLocalRepository implements VcsLocalRepository {
         }
     }
 
+    @Override
+    public void cleanupIfNecessary() throws VcsRepositoryException {
+        try (Git git = openRepository()) {
+            if (isRepositoryLocked()) {
+                unlockRepository();
+            }
+
+            boolean clean = git.status()
+                    .call()
+                    .isClean();
+
+            ;
+
+            if (!clean) {
+                LOGGER.info("Repository {} is unclean - cleaning up", repositoryPath);
+                git.clean().setCleanDirectories(true).call();
+                git.reset().setRef(HEAD).setMode(ResetCommand.ResetType.HARD).call();
+            }
+
+        } catch (JGitInternalException | GitAPIException e) {
+            LOGGER.error("Unexpected exception while communicating with git", e);
+            throw new VcsRepositoryException(e);
+        } catch (IOException e) {
+            LOGGER.error("Unexpected IOException", e);
+            throw new VcsRepositoryException(e);
+        }
+    }
+
+    private void unlockRepository() throws IOException {
+        LOGGER.info("Unlocking git repository {}", repositoryPath);
+        fileService.deleteFile(getLockFilePath());
+    }
+
     @NotNull
     private Git openRepository() throws IOException {
         return Git.open(repositoryPath.toFile());
+    }
+
+    private boolean isRepositoryLocked() {
+        return Files.exists(getLockFilePath());
+    }
+
+    private Path getLockFilePath() {
+        return repositoryPath.resolve(".git").resolve("index.lock");
     }
 }

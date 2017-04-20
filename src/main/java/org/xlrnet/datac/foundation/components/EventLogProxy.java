@@ -1,5 +1,7 @@
 package org.xlrnet.datac.foundation.components;
 
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -8,8 +10,6 @@ import org.xlrnet.datac.foundation.domain.EventLog;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.session.domain.User;
-
-import java.util.Optional;
 
 /**
  * Thread-scoped proxy for {@link EventLog}. This makes it possible to use the event logging mechanism in various
