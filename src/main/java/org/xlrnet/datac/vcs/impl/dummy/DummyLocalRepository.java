@@ -1,8 +1,5 @@
 package org.xlrnet.datac.vcs.impl.dummy;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.commons.exception.VcsRepositoryException;
 import org.xlrnet.datac.vcs.api.VcsConnectionException;
@@ -10,6 +7,9 @@ import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * Dummy implementation of {@link VcsLocalRepository}.
@@ -29,7 +29,7 @@ public class DummyLocalRepository implements VcsLocalRepository {
 
     @NotNull
     @Override
-    public VcsRevision fetchLatestRevisionInBranch(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException {
+    public VcsRevision listLatestRevisionOnBranch(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException {
         return new DummyRevision().setInternalId("1");
     }
 
@@ -46,6 +46,6 @@ public class DummyLocalRepository implements VcsLocalRepository {
 
     @Override
     public void cleanupIfNecessary() throws VcsRepositoryException {
-        
+
     }
 }

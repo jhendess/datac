@@ -1,11 +1,11 @@
 package org.xlrnet.datac.vcs.api;
 
-import java.util.Collection;
-
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.VcsRepositoryException;
 import org.xlrnet.datac.vcs.domain.Branch;
+
+import java.util.Collection;
 
 /**
  * Local representation of a VCS repository. Local repositories are usually not thread-safe since they may modify the
@@ -24,7 +24,7 @@ public interface VcsLocalRepository {
     /**
      * Updates the internal list of revisions from remote. Concrete implementations may decide if it is necessary to
      * perform a remote call to retrieve the latest revisions or not. If the fetching would e.g. take too long, it is
-     * also sufficient to fetch the revisions directly during {@link #fetchLatestRevisionInBranch(Branch)} .
+     * also sufficient to fetch the revisions directly during {@link #listLatestRevisionOnBranch(Branch)} .
      *
      * @param branch
      *         The branch to fetch.
@@ -40,7 +40,7 @@ public interface VcsLocalRepository {
      * @return An {@link Iterable} containing the revisions of the given branch.
      */
     @NotNull
-    VcsRevision fetchLatestRevisionInBranch(@NotNull Branch branch) throws DatacTechnicalException;
+    VcsRevision listLatestRevisionOnBranch(@NotNull Branch branch) throws DatacTechnicalException;
 
     /**
      * Returns a {@link Collection} of {@link VcsRevision} with all revisions where the given path was modified. This
@@ -75,7 +75,8 @@ public interface VcsLocalRepository {
      * may e.g. reset lock files or remove dirty files which prevent regular operation. If no cleaning is necessary, the
      * method should return immediately.
      *
-     * @throws VcsRepositoryException Will be thrown if the VCS repository encountered an internal error.
+     * @throws VcsRepositoryException
+     *         Will be thrown if the VCS repository encountered an internal error.
      */
     void cleanupIfNecessary() throws VcsRepositoryException;
 }

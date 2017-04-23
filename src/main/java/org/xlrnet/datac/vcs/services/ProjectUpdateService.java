@@ -1,12 +1,5 @@
 package org.xlrnet.datac.vcs.services;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.util.*;
-
-import javax.transaction.Transactional;
-
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -21,7 +14,9 @@ import org.xlrnet.datac.commons.domain.DepthFirstTraverser;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
-import org.xlrnet.datac.commons.exception.VcsRepositoryException;
+import org.xlrnet.datac.database.domain.DatabaseChangeSet;
+import org.xlrnet.datac.database.services.ChangeSetService;
+import org.xlrnet.datac.database.services.LiquibaseProcessService;
 import org.xlrnet.datac.foundation.EventTopics;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.*;
@@ -29,6 +24,14 @@ import org.xlrnet.datac.foundation.services.*;
 import org.xlrnet.datac.vcs.api.*;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
+
+import javax.transaction.Transactional;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Service which is responsible for collecting all database changes in a project.
@@ -89,6 +92,11 @@ public class ProjectUpdateService {
     private final LiquibaseProcessService liquibaseProcessService;
 
     /**
+     * Service for accessing change sets.
+     */
+    private final ChangeSetService changeSetService;
+
+    /**
      * Helper class for performing breadth first traversals on revision graphs.
      */
     private BreadthFirstTraverser<Revision> breadthFirstTraverser = new BreadthFirstTraverser<>();
@@ -99,7 +107,7 @@ public class ProjectUpdateService {
     private DepthFirstTraverser<Revision> depthFirstTraverser = new DepthFirstTraverser<>();
 
     @Autowired
-    public ProjectUpdateService(EventBus.ApplicationEventBus applicationEventBus, VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, RevisionGraphService revisionGraphService, ValidationService validator, EventLogService eventLogService, EventLogProxy eventLog, LiquibaseProcessService liquibaseProcessService) {
+    public ProjectUpdateService(EventBus.ApplicationEventBus applicationEventBus, VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, RevisionGraphService revisionGraphService, ValidationService validator, EventLogService eventLogService, EventLogProxy eventLog, LiquibaseProcessService liquibaseProcessService, ChangeSetService changeSetService) {
         this.applicationEventBus = applicationEventBus;
         this.vcsService = vcsService;
         this.lockingService = lockingService;
@@ -110,6 +118,7 @@ public class ProjectUpdateService {
         this.eventLogService = eventLogService;
         this.eventLog = eventLog;
         this.liquibaseProcessService = liquibaseProcessService;
+        this.changeSetService = changeSetService;
     }
 
     /**
@@ -277,7 +286,7 @@ public class ProjectUpdateService {
         LOGGER.debug("Updating revisions on branch {} in project {}", branch.getName(), project.getName());
         localRepository.updateRevisionsFromRemote(branch);
 
-        VcsRevision rootRevision = localRepository.fetchLatestRevisionInBranch(branch);
+        VcsRevision rootRevision = localRepository.listLatestRevisionOnBranch(branch);
 
         Pair<Revision, Long> revision = convertRevision(rootRevision, project);
         LOGGER.trace("Saving revisions on branch {} in project {}", branch.getName(), project.getName());
@@ -374,40 +383,48 @@ public class ProjectUpdateService {
     private Project indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository) throws DatacTechnicalException {
         LOGGER.info("Begin indexing changes in project {}", project.getName());
 
-        // Find revisions where only the changelog file itself changed
+        // Find revisions where only the changelog file itself changed to check if the given changelog file exists
         Collection<VcsRevision> changeLogRevisions = localRepository.listRevisionsWithChangesInPath(project.getChangelogLocation());
 
         if (changeLogRevisions.isEmpty()) {
-            eventLog.addMessage(new EventLogMessage("Changelog file " + project.getChangelogLocation() + " could not be found").setSeverity(MessageSeverity.WARNING));
+            String msg = String.format("Couldn't find change log file %s for project %s", project.getChangelogLocation(), project.getName());
+            eventLog.addMessage(new EventLogMessage(msg).setSeverity(MessageSeverity.WARNING));
             project.setState(ProjectState.MISSING_LOG);
-            LOGGER.warn("Couldn't find change log file {} for project {}", project.getChangelogLocation(), project.getName());
+            LOGGER.warn(msg);
             return project;
         }
 
+        // For performing the actual indexing, retrieve all revisions which changed the whole directory in which the changelog lies
+        Path parentPath = Paths.get(project.getChangelogLocation()).getParent();
+        Collection<VcsRevision> changeLogDirectoryRevisions = localRepository.listRevisionsWithChangesInPath(parentPath.toString());
+
         project.setState(ProjectState.INDEXING);
-        project = projectService.save(project);
-        updateProjectState(project, 0);
+        Project updatedProject = projectService.save(project);
+        updateProjectState(updatedProject, 0);
 
         // Convert the external revisions to internal ones
-        Collection<Revision> internalChangeLogRevisions = revisionGraphService.findMatchingInternalRevisions(project, changeLogRevisions);
+        Collection<Revision> internalRevisions = revisionGraphService.findMatchingInternalRevisions(updatedProject, changeLogDirectoryRevisions);
+        // Find those revisions which don't have a change set yet
+        List<Revision> revisionsToIndex = new ArrayList<>();
+        for (Revision revision : internalRevisions) {
+            if (changeSetService.countByRevision(revision) == 0) {
+                revisionsToIndex.add(revision);
+            }
+        }
 
-        // Find the closest revisions to the root revision; this way we don't need to parse through every possible revision
-        // TODO: Begin after the last indexed revisions
-        Revision rootRevision = revisionGraphService.findProjectRootRevision(project);
-        Collection<Revision> bestRevisionsToBeginIndexing = findFirstRevisionsAfterRevision(rootRevision, internalChangeLogRevisions);
+        if (!revisionsToIndex.isEmpty()) {
+            LOGGER.debug("Indexing {} revisions", revisionsToIndex.size());
+            indexDatabaseChanges(updatedProject, localRepository, revisionsToIndex);
+        } else {
+            LOGGER.info("No new revisions in project {} [id={}]", updatedProject.getName(), updatedProject.getId());
+        }
 
-        LOGGER.trace("Begin with revisions {} for indexing", bestRevisionsToBeginIndexing);
-
-        // TODO: As of now we can't just index the revisions where a change happened, since we cannot detect included changes at the moment
-
-        indexDatabaseChanges(project, localRepository, bestRevisionsToBeginIndexing);
-
-        return project;
+        return updatedProject;
     }
 
     /**
      * Performs indexing of database changes in the given project using the given local repository. The algorithm will
-     * perform a depth-first traversal by the children of the given revisions. For each revision during the traversal,
+     * perform a breadth-first traversal from the root revision. For each revision during the traversal,
      * the whole local repository will checkout the given revision.
      * The traversal will abort when an already visited revision is met.
      *
@@ -415,55 +432,36 @@ public class ProjectUpdateService {
      *         The project for which database changes shall be indexed.
      * @param localRepository
      *         The local repository connection.
-     * @param beginIndexing
-     *         The revisions where indexing should begin.
+     * @param revisionsToIndex
+     *         The revisions that should be indexed.
      */
-    private void indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository, @NotNull Collection<Revision> beginIndexing) throws DatacTechnicalException {
-        List<Revision> revisionsToIndex = new ArrayList<>();    // Hold all revisions to index in this list to be able to provide a progress indicator
-        Set<Revision> visitedRevisions = new HashSet<>();
-        for (Revision revision : beginIndexing) {
-            depthFirstTraverser.traverseChildrenAbortOnCondition(revision,
-                    (r -> !visitedRevisions.contains(r)),
-                    (r) -> {
-                        visitedRevisions.add(r);
-                        revisionsToIndex.add(r);
-                    });
-        }
+    private void indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository, @NotNull Collection<Revision> revisionsToIndex) throws DatacTechnicalException {
+        Revision rootRevision = revisionGraphService.findProjectRootRevision(project);
+        AtomicInteger indexed = new AtomicInteger(0);
+        AtomicInteger newChangeSets = new AtomicInteger(0);
 
-        int indexed = 0;
-        for (Revision toIndex : revisionsToIndex) {
-            double progress = (indexed / (double) revisionsToIndex.size()) * 100.0;
-            updateProjectState(project, progress);
-            indexDatabaseChangesInRevision(project, localRepository, toIndex);
-            indexed++;
-        }
-
+        breadthFirstTraverser.traverseChildren(rootRevision, (Revision r) -> {
+            if (revisionsToIndex.contains(r)) {
+                double progress = (indexed.getAndIncrement() / (double) revisionsToIndex.size()) * 100.0;
+                updateProjectState(project, progress);
+                Collection<DatabaseChangeSet> changeSets = indexDatabaseChangesInRevision(project, localRepository, r);
+                newChangeSets.addAndGet(changeSets.size());
+            }
+        });
+        eventLog.addMessage(new EventLogMessage(String.format("Indexed total of %s new change sets", newChangeSets.get())));
+        LOGGER.info("Indexed total of {} new change sets in project {} [id={}]", newChangeSets.get(), project.getName(), project.getId());
     }
 
-    private void indexDatabaseChangesInRevision(Project project, VcsLocalRepository localRepository, Revision r) throws VcsRepositoryException {
-        LOGGER.debug("Indexing database changes of project {} in revision {}", project.getName(), r.getInternalId());
+    private Collection<DatabaseChangeSet> indexDatabaseChangesInRevision(Project project, VcsLocalRepository localRepository, Revision revision) throws DatacTechnicalException {
+        LOGGER.debug("Indexing database changes of project {} in revision {}", project.getName(), revision.getInternalId());
 
-        localRepository.checkoutRevision(r);
-        // TODO: Perform the actual indexing
-    }
+        localRepository.checkoutRevision(revision);
+        List<DatabaseChangeSet> databaseChangeSets = liquibaseProcessService.listDatabaseChangeSetsForProject(project);
+        for (DatabaseChangeSet databaseChangeSet : databaseChangeSets) {
+            databaseChangeSet.setRevision(revision);
+        }
 
-    /**
-     * Find those children which appear first after a given revision. This performs a breadth-first traversal of child
-     * elements. The elements will be returned ordered by their distance to the given root node (i.e. the first element
-     * will be the closest, and the last the farthest). If one element on a single branch in this graph matches, all
-     * succeeding elements won't be returned.
-     *
-     * @param revision
-     *         The revision whose children will be traversed.
-     * @param revisionsToFind
-     *         The revisions that will be searched for.
-     * @return Those revisions of the given collection which appear closest to the given revision itself.
-     */
-    @NotNull
-    List<Revision> findFirstRevisionsAfterRevision(@NotNull Revision revision, Collection<Revision> revisionsToFind) throws DatacTechnicalException {
-        List<Revision> revisionsToBeginWith = new ArrayList<>();
-        breadthFirstTraverser.traverseChildrenCutOnMatch(revision, revisionsToFind::contains, revisionsToBeginWith::add);
-        return revisionsToBeginWith;
+        return changeSetService.save(databaseChangeSets);
     }
 
     private void updateProjectState(@NotNull Project project, double progress) {

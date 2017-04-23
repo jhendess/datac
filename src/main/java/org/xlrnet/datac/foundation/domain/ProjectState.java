@@ -43,7 +43,12 @@ public enum ProjectState {
     /**
      * Cleaning the project failed. Work folder must be manually analyzed
      */
-    DIRTY(false);
+    DIRTY(false),
+
+    /**
+     * The last project update was interrupted on shutdown.
+     */
+    INTERRUPTED(false);
 
     private final boolean progressable;
 

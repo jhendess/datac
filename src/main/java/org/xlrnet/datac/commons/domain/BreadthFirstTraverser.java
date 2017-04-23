@@ -15,6 +15,30 @@ import java.util.function.Function;
 public class BreadthFirstTraverser<T extends TraversableNode> {
 
     /**
+     * Traverses the given node and its children of the given traversable node and performs a given action.
+     *
+     * @param nodeToBegin
+     *         The node where the traversal should begin.
+     * @param action
+     *         The action that will be executed when the matcher matches.
+     * @throws DatacTechnicalException
+     *         May be thrown by the action.
+     */
+    public void traverseChildren(T nodeToBegin, ThrowingConsumer<T> action) throws DatacTechnicalException {
+        Set<T> visited = new HashSet<>();
+        Deque<T> candidates = new LinkedList<>();
+        candidates.add(nodeToBegin);
+        while (!candidates.isEmpty()) {
+            T next = candidates.pop();
+            if (!visited.contains(next)) {
+                visited.add(next);
+                action.accept(next);
+                candidates.addAll(next.getChildren());
+            }
+        }
+    }
+
+    /**
      * Traverses the given node and its children of the given traversable node and performs a given action when the
      * given matcher returns true. If the action is executed, the current branch is cut and won't be traversed any
      * further.

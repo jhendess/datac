@@ -1,10 +1,5 @@
 package org.xlrnet.datac.foundation.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.util.Collection;
-import java.util.regex.Pattern;
-
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -26,6 +21,11 @@ import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.domain.Branch;
 
+import java.util.Collection;
+import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * Transactional service for accessing project data.
  */
@@ -39,20 +39,27 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
      */
     private final EventBus.ApplicationEventBus applicationEventBus;
 
-    /** The file service. */
+    /**
+     * The file service.
+     */
     private final FileService fileService;
 
-    /** The request-scoped event log (if any). */
+    /**
+     * The request-scoped event log (if any).
+     */
     private final EventLogProxy eventLog;
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
+     *
      * @param crudRepository
      *         The crud repository for providing basic crud operations.
      * @param applicationEventBus
+     *         Application-wide event bus.
      * @param fileService
      *         Service used for accessing files.
      * @param eventLog
+     *         Thread-scoped proxy for writing event logs.
      */
     @Autowired
     public ProjectService(ProjectRepository crudRepository, EventBus.ApplicationEventBus applicationEventBus, FileService fileService, EventLogProxy eventLog) {
@@ -121,7 +128,8 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
     /**
      * Finds all projects in the given {@link ProjectState}.
      *
-     * @param states The states to look for.
+     * @param states
+     *         The states to look for.
      * @return All projects in that state.
      */
     @Transactional(readOnly = true)

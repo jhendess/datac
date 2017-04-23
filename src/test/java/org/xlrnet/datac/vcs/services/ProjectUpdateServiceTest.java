@@ -1,13 +1,11 @@
 package org.xlrnet.datac.vcs.services;
 
-import com.google.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.AbstractSpringBootTest;
-import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.test.domain.EntityCreatorUtil;
@@ -17,7 +15,6 @@ import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.impl.dummy.DummyRevision;
 
 import javax.transaction.Transactional;
-import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -54,7 +51,7 @@ public class ProjectUpdateServiceTest extends AbstractSpringBootTest {
     public void testUpdateRevisionInBranch() throws Exception {
         DummyRevision root = buildDummyGraph();
         VcsLocalRepository mockedRepository = Mockito.mock(VcsLocalRepository.class);
-        when(mockedRepository.fetchLatestRevisionInBranch(testBranch)).thenReturn(root);
+        when(mockedRepository.listLatestRevisionOnBranch(testBranch)).thenReturn(root);
 
         projectUpdateService.updateRevisionsInBranch(testProject, testBranch, mockedRepository);
 
@@ -79,13 +76,13 @@ public class ProjectUpdateServiceTest extends AbstractSpringBootTest {
         // Prepare first update
         VcsLocalRepository mockedRepository = Mockito.mock(VcsLocalRepository.class);
         DummyRevision root = buildDummyGraph();
-        when(mockedRepository.fetchLatestRevisionInBranch(testBranch)).thenReturn(root);
+        when(mockedRepository.listLatestRevisionOnBranch(testBranch)).thenReturn(root);
         // Perform first update
         projectUpdateService.updateRevisionsInBranch(testProject, testBranch, mockedRepository);
 
         // Prepare second update
         DummyRevision newRoot = new DummyRevision().setInternalId("NEW").addParent(new DummyRevision().setInternalId("1"));
-        when(mockedRepository.fetchLatestRevisionInBranch(testBranch)).thenReturn(newRoot);
+        when(mockedRepository.listLatestRevisionOnBranch(testBranch)).thenReturn(newRoot);
         // Perform second update
         projectUpdateService.updateRevisionsInBranch(testProject, testBranch, mockedRepository);
 
@@ -95,22 +92,6 @@ public class ProjectUpdateServiceTest extends AbstractSpringBootTest {
         assertEquals("New revision id doesn't match", "NEW", revision.getInternalId());
         assertEquals("New revision parent count doesn't match", 1, revision.getParents().size());
         validateRevisionGraph(revision.getParents().get(0));
-    }
-
-    @Test
-    public void testFindFirstRevisionsAfterRevision() throws DatacTechnicalException {
-        Revision root = new Revision().setInternalId("0");
-        Revision child1 = new Revision().setInternalId("1").addParent(root);
-        Revision child2 = new Revision().setInternalId("2").addParent(root);
-        Revision child11 = new Revision().setInternalId("11").addParent(child1);
-        Revision child21 = new Revision().setInternalId("21").addParent(child2);
-        Revision child22 = new Revision().setInternalId("22").addParent(child2);
-
-        List<Revision> firstRevisionsAfterRevision = projectUpdateService.findFirstRevisionsAfterRevision(root, Lists.newArrayList(child1, child22, child11));
-
-        assertNotNull("Result is null", firstRevisionsAfterRevision);
-        assertEquals("Expected revision size doesn't match", 2, firstRevisionsAfterRevision.size());
-        assertEquals("List of revisions after revision doesn't match", Lists.newArrayList(child1, child22), firstRevisionsAfterRevision);
     }
 
     private void validateRevisionGraph(Revision revision) {

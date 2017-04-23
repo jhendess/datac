@@ -293,4 +293,64 @@
             </column>
         </addColumn>
     </changeSet>
+    <changeSet id="17" author="jhendess">
+        <comment>Added tables for database change log</comment>
+        <createTable tableName="changeset" remarks="Set of database changes that must be executed together.">
+            <column name="id" type="BIGINT" autoIncrement="true" remarks="Primary key.">
+                <constraints primaryKey="true" primaryKeyName="pk_changeset"/>
+            </column>
+            <column name="internal_id" type="VARCHAR(256)" remarks="Internal id of the changeset."/>
+            <column name="comment" type="TEXT" remarks="Comment which describes the change set."/>
+            <column name="author" type="VARCHAR(128)" remarks="Author of the change set.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="checksum" type="VARCHAR(256)" remarks="Checksum of the change set.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sort" type="INT" remarks="Defines the order in which the change sets must be executed."/>
+            <column name="revision_id" type="BIGINT" remarks="Revision to which this changeset belongs.">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="changeset" baseColumnNames="revision_id"
+                                 constraintName="fk_changeset__revision"
+                                 referencedTableName="revision"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex indexName="idx_changeset__revision_id" tableName="changeset">
+            <column name="revision_id"/>
+        </createIndex>
+        <createIndex indexName="idx_changeset__internal_id" tableName="changeset">
+            <column name="internal_id"/>
+        </createIndex>
+        <createTable tableName="change" remarks="Single database change that must be executed as part of a changeset.">
+            <column name="id" type="BIGINT" autoIncrement="true" remarks="Primary key.">
+                <constraints primaryKey="true" primaryKeyName="pk_change"/>
+            </column>
+            <column name="type" type="VARCHAR(256)" remarks="Type of change.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT" remarks="Short description of the change."/>
+            <column name="preview_sql" type="TEXT" remarks="Generated preview SQL for a generic database."/>
+            <column name="checksum" type="VARCHAR(256)" remarks="Checksum of the change.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sort" type="INT" remarks="Defines the order in which the changes must be executed."/>
+            <column name="changeset_id" type="BIGINT" remarks="Change set to which this change belongs.">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="change" baseColumnNames="changeset_id"
+                                 constraintName="fk_change__changeset"
+                                 referencedTableName="changeset"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex indexName="idx_change__changeset_id" tableName="change">
+            <column name="changeset_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="18" author="jhendess">
+        <comment>Add unique constraints to change tables</comment>
+        <addUniqueConstraint tableName="change" columnNames="sort,changeset_id" constraintName="UNQ_CHANGE"/>
+        <addUniqueConstraint tableName="changeset" columnNames="internal_id,sort,revision_id"
+                             constraintName="UNQ_CHANGESET"/>
+    </changeSet>
 </databaseChangeLog>

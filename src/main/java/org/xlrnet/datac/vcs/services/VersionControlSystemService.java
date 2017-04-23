@@ -1,11 +1,6 @@
 package org.xlrnet.datac.vcs.services;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.*;
-
-import javax.annotation.PostConstruct;
-
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -20,7 +15,10 @@ import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.api.VcsAdapter;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 
-import com.google.common.collect.ImmutableList;
+import javax.annotation.PostConstruct;
+import java.util.*;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Service which provides central access to the available VCS adapters. The adapters will be registered on application
@@ -32,16 +30,24 @@ public class VersionControlSystemService implements SmartLifecycle {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VersionControlSystemService.class);
 
-    /** All raw discovered vcs adapters. */
+    /**
+     * All raw discovered vcs adapters.
+     */
     private final List<VcsAdapter> vcsAdapters;
 
-    /** List of all registered VCS metadata. */
+    /**
+     * List of all registered VCS metadata.
+     */
     private List<VcsMetaInfo> vcsAdapterMetaInfo;
 
-    /** Map for resolving meta infos to the concrete adapter. */
+    /**
+     * Map for resolving meta infos to the concrete adapter.
+     */
     private Map<VcsMetaInfo, VcsAdapter> metaInfoAdapterMap = new HashMap<>();
 
-    /** Flag if the service is running. */
+    /**
+     * Flag if the service is running.
+     */
     private boolean running;
 
     @Autowired
@@ -131,7 +137,6 @@ public class VersionControlSystemService implements SmartLifecycle {
 
     @Override
     public void start() {
-        // TODO: This is probably not necessary
         if (!running) {
             init();
         }
