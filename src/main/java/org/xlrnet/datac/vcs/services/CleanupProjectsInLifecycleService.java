@@ -68,7 +68,7 @@ public class CleanupProjectsInLifecycleService implements SmartLifecycle {
         int failed = 0;
         for (Project project : projects) {
             if (!project.isInitialized()) {
-                LOGGER.debug("Skipping project {} since it is not yet initialized", project.getName());
+                LOGGER.debug("Skipping uninitialized project {}", project.getName());
                 continue;
             }
             EventLog eventLog = eventLogService.newEventLog().setType(EventType.PROJECT_CLEANUP).setProject(project);

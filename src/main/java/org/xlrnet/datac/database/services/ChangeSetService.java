@@ -2,6 +2,7 @@ package org.xlrnet.datac.database.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.xlrnet.datac.commons.util.SortableComparator;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.repository.ChangeSetRepository;
 import org.xlrnet.datac.foundation.domain.validation.SortOrderValidator;
@@ -9,6 +10,7 @@ import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.vcs.domain.Revision;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Transactional service for accessing change set data.
@@ -30,6 +32,20 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     public ChangeSetService(ChangeSetRepository crudRepository, SortOrderValidator sortOrderValidator) {
         super(crudRepository);
         this.sortOrderValidator = sortOrderValidator;
+    }
+
+    /**
+     * Returns a list of change sets in the given revision. The list is ordered ascending by the sort order defined in
+     * {@link DatabaseChangeSet#getSort()}
+     *
+     * @param revision
+     *         The revision in which the change sets must lie.
+     * @return A list of change sets in the given revision.
+     */
+    public List<DatabaseChangeSet> findAllInRevision(Revision revision) {
+        List<DatabaseChangeSet> allByRevision = getRepository().findAllByRevision(revision);
+        allByRevision.sort(new SortableComparator());
+        return allByRevision;
     }
 
     public <S extends DatabaseChangeSet> Collection<S> save(Collection<S> entities) {

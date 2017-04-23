@@ -4,9 +4,12 @@ import com.vaadin.icons.VaadinIcons;
 import com.vaadin.server.Resource;
 import org.xlrnet.datac.administration.ui.views.AdminSubview;
 import org.xlrnet.datac.foundation.ui.views.HomeView;
+import org.xlrnet.datac.foundation.ui.views.ProjectSubview;
 
 public enum MainMenuEntry {
     HOME(HomeView.VIEW_NAME, "Home", VaadinIcons.HOME),
+
+    PROJECTS(ProjectSubview.VIEW_NAME, "Projects", VaadinIcons.CUBE),
 
     ADMINSTRATION(AdminSubview.VIEW_NAME, "Adminstration", VaadinIcons.COGS);
 

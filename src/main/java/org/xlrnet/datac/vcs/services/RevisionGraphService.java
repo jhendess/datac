@@ -7,8 +7,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.xlrnet.datac.commons.domain.LimitOffsetPageable;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.vcs.api.VcsRevision;
@@ -64,6 +66,26 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
     @Transactional(readOnly = true)
     public boolean existsRevisionInProject(@NotNull Project project, @NotNull String revisionId) {
         return getRepository().countRevisionByInternalIdAndProject(revisionId, project) > 0;
+    }
+
+    public Revision findByInternalIdAndProject(String internalId, Project project) {
+        return getRepository().findByInternalIdAndProject(internalId, project);
+    }
+
+    /**
+     * Returns a list of the last revisions in the given project. The returned revisions are ordered by their timestamp.
+     * Note, that this orders only by the timestamp when the revision was committed.
+     *
+     * @param project
+     *         The project in which the revisions must lie.
+     * @param limit
+     *         Amount of revisions to find.
+     * @return a list of the last revisions in the given project.
+     */
+    public List<Revision> findLastRevisionsInProject(Project project, int limit) {
+        return getRepository().findAllByProject(project, new LimitOffsetPageable(limit, 0, new Sort(
+                new Sort.Order(Sort.Direction.DESC, "commitTime"))
+        ));
     }
 
     /**

@@ -1,5 +1,6 @@
 package org.xlrnet.datac.vcs.domain.repository;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,9 @@ public interface RevisionRepository extends PagingAndSortingRepository<Revision,
 
     @Transactional(readOnly = true)
     List<Revision> findAllByProject(Project project);
+
+    @Transactional(readOnly = true)
+    List<Revision> findAllByProject(Project project, Pageable pageable);
 
     @Transactional(readOnly = true)
     Revision findByInternalIdAndProject(String revisionId, Project project);

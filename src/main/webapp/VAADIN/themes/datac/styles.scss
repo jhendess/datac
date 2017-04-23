@@ -6,11 +6,13 @@
 @import "views/login";
 @import "views/navigation";
 @import "views/admin";
+@import "views/project";
 
 .datac {
   @include valo;
   @include login-view;
   @include admin-view;
+  @include project-view;
   @include navigation-menu;
   @include commons-layout;
 

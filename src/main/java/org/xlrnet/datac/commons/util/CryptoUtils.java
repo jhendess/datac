@@ -24,15 +24,14 @@
 
 package org.xlrnet.datac.commons.util;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
+import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-
-import org.xlrnet.datac.commons.exception.DatacRuntimeException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
 
 /**
  * Utility class with crypto related methods.
@@ -60,7 +59,7 @@ public class CryptoUtils {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private CryptoUtils() {
-        
+        // No instances allowed
     }
 
     /**
@@ -87,7 +86,7 @@ public class CryptoUtils {
      *         Amount of iterations to use.
      * @param keyLength
      *         Key length to use.
-     * @return
+     * @return Byte representation of the hash.
      */
     public static byte[] hashPassword(final char[] password, final byte[] salt, final int iterations, final int keyLength) {
         try {

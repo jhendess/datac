@@ -353,4 +353,8 @@
         <addUniqueConstraint tableName="changeset" columnNames="internal_id,sort,revision_id"
                              constraintName="UNQ_CHANGESET"/>
     </changeSet>
+    <changeSet id="19" author="jhendess">
+        <comment>Add unique contraint on revision table for internal id and project</comment>
+        <addUniqueConstraint tableName="revision" columnNames="internal_id,project_id" constraintName="UNQ_REVISION"/>
+    </changeSet>
 </databaseChangeLog>
