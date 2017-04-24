@@ -1,12 +1,5 @@
 package org.xlrnet.datac.foundation.ui.views;
 
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xlrnet.datac.administration.ui.views.AdminSubview;
-
 import com.vaadin.navigator.ViewChangeListener;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.spring.annotation.UIScope;
@@ -14,6 +7,13 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.ValoTheme;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
+import org.xlrnet.datac.administration.ui.views.AdminSubview;
 
 /**
  * Abstract subview which contains a title with subtitle and a main content panel. Override the abstract methods in this
@@ -21,6 +21,7 @@ import com.vaadin.ui.themes.ValoTheme;
  */
 @UIScope
 @SpringView(name = AdminSubview.VIEW_NAME)
+@Transactional
 public abstract class AbstractSubview extends VerticalLayout implements Subview {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractSubview.class);

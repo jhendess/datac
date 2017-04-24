@@ -139,7 +139,7 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
     /**
      * Collection of branches in the VCS. Contains both watched and unwatched changes.
      */
-    @OneToMany(cascade = CascadeType.ALL, targetEntity = Branch.class, fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, targetEntity = Branch.class)
     @JoinColumn(name = "project_id", referencedColumnName = "id", nullable = false)
     private Set<Branch> branches = new HashSet<>();
 

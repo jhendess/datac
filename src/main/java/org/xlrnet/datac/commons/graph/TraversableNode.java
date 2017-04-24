@@ -1,4 +1,4 @@
-package org.xlrnet.datac.commons.domain;
+package org.xlrnet.datac.commons.graph;
 
 import org.jetbrains.annotations.NotNull;
 

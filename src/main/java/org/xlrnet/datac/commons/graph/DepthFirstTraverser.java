@@ -1,4 +1,4 @@
-package org.xlrnet.datac.commons.domain;
+package org.xlrnet.datac.commons.graph;
 
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.util.ThrowingConsumer;

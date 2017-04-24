@@ -5,6 +5,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.JGitInternalException;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -83,11 +84,15 @@ public class JGitLocalRepository implements VcsLocalRepository {
     @Override
     public synchronized void updateRevisionsFromRemote(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException {
         lastFetch = System.currentTimeMillis();
-        String branchName = branch.getName();
+        String branchName = StringUtils.removeStartIgnoreCase(branch.getName(), "refs/heads/");
         LOGGER.debug("Fetching latest revisions from remote {} on branch {}", remoteRepositoryUrl, branchName);
         try (Git git = openRepository()) {
-            git.checkout().setName(branch.getName()).setForce(true).call();
-            git.pull().setRemoteBranchName(branch.getName()).setStrategy(MergeStrategy.THEIRS).call();
+            if (!isBranchInRepository(git, branch.getName())) {
+                git.checkout().setName(branchName).setForce(true).setCreateBranch(true).call();
+            } else {
+                git.checkout().setName(branchName).setForce(true).call();
+            }
+            git.pull().setRemoteBranchName(branchName).setStrategy(MergeStrategy.THEIRS).call();
 
             LOGGER.debug("Finished checking out from remote {} on branch {}", remoteRepositoryUrl, branchName);
         } catch (JGitInternalException | GitAPIException e) {
@@ -97,6 +102,11 @@ public class JGitLocalRepository implements VcsLocalRepository {
             LOGGER.error("Unexpected IOException", e);
             throw new VcsRepositoryException(e);
         }
+    }
+
+    private boolean isBranchInRepository(Git git, String branchName) throws GitAPIException {
+        List<Ref> call = git.branchList().call();
+        return call.stream().anyMatch(ref -> StringUtils.equals(branchName, ref.getName()));
     }
 
     @NotNull

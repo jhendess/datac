@@ -10,8 +10,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.xlrnet.datac.commons.domain.BreadthFirstTraverser;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
 import org.xlrnet.datac.commons.util.DateTimeUtils;
 import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
@@ -23,6 +23,7 @@ import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Overview for projects.
@@ -36,6 +37,8 @@ public class ProjectSubview extends AbstractSubview {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectSubview.class);
 
     private static final int MAX_BEFORE_TRUNCATE = 80;
+
+    private static final int MAX_REVISIONS_TO_VISIT = 50;
 
     /**
      * Service for accessing project data.
@@ -127,8 +130,10 @@ public class ProjectSubview extends AbstractSubview {
     private Component buildLastChangesLayout(Project project) {
         //changeSetService.findLastChangeSetsInProject(project);
         Layout layout = new GridLayout(1, 3);
+        layout.setStyleName("listLayout");
         Revision lastDevRevision = revisionGraphService.findByInternalIdAndProject(project.getDevelopmentBranch().getInternalId(), project);
         List<DatabaseChangeSet> changeSets = new ArrayList<>();
+        AtomicInteger visitedRevisions = new AtomicInteger(0);
 
         try {
             breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, (r) -> {
@@ -139,7 +144,7 @@ public class ProjectSubview extends AbstractSubview {
                         k++;
                     }
                 }
-            }, (r -> changeSets.size() == 3));
+            }, (r -> (visitedRevisions.incrementAndGet() > MAX_REVISIONS_TO_VISIT || changeSets.size() == 3)));
         } catch (DatacTechnicalException e) {
             Label label = new Label("Unexpected error while loading last changesets");
             label.setStyleName(ValoTheme.LABEL_FAILURE);
@@ -181,6 +186,7 @@ public class ProjectSubview extends AbstractSubview {
 
     private Component buildLastRevisionsLayout(Project project) {
         Layout layout = new GridLayout(1, 3);
+        layout.setStyleName("listLayout");
         Revision lastDevRevision = revisionGraphService.findByInternalIdAndProject(project.getDevelopmentBranch().getInternalId(), project);
         List<Revision> revisions = new ArrayList<>();
         try {
@@ -194,7 +200,9 @@ public class ProjectSubview extends AbstractSubview {
 
         if (!revisions.isEmpty()) {
             for (Revision revision : revisions) {
-                String message = StringUtils.isNotBlank(revision.getMessage()) ? revision.getMessage() : DateTimeUtils.format(revision.getCommitTime());
+                String message = StringUtils.isNotBlank(revision.getMessage()) ? revision.getMessage() :
+                        revision.getCommitTime() != null ?
+                                DateTimeUtils.format(revision.getCommitTime()) : revision.getInternalId();
                 if (message.length() > MAX_BEFORE_TRUNCATE) {
                     message = StringUtils.truncate(message, MAX_BEFORE_TRUNCATE) + "...";
                 }

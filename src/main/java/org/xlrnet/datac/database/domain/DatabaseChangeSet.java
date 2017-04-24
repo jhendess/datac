@@ -70,7 +70,7 @@ public class DatabaseChangeSet extends AbstractEntity implements Sortable {
      */
     @Valid
     @Sorted
-    @OneToMany(targetEntity = DatabaseChange.class, fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(targetEntity = DatabaseChange.class, cascade = CascadeType.ALL)
     @JoinColumn(name = "changeset_id", referencedColumnName = "id", nullable = false)
     private List<DatabaseChange> changes = new ArrayList<>();
 

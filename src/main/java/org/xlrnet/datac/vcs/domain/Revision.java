@@ -1,7 +1,7 @@
 package org.xlrnet.datac.vcs.domain;
 
 import org.hibernate.validator.constraints.NotEmpty;
-import org.xlrnet.datac.commons.domain.TraversableNode;
+import org.xlrnet.datac.commons.graph.TraversableNode;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.api.VcsRevision;
@@ -70,7 +70,7 @@ public class Revision extends AbstractEntity implements VcsRevision, Traversable
      * Parent revisions of this revision. Persisting and merging must be executed manually in order to avoid stack
      * overflow errors.
      */
-    @ManyToMany(targetEntity = Revision.class, cascade = {CascadeType.DETACH, CascadeType.REMOVE}, fetch = FetchType.EAGER)
+    @ManyToMany(targetEntity = Revision.class, cascade = {CascadeType.DETACH, CascadeType.REMOVE}, fetch = FetchType.LAZY)
     @JoinTable(name = "revision_graph",
             joinColumns = @JoinColumn(name = "revision_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "parent_revision_id", referencedColumnName = "id"))
@@ -79,7 +79,7 @@ public class Revision extends AbstractEntity implements VcsRevision, Traversable
     /**
      * Direct children of this revision (inverse relationship).
      */
-    @ManyToMany(mappedBy = "parents", fetch = FetchType.EAGER)
+    @ManyToMany(mappedBy = "parents", fetch = FetchType.LAZY)
     private List<Revision> children = new ArrayList<>();
 
 

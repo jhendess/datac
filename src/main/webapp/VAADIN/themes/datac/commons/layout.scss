@@ -27,4 +27,9 @@
     color: #8a6d3b;
   }
 
+  .listLayout div > div {
+    display: list-item;
+    list-style: disc inside;
+    padding-left: 12px;
+  }
 }

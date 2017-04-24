@@ -1,4 +1,4 @@
-package org.xlrnet.datac.commons.domain;
+package org.xlrnet.datac.commons.graph;
 
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.util.ThrowingConsumer;
@@ -71,7 +71,8 @@ public class BreadthFirstTraverser<T extends TraversableNode> {
             if (next != null && !visited.contains(next)) {
                 visited.add(next);
                 action.accept(next);
-                if (!matcher.apply(next)) {
+                Boolean returnValue = matcher.apply(next);
+                if (!returnValue) {
                     candidates.addAll(supplier.apply(next));
                 }
             }

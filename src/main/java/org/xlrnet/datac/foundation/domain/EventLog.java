@@ -1,14 +1,13 @@
 package org.xlrnet.datac.foundation.domain;
 
-import java.time.Instant;
-import java.util.LinkedList;
-import java.util.List;
+import org.jetbrains.annotations.Nullable;
+import org.xlrnet.datac.session.domain.User;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-
-import org.jetbrains.annotations.Nullable;
-import org.xlrnet.datac.session.domain.User;
+import java.time.Instant;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Eventlog which consists of logged event messages.
@@ -36,7 +35,7 @@ public class EventLog extends AbstractEntity {
      * The project to which the event log belongs (if any).
      */
     @JoinColumn(name = "project_id")
-    @OneToOne(cascade = {CascadeType.REMOVE, CascadeType.REFRESH}, fetch = FetchType.EAGER)
+    @OneToOne(cascade = {CascadeType.REMOVE, CascadeType.REFRESH})
     private Project project;
 
     /**
@@ -49,7 +48,7 @@ public class EventLog extends AbstractEntity {
     /**
      * The messages in the event log.
      */
-    @OneToMany(cascade = CascadeType.ALL, targetEntity = EventLogMessage.class, fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, targetEntity = EventLogMessage.class)
     @JoinColumn(name = "eventlog_id", referencedColumnName = "id", nullable = false)
     private List<EventLogMessage> messages = new LinkedList<>();
 

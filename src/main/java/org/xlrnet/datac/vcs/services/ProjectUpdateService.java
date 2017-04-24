@@ -8,12 +8,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.vaadin.spring.events.EventBus;
-import org.xlrnet.datac.commons.domain.BreadthFirstTraverser;
-import org.xlrnet.datac.commons.domain.DepthFirstTraverser;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
+import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
+import org.xlrnet.datac.commons.graph.DepthFirstTraverser;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.services.ChangeSetService;
 import org.xlrnet.datac.database.services.LiquibaseProcessService;
@@ -25,7 +26,6 @@ import org.xlrnet.datac.vcs.api.*;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 
-import javax.transaction.Transactional;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Service which is responsible for collecting all database changes in a project.
  */
 @Service
+@Transactional(timeout = 1800)
 public class ProjectUpdateService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectUpdateService.class);
