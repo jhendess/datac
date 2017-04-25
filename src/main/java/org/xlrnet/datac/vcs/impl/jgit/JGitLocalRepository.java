@@ -1,5 +1,13 @@
 package org.xlrnet.datac.vcs.impl.jgit;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
@@ -21,14 +29,6 @@ import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-
 /**
  * Implementation of a local git repository using JGit.
  */
@@ -37,11 +37,6 @@ public class JGitLocalRepository implements VcsLocalRepository {
     private static final String HEAD = "HEAD";
 
     private static Logger LOGGER = LoggerFactory.getLogger(JGitLocalRepository.class);
-
-    /**
-     * The interval in which fetches may be performed.
-     */
-    private static final int MAXIMUM_FETCH_INTERVAL = 30000;
 
     /**
      * Local file path of the repository.
@@ -57,11 +52,6 @@ public class JGitLocalRepository implements VcsLocalRepository {
      * The credentials provider for accessing the remote repository.
      */
     private final CredentialsProvider credentialsProvider;
-
-    /**
-     * Timestamp when the last remote fetch was performed.
-     */
-    private long lastFetch;
 
     /**
      * Service for accessing the filesystem.
@@ -83,7 +73,6 @@ public class JGitLocalRepository implements VcsLocalRepository {
 
     @Override
     public synchronized void updateRevisionsFromRemote(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException {
-        lastFetch = System.currentTimeMillis();
         String branchName = StringUtils.removeStartIgnoreCase(branch.getName(), "refs/heads/");
         LOGGER.debug("Fetching latest revisions from remote {} on branch {}", remoteRepositoryUrl, branchName);
         try (Git git = openRepository()) {
@@ -92,7 +81,7 @@ public class JGitLocalRepository implements VcsLocalRepository {
             } else {
                 git.checkout().setName(branchName).setForce(true).call();
             }
-            git.pull().setRemoteBranchName(branchName).setStrategy(MergeStrategy.THEIRS).call();
+            git.pull().setCredentialsProvider(credentialsProvider).setRemoteBranchName(branchName).setStrategy(MergeStrategy.THEIRS).call();
 
             LOGGER.debug("Finished checking out from remote {} on branch {}", remoteRepositoryUrl, branchName);
         } catch (JGitInternalException | GitAPIException e) {
@@ -143,7 +132,7 @@ public class JGitLocalRepository implements VcsLocalRepository {
     @NotNull
     @Override
     public Collection<VcsRevision> listRevisionsWithChangesInPath(@NotNull String path) throws VcsRepositoryException {
-        String cleanedPath = StringUtils.removeStart(path, "/");
+        String cleanedPath = StringUtils.removeStart(path, "/").replace("\\", "/");
         LOGGER.debug("Listing affected revisions for path {} in repository {}", path, cleanedPath);
         try (Git git = openRepository()) {
             Iterable<RevCommit> call = git.log()

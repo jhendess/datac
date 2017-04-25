@@ -1,5 +1,12 @@
 package org.xlrnet.datac.vcs.services;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -8,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.vaadin.spring.events.EventBus;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
@@ -26,18 +34,11 @@ import org.xlrnet.datac.vcs.api.*;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
  * Service which is responsible for collecting all database changes in a project.
  */
 @Service
-@Transactional(timeout = 1800)
+@Transactional(timeout = 1800)      // FIXME: This is bad. We should separate transactional processing into separate controllers.
 public class ProjectUpdateService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectUpdateService.class);
@@ -66,6 +67,11 @@ public class ProjectUpdateService {
      * Project service for updating project data.
      */
     private final ProjectService projectService;
+
+    /**
+     * Service for updating branch data.
+     */
+    private final BranchService branchService;
 
     /**
      * Service for accessing the revision revision graph.
@@ -108,12 +114,13 @@ public class ProjectUpdateService {
     private DepthFirstTraverser<Revision> depthFirstTraverser = new DepthFirstTraverser<>();
 
     @Autowired
-    public ProjectUpdateService(EventBus.ApplicationEventBus applicationEventBus, VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, RevisionGraphService revisionGraphService, ValidationService validator, EventLogService eventLogService, EventLogProxy eventLog, LiquibaseProcessService liquibaseProcessService, ChangeSetService changeSetService) {
+    public ProjectUpdateService(EventBus.ApplicationEventBus applicationEventBus, VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, BranchService branchService, RevisionGraphService revisionGraphService, ValidationService validator, EventLogService eventLogService, EventLogProxy eventLog, LiquibaseProcessService liquibaseProcessService, ChangeSetService changeSetService) {
         this.applicationEventBus = applicationEventBus;
         this.vcsService = vcsService;
         this.lockingService = lockingService;
         this.fileService = fileService;
         this.projectService = projectService;
+        this.branchService = branchService;
         this.revisionGraphService = revisionGraphService;
         this.validator = validator;
         this.eventLogService = eventLogService;
@@ -289,12 +296,14 @@ public class ProjectUpdateService {
 
         VcsRevision rootRevision = localRepository.listLatestRevisionOnBranch(branch);
 
-        Pair<Revision, Long> revision = convertRevision(rootRevision, project);
+        Pair<Revision, Long> latestRevision = convertRevision(rootRevision, project);
         LOGGER.trace("Saving revisions on branch {} in project {}", branch.getName(), project.getName());
-        revisionGraphService.save(revision.getLeft());
+        revisionGraphService.save(latestRevision.getLeft());
         LOGGER.debug("Finished updating revisions on branch {} in project {}", branch.getName(), project.getName());
-        if (revision.getRight() != null && revision.getRight() > 0) {
-            eventLog.addMessage(new EventLogMessage(String.format("Found %d new revisions in branch %s", revision.getRight(), branch.getName())));
+        branch.setInternalId(latestRevision.getLeft().getInternalId());
+        branchService.save(branch);
+        if (latestRevision.getRight() != null && latestRevision.getRight() > 0) {
+            eventLog.addMessage(new EventLogMessage(String.format("Found %d new revisions in branch %s", latestRevision.getRight(), branch.getName())));
         }
     }
 
@@ -465,6 +474,7 @@ public class ProjectUpdateService {
         return changeSetService.save(databaseChangeSets);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     private void updateProjectState(@NotNull Project project, double progress) {
         applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(project, progress));
     }

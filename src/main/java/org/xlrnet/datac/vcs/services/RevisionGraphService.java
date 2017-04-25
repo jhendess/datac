@@ -1,7 +1,9 @@
 package org.xlrnet.datac.vcs.services;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.*;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -17,10 +19,8 @@ import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
 
-import java.util.*;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 
 /**
  * Service for accessing and manipulating VCS revision graphs.
@@ -174,8 +174,10 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         Set<Revision> internalRevisions = new HashSet<>();
         for (VcsRevision externalRevision : externalRevisions) {
             Revision internalRevision = getRepository().findByInternalIdAndProject(externalRevision.getInternalId(), project);
-            checkNotNull(internalRevision, "Revision " + externalRevision.getInternalId() + " was not found in project");
-            internalRevisions.add(internalRevision);
+            LOGGER.debug("Revision {} was not found in project {} [id={}]", externalRevision.getInternalId(), project.getName(), project.getId());
+            if (internalRevision != null) {
+                internalRevisions.add(internalRevision);
+            }
         }
 
         return internalRevisions;

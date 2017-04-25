@@ -1,16 +1,17 @@
 package org.xlrnet.datac.commons.util;
 
-import org.jetbrains.annotations.NotNull;
-
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Date and time utilities.
  */
 public class DateTimeUtils {
 
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
 
     private DateTimeUtils() {
         // No instances allowed

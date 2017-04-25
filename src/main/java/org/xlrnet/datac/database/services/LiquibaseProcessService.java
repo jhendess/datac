@@ -1,20 +1,8 @@
 package org.xlrnet.datac.database.services;
 
-import com.google.common.base.Throwables;
-import liquibase.change.Change;
-import liquibase.changelog.ChangeLogParameters;
-import liquibase.changelog.ChangeSet;
-import liquibase.changelog.DatabaseChangeLog;
-import liquibase.database.Database;
-import liquibase.database.core.H2Database;
-import liquibase.exception.LiquibaseException;
-import liquibase.parser.ChangeLogParser;
-import liquibase.parser.ChangeLogParserFactory;
-import liquibase.resource.FileSystemResourceAccessor;
-import liquibase.resource.ResourceAccessor;
-import liquibase.sql.Sql;
-import liquibase.sqlgenerator.SqlGeneratorFactory;
-import liquibase.statement.SqlStatement;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -24,11 +12,25 @@ import org.springframework.stereotype.Service;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
+import org.xlrnet.datac.database.util.CustomLiquibaseFileSystemResourceAccessor;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.FileService;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.base.Throwables;
+
+import liquibase.change.Change;
+import liquibase.changelog.ChangeLogParameters;
+import liquibase.changelog.ChangeSet;
+import liquibase.changelog.DatabaseChangeLog;
+import liquibase.database.Database;
+import liquibase.database.core.H2Database;
+import liquibase.exception.LiquibaseException;
+import liquibase.parser.ChangeLogParser;
+import liquibase.parser.ChangeLogParserFactory;
+import liquibase.resource.ResourceAccessor;
+import liquibase.sql.Sql;
+import liquibase.sqlgenerator.SqlGeneratorFactory;
+import liquibase.statement.SqlStatement;
 
 /**
  * Service which provides access to liquibase change log files.
@@ -173,6 +175,6 @@ public class LiquibaseProcessService {
      */
     @NotNull
     private ResourceAccessor getFileSystemResourceAccessorForProject(@NotNull Project project) {
-        return new FileSystemResourceAccessor(fileService.getProjectRepositoryPath(project).toString());
+        return new CustomLiquibaseFileSystemResourceAccessor(fileService.getProjectRepositoryPath(project).toString());
     }
 }

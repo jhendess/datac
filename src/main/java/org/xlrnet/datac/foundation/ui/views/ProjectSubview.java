@@ -1,10 +1,9 @@
 package org.xlrnet.datac.foundation.ui.views;
 
-import com.vaadin.server.ExternalResource;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -21,9 +20,11 @@ import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.vaadin.server.ExternalResource;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Overview for projects.
@@ -39,6 +40,7 @@ public class ProjectSubview extends AbstractSubview {
     private static final int MAX_BEFORE_TRUNCATE = 80;
 
     private static final int MAX_REVISIONS_TO_VISIT = 50;
+    public static final String NEWLINE = "\n";
 
     /**
      * Service for accessing project data.
@@ -95,7 +97,7 @@ public class ProjectSubview extends AbstractSubview {
 
     private Component createPanelForProject(Project project) {
         Panel panel = new Panel(project.getName());
-        panel.setWidth("50%");
+        panel.setWidth("75%");
 
         GridLayout panelContent = new GridLayout(2, 5);
         panelContent.setStyleName("projectPanel");
@@ -190,7 +192,7 @@ public class ProjectSubview extends AbstractSubview {
         Revision lastDevRevision = revisionGraphService.findByInternalIdAndProject(project.getDevelopmentBranch().getInternalId(), project);
         List<Revision> revisions = new ArrayList<>();
         try {
-            breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, revisions::add, (r -> revisions.size() == 3));
+            breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, revisions::add, (r -> revisions.size() >= 3));
         } catch (DatacTechnicalException e) {
             Label label = new Label("Unexpected error while loading revisions");
             label.setStyleName(ValoTheme.LABEL_FAILURE);
@@ -200,7 +202,7 @@ public class ProjectSubview extends AbstractSubview {
 
         if (!revisions.isEmpty()) {
             for (Revision revision : revisions) {
-                String message = StringUtils.isNotBlank(revision.getMessage()) ? revision.getMessage() :
+                String message = StringUtils.isNotBlank(revision.getMessage()) ? StringUtils.substringBefore(revision.getMessage(), NEWLINE) :
                         revision.getCommitTime() != null ?
                                 DateTimeUtils.format(revision.getCommitTime()) : revision.getInternalId();
                 if (message.length() > MAX_BEFORE_TRUNCATE) {
