@@ -1,16 +1,12 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import com.vaadin.data.ValueProvider;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.server.VaadinSession;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.spring.annotation.ViewScope;
-import com.vaadin.ui.*;
-import com.vaadin.ui.renderers.ButtonRenderer;
-import com.vaadin.ui.renderers.TextRenderer;
-import elemental.json.JsonValue;
+import java.time.temporal.TemporalAccessor;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import javax.annotation.PostConstruct;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +25,21 @@ import org.xlrnet.datac.foundation.services.ProjectUpdateEvent;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.services.LockingService;
+import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 import org.xlrnet.datac.vcs.services.ProjectUpdateStarter;
 
-import javax.annotation.PostConstruct;
-import java.time.temporal.TemporalAccessor;
-import java.util.Collection;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import com.vaadin.data.ValueProvider;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.server.VaadinSession;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.spring.annotation.ViewScope;
+import com.vaadin.ui.*;
+import com.vaadin.ui.renderers.ButtonRenderer;
+import com.vaadin.ui.renderers.TextRenderer;
+
+import elemental.json.JsonValue;
 
 /**
  * Admin view for managing projects responsible for managing the available users.
@@ -65,6 +69,11 @@ public class AdminProjectSubview extends AbstractSubview {
     private final ProjectUpdateStarter projectUpdateStarter;
 
     /**
+     * Service for scheduling automatic project updates.
+     */
+    private final ProjectSchedulingService projectSchedulingService;
+
+    /**
      * Button for new projects.
      */
     private Button newButton;
@@ -92,10 +101,11 @@ public class AdminProjectSubview extends AbstractSubview {
     private static ConcurrentMap<Long, Double> PROGRESS_MAP = new ConcurrentHashMap<>();
 
     @Autowired
-    public AdminProjectSubview(EventBus.ApplicationEventBus viewEventBus, ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, LockingService lockingService) {
+    public AdminProjectSubview(EventBus.ApplicationEventBus viewEventBus, ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, ProjectSchedulingService projectSchedulingService, LockingService lockingService) {
         this.applicationEventBus = viewEventBus;
         this.projectService = projectService;
         this.projectUpdateStarter = projectUpdateStarter;
+        this.projectSchedulingService = projectSchedulingService;
         this.lockingService = lockingService;
     }
 
@@ -156,6 +166,7 @@ public class AdminProjectSubview extends AbstractSubview {
                 try {
                     projectService.deleteClean(item);
                     NotificationUtils.showSuccess("Project deleted successfully");
+                    projectSchedulingService.unscheduleProjectUpdate(item);
                     reloadProjects();
                 } catch (DatacTechnicalException e) {
                     LOGGER.error("Deleting project failed", e);

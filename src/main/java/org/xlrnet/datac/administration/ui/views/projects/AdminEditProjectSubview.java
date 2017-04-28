@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.vaadin.viritin.fields.IntegerField;
 import org.xlrnet.datac.commons.tasks.RunnableTask;
@@ -32,6 +33,7 @@ import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.services.LockingService;
+import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 import org.xlrnet.datac.vcs.services.VersionControlSystemService;
 import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
 import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
@@ -71,6 +73,11 @@ public class AdminEditProjectSubview extends AbstractSubview {
      * The central locking service.
      */
     private final LockingService lockingService;
+
+    /**
+     * Service for scheduling automatic project updates.
+     */
+    private final ProjectSchedulingService projectSchedulingService;
 
     /**
      * Text field for project name.
@@ -182,15 +189,18 @@ public class AdminEditProjectSubview extends AbstractSubview {
     private FormLayout vcsSettingsLayout;
 
     private Button cancelButton;
+
     private Button checkConnectionButton;
+
     private Button continueButton;
 
     @Autowired
-    public AdminEditProjectSubview(VersionControlSystemService vcsService, TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService) {
+    public AdminEditProjectSubview(VersionControlSystemService vcsService, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService, ProjectSchedulingService projectSchedulingService) {
         this.vcsService = vcsService;
         this.taskExecutor = taskExecutor;
         this.projectService = projectService;
         this.lockingService = lockingService;
+        this.projectSchedulingService = projectSchedulingService;
     }
 
     @NotNull
@@ -452,6 +462,10 @@ public class AdminEditProjectSubview extends AbstractSubview {
                 // TODO: Make this try-catch construct reusable
                 Project saved = projectService.save(projectBean);
                 if (saved != null) {
+                    if (!isNewProject) {
+                        projectSchedulingService.unscheduleProjectUpdate(saved);
+                    }
+                    projectSchedulingService.scheduleProjectUpdate(saved);
                     NotificationUtils.showSuccess("Project saved successfully!");
                     UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME);
                 }

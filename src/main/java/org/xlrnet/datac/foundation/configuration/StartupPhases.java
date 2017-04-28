@@ -21,7 +21,17 @@ public final class StartupPhases {
     public static final int CONFIGURATION = 2;
 
     /**
+     * Clean dirty project states and remove locks, etc.
+     */
+    public static final int CLEANUP = 3;
+
+    /**
+     * Automatic project updates are being scheduled.
+     */
+    public static final int SCHEDULING = 4;
+
+    /**
      * Application is configured. Concrete business logic may now run.
      */
-    public static final int READY = 3;
+    public static final int READY = 5;
 }

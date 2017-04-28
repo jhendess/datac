@@ -1,6 +1,9 @@
 package org.xlrnet.datac.vcs.services;
 
-import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.stream.StreamSupport;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,8 +21,7 @@ import org.xlrnet.datac.foundation.services.FileService;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 
-import java.nio.file.Path;
-import java.util.Collection;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Lifecycle service which performs cleanups on application start and shutdown.
@@ -65,34 +67,33 @@ public class CleanupProjectsInLifecycleService implements SmartLifecycle {
 
     private void cleanAllProjects() {
         Iterable<Project> projects = projectService.findAll();
-        int failed = 0;
-        for (Project project : projects) {
-            if (!project.isInitialized()) {
-                LOGGER.debug("Skipping uninitialized project {}", project.getName());
-                continue;
-            }
-            EventLog eventLog = eventLogService.newEventLog().setType(EventType.PROJECT_CLEANUP).setProject(project);
-            Path projectRepositoryPath = fileService.getProjectRepositoryPath(project);
-            try {
-                LOGGER.debug("Cleaning project {}", project.getName());
-                VcsLocalRepository repository = vcsService.getVcsAdapter(project).openLocalRepository(projectRepositoryPath, project);
-                repository.cleanupIfNecessary();
-                if (project.getState().isProgressable()) {
-                    project.setState(ProjectState.INTERRUPTED);
-                    projectService.save(project);
-                }
-            } catch (DatacTechnicalException e) {
-                String msg = String.format("Cleaning project repository %s for project %s failed", projectRepositoryPath, project.getName());
-                LOGGER.error(msg, e);
-                project.setState(ProjectState.DIRTY);
-                projectService.save(project);
-                eventLogService.addExceptionToEventLog(eventLog, msg, e);
-                eventLogService.save(eventLog);
-                failed++;
-            }
+        // Clean projects in parallel
+        StreamSupport.stream(projects.spliterator(), true)
+                .forEach(this::cleanProject);
+    }
+
+    private void cleanProject(Project project) {
+        if (!project.isInitialized()) {
+            LOGGER.debug("Skipping uninitialized project {}", project.getName());
+            return;
         }
-        if (failed > 0) {
-            LOGGER.warn("Cleaning failed for some projects");
+        EventLog eventLog = eventLogService.newEventLog().setType(EventType.PROJECT_CLEANUP).setProject(project);
+        Path projectRepositoryPath = fileService.getProjectRepositoryPath(project);
+        try {
+            LOGGER.debug("Cleaning project {}", project.getName());
+            VcsLocalRepository repository = vcsService.getVcsAdapter(project).openLocalRepository(projectRepositoryPath, project);
+            repository.cleanupIfNecessary();
+            if (project.getState().isProgressable()) {
+                project.setState(ProjectState.INTERRUPTED);
+                projectService.save(project);
+            }
+        } catch (DatacTechnicalException e) {
+            String msg = String.format("Cleaning project repository %s for project %s failed", projectRepositoryPath, project.getName());
+            LOGGER.error(msg, e);
+            project.setState(ProjectState.DIRTY);
+            projectService.save(project);
+            eventLogService.addExceptionToEventLog(eventLog, msg, e);
+            eventLogService.save(eventLog);
         }
     }
 
@@ -112,6 +113,6 @@ public class CleanupProjectsInLifecycleService implements SmartLifecycle {
 
     @Override
     public int getPhase() {
-        return StartupPhases.READY;
+        return StartupPhases.CLEANUP;
     }
 }

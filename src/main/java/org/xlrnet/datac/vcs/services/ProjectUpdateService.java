@@ -137,6 +137,10 @@ public class ProjectUpdateService {
      */
     @Async
     public void startAsynchronousProjectUpdate(@NotNull Project project) {
+        startProjectUpdate(project);
+    }
+
+    private void startProjectUpdate(@NotNull Project project) {
         if (lockingService.tryLock(project)) {
             try {
                 LOGGER.info("Begin update of project {}", project.getName());
