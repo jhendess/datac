@@ -1,12 +1,5 @@
 package org.xlrnet.datac.vcs.services;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.vaadin.spring.events.EventBus;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.exception.LockFailedException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
 import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
 import org.xlrnet.datac.commons.graph.DepthFirstTraverser;
@@ -34,11 +28,19 @@ import org.xlrnet.datac.vcs.api.*;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Service which is responsible for collecting all database changes in a project.
  */
 @Service
-@Transactional(timeout = 1800)      // FIXME: This is bad. We should separate transactional processing into separate controllers.
+@Transactional(timeout = 1800)
+// FIXME: The @Transactional is *very* bad. We should separate transactional processing into separate controllers and make some of them read-only to avoid problems.
 public class ProjectUpdateService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectUpdateService.class);
@@ -137,10 +139,14 @@ public class ProjectUpdateService {
      */
     @Async
     public void startAsynchronousProjectUpdate(@NotNull Project project) {
-        startProjectUpdate(project);
+        try {
+            startProjectUpdate(project);
+        } catch (LockFailedException e) {       // NOSONAR: No logging of exception necessary
+            LOGGER.warn("Update of project {} [id={}] failed because project is locked", project.getName(), project.getId());
+        }
     }
 
-    private void startProjectUpdate(@NotNull Project project) {
+    private void startProjectUpdate(@NotNull Project project) throws LockFailedException {
         if (lockingService.tryLock(project)) {
             try {
                 LOGGER.info("Begin update of project {}", project.getName());
@@ -166,7 +172,7 @@ public class ProjectUpdateService {
                 }
             }
         } else {
-            LOGGER.warn("Update of project {} [id={}] failed because project is locked", project.getName(), project.getId());
+            throw new LockFailedException(project);
         }
     }
 

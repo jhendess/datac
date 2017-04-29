@@ -5,10 +5,14 @@ import com.vaadin.icons.VaadinIcons;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Grid;
+import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.renderers.ButtonRenderer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
+import org.xlrnet.datac.commons.ui.TemporalRenderer;
+import org.xlrnet.datac.commons.util.DisplayUtils;
 import org.xlrnet.datac.commons.util.QueryUtils;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
 import org.xlrnet.datac.foundation.services.EventLogService;
@@ -39,9 +43,12 @@ public class EventLogLayout extends VerticalLayout {
         logMessageGrid.setWidth("80%");
         logMessageGrid.setResponsive(true);
 
-        logMessageGrid.addColumn(EventLogMessage::getCreatedAt)
+        logMessageGrid.addColumn(msg -> "Details", new ButtonRenderer<>(e -> openDetails(e.getItem())))
+                .setCaption("Details")
+                .setMaximumWidth(100);
+        logMessageGrid.addColumn(EventLogMessage::getCreatedAt, new TemporalRenderer())
                 .setSortProperty("createdAt")
-                .setMaximumWidth(235)
+                .setMaximumWidth(200)
                 .setCaption("Time");
         logMessageGrid.addColumn(EventLogMessage::getSeverity)
                 .setCaption("Severity")
@@ -59,18 +66,7 @@ public class EventLogLayout extends VerticalLayout {
                 .setCaption("Short message")
                 .setSortProperty("shortMessage");
 
-        logMessageGrid.setStyleGenerator(m -> {
-            String style = null;
-            switch (m.getSeverity()) {
-                case ERROR:
-                    style = "severity-error";
-                    break;
-                case WARNING:
-                    style = "severity-warning";
-                    break;
-            }
-            return style;
-        });
+        logMessageGrid.setStyleGenerator(m -> DisplayUtils.severityToStyle(m.getSeverity()));
 
         logMessageGrid.setDataProvider(
                 new FetchEventLogMessagesCallback(),
@@ -83,6 +79,12 @@ public class EventLogLayout extends VerticalLayout {
 
         addComponent(refreshButton);
         addComponent(logMessageGrid);
+    }
+
+    private void openDetails(EventLogMessage message) {
+        EventLogDetailWindow eventLogDetailWindow = new EventLogDetailWindow(message);
+        eventLogDetailWindow.center();
+        UI.getCurrent().addWindow(eventLogDetailWindow);
     }
 
     private class FetchEventLogMessagesCallback implements Grid.FetchItemsCallback<EventLogMessage> {

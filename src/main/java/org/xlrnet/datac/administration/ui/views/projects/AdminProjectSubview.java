@@ -1,12 +1,16 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import java.time.temporal.TemporalAccessor;
-import java.util.Collection;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import javax.annotation.PostConstruct;
-
+import com.vaadin.data.ValueProvider;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.server.VaadinSession;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.spring.annotation.ViewScope;
+import com.vaadin.ui.*;
+import com.vaadin.ui.renderers.ButtonRenderer;
+import com.vaadin.ui.renderers.TextRenderer;
+import elemental.json.JsonValue;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +20,7 @@ import org.vaadin.spring.events.annotation.EventBusListenerMethod;
 import org.vaadin.spring.events.annotation.EventBusListenerTopic;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
-import org.xlrnet.datac.commons.util.DateTimeUtils;
+import org.xlrnet.datac.commons.ui.TemporalRenderer;
 import org.xlrnet.datac.foundation.EventTopics;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.ProjectState;
@@ -28,18 +32,10 @@ import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 import org.xlrnet.datac.vcs.services.ProjectUpdateStarter;
 
-import com.vaadin.data.ValueProvider;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.server.VaadinSession;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.spring.annotation.ViewScope;
-import com.vaadin.ui.*;
-import com.vaadin.ui.renderers.ButtonRenderer;
-import com.vaadin.ui.renderers.TextRenderer;
-
-import elemental.json.JsonValue;
+import javax.annotation.PostConstruct;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Admin view for managing projects responsible for managing the available users.
@@ -135,7 +131,7 @@ public class AdminProjectSubview extends AbstractSubview {
                 .setCaption("State").setWidth(180);
         grid.addColumn(Project::getName).setCaption("Name");
         grid.addColumn(Project::getUrl).setCaption("VCS Url");
-        grid.addColumn(Project::getLastChangeCheck, new ProjectLastUpdateRenderer()).setCaption("Last check for changes");
+        grid.addColumn(Project::getLastChangeCheck, new TemporalRenderer()).setCaption("Last check for changes");
 
         grid.addColumn(project -> "Update", new ButtonRenderer<>(clickEvent -> forceUpdate(clickEvent.getItem())));
         grid.addColumn(project -> "Edit", new ButtonRenderer<>(clickEvent -> UI.getCurrent().getNavigator().navigateTo(AdminEditProjectSubview.VIEW_NAME + "/" + clickEvent.getItem().getId())));
@@ -213,16 +209,4 @@ public class AdminProjectSubview extends AbstractSubview {
         }
     }
 
-    private static class ProjectLastUpdateRenderer extends TextRenderer {
-
-        @Override
-        public JsonValue encode(Object value) {
-            TemporalAccessor temporalAccessor = (TemporalAccessor) value;
-            if (temporalAccessor != null) {
-                return super.encode(DateTimeUtils.format(temporalAccessor));
-            } else {
-                return super.encode(null);
-            }
-        }
-    }
 }

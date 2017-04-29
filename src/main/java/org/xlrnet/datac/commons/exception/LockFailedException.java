@@ -7,14 +7,7 @@ import org.xlrnet.datac.foundation.domain.Lockable;
  */
 public class LockFailedException extends DatacTechnicalException {
 
-    private final Lockable lockable;
-
-    public LockFailedException(Lockable lockable, Lockable lockable1) {
+    public LockFailedException(Lockable lockable) {
         super("Locking object " + (lockable != null ? lockable.getLockKey() : "null") + " failed");
-        this.lockable = lockable1;
-    }
-
-    public Lockable getLockable() {
-        return lockable;
     }
 }
