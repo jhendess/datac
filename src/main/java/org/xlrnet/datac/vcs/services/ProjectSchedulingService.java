@@ -12,7 +12,7 @@ import org.springframework.scheduling.support.PeriodicTrigger;
 import org.springframework.stereotype.Service;
 import org.xlrnet.datac.foundation.configuration.StartupPhases;
 import org.xlrnet.datac.foundation.domain.Project;
-import org.xlrnet.datac.foundation.services.ProjectService;
+import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.vcs.tasks.ProjectUpdateTask;
 
 import java.util.HashMap;
@@ -36,7 +36,7 @@ public class ProjectSchedulingService implements SmartLifecycle {
     /**
      * Service for accessing project data.
      */
-    private final ProjectService projectService;
+    private final ProjectRepository projectRepository;
 
     /**
      * Scheduling service.
@@ -53,9 +53,9 @@ public class ProjectSchedulingService implements SmartLifecycle {
     private boolean running = false;
 
     @Autowired
-    public ProjectSchedulingService(Environment environment, ProjectService projectService, TaskScheduler taskScheduler, AutowireCapableBeanFactory beanFactory) {
+    public ProjectSchedulingService(Environment environment, ProjectRepository projectRepository, TaskScheduler taskScheduler, AutowireCapableBeanFactory beanFactory) {
         this.environment = environment;
-        this.projectService = projectService;
+        this.projectRepository = projectRepository;
         this.taskScheduler = taskScheduler;
         this.beanFactory = beanFactory;
     }
@@ -83,7 +83,7 @@ public class ProjectSchedulingService implements SmartLifecycle {
     }
 
     private void scheduleAllProjects() {
-        Iterable<Project> projects = projectService.findAll();
+        Iterable<Project> projects = projectRepository.findAll();
         for (Project project : projects) {
             scheduleProjectUpdate(project);
         }

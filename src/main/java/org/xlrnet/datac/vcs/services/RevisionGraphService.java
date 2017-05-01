@@ -1,9 +1,9 @@
 package org.xlrnet.datac.vcs.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.util.*;
-
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -14,31 +14,48 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.domain.LimitOffsetPageable;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
+import org.xlrnet.datac.foundation.services.ValidationService;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
+import java.util.*;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Service for accessing and manipulating VCS revision graphs.
  */
 @Service
+@Transactional
 public class RevisionGraphService extends AbstractTransactionalService<Revision, RevisionRepository> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RevisionGraphService.class);
 
     /**
+     * Project repository.
+     */
+    private final ProjectRepository projectRepository;
+
+    /**
+     * Bean validation service.
+     */
+    private final ValidationService validator;
+
+    /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
-     *
-     * @param crudRepository
+     *  @param crudRepository
      *         The crud repository for providing basic crud operations.
+     * @param projectRepository
+     * @param validator
      */
     @Autowired
-    public RevisionGraphService(RevisionRepository crudRepository) {
+    public RevisionGraphService(RevisionRepository crudRepository, ProjectRepository projectRepository, ValidationService validator) {
         super(crudRepository);
+        this.projectRepository = projectRepository;
+        this.validator = validator;
     }
 
     /**
@@ -68,6 +85,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         return getRepository().countRevisionByInternalIdAndProject(revisionId, project) > 0;
     }
 
+    @Transactional(readOnly = true)
     public Revision findByInternalIdAndProject(String internalId, Project project) {
         return getRepository().findByInternalIdAndProject(internalId, project);
     }
@@ -82,6 +100,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
      *         Amount of revisions to find.
      * @return a list of the last revisions in the given project.
      */
+    @Transactional(readOnly = true)
     public List<Revision> findLastRevisionsInProject(Project project, int limit) {
         return getRepository().findAllByProject(project, new LimitOffsetPageable(limit, 0, new Sort(
                 new Sort.Order(Sort.Direction.DESC, "commitTime"))
@@ -182,6 +201,115 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
 
         return internalRevisions;
     }
+
+    /**
+     * Recursive implementation which converts external {@link VcsRevision} objects to {@link Revision} entities. If any
+     * of the revision objects already exist in the database, the rest of the graph will be fetched from the database.
+     * The revision will be saved afterwards. The project must be already persisted or an {@link
+     * IllegalArgumentException} will be thrown.
+     *
+     * @param rootRevision
+     *         The root revision used for starting the conversion.
+     * @param project
+     *         The project in which the revisions will be stored.
+     * @return A pair containing the converted revision and the number of new revisions.
+     */
+    @Transactional
+    public Pair<Revision, Long> convertRevisionAndSave(VcsRevision rootRevision, Project project) {
+        Pair<Revision, Long> convertedRevision = convertRevision(rootRevision, project);
+        Revision savedRevision = save(convertedRevision.getLeft());
+        return ImmutablePair.of(savedRevision, convertedRevision.getRight());
+    }
+
+    /**
+     * Recursive implementation which converts external {@link VcsRevision} objects to {@link Revision} entities. If any
+     * of the revision objects already exist in the database, the rest of the graph will be fetched from the database.
+     * Use this method only if you only want to convert but not save the revision. Consider {@link
+     * #convertRevisionAndSave(VcsRevision, Project)} to save the graph also in the same transaction.
+     *
+     * @param rootRevision
+     *         The root revision used for starting the conversion.
+     * @param project
+     *         The project in which the revisions will be stored.
+     * @return A pair containing the converted revision and the number of new revisions.
+     */
+    @NotNull
+    @Transactional(readOnly = true)
+    protected Pair<Revision, Long> convertRevision(@NotNull VcsRevision rootRevision, @NotNull Project project) {
+        checkArgument(project.isPersisted(), "Project must be persisted");
+        Project reloadedProject = projectRepository.findOne(project.getId());
+
+        Map<String, Revision> revisionMap = buildRevisionMap(rootRevision, reloadedProject);
+        long newRevisions = collectParents(rootRevision, revisionMap);
+
+        return ImmutablePair.of(revisionMap.get(rootRevision.getInternalId()), newRevisions);
+    }
+
+    private long collectParents(@NotNull VcsRevision rootRevision, Map<String, Revision> revisionMap) {
+        Set<String> importedRevisions = new HashSet<>(revisionMap.size());
+        Queue<VcsRevision> revisionsToImport = new LinkedList<>();
+        revisionsToImport.add(rootRevision);
+        long newRevisions = 0;
+
+        while (!revisionsToImport.isEmpty()) {
+            VcsRevision revision = revisionsToImport.poll();
+            String internalId = revision.getInternalId();
+            if (importedRevisions.contains(internalId)) {
+                LOGGER.trace("Encountered visited revision {}", internalId);
+                continue;
+            } else {
+                importedRevisions.add(internalId);
+            }
+            Revision converted = revisionMap.get(internalId);
+            if (converted == null) {
+                LOGGER.trace("Revision {} is already imported", internalId);
+                continue;
+            }
+            for (VcsRevision parent : revision.getParents()) {
+                Revision convertedParent = revisionMap.get(parent.getInternalId());
+                if (convertedParent == null) {
+                    // The parent will be missing, because its child already exists
+                    continue;
+                }
+                LOGGER.trace("Adding revision {} as parent of {}", parent.getInternalId(), internalId);
+                converted.addParent(convertedParent);
+                revisionsToImport.add(parent);
+                newRevisions++;
+            }
+        }
+        return newRevisions;
+    }
+
+    @NotNull
+    private Map<String, Revision> buildRevisionMap(@NotNull VcsRevision rootRevision, @NotNull Project project) {
+        Map<String, Revision> revisionMap = new HashMap<>();
+        Queue<VcsRevision> revisionsToConvert = new LinkedList<>();
+        revisionsToConvert.add(rootRevision);
+
+        while (!revisionsToConvert.isEmpty()) {
+            VcsRevision revision = revisionsToConvert.poll();
+            validator.checkConstraints(revision);
+            String internalId = revision.getInternalId();
+            if (revisionMap.containsKey(internalId)) {
+                // Already visited this revision - skip other parents
+                LOGGER.trace("Found visited revision {}", internalId);
+                continue;
+            }
+            Revision converted = findRevisionInProject(project, internalId);
+            if (converted != null) {
+                // Existing revision means that all parents have already been persisted - skip other parents
+                LOGGER.trace("Found existing revision {} in database", internalId);
+            } else {
+                // Convert new revision and add all its parents to the queue
+                converted = new Revision(revision).setProject(project);
+                LOGGER.trace("Found new revision {}", internalId);
+                revisionsToConvert.addAll(revision.getParents());
+            }
+            revisionMap.put(internalId, converted);
+        }
+        return revisionMap;
+    }
+
 
     private void saveAndReplaceChildren(Revision revisionToPersist, Multimap<Revision, Revision> revisionChildMap) {
         LOGGER.trace("Saving revision {}", revisionToPersist.getInternalId());

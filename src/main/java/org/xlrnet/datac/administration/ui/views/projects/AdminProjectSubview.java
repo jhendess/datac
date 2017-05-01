@@ -55,7 +55,7 @@ public class AdminProjectSubview extends AbstractSubview {
     private final EventBus.ApplicationEventBus applicationEventBus;
 
     /**
-     * The project service for accessing projects.
+     * Service for accessing transactional project data.
      */
     private final ProjectService projectService;
 

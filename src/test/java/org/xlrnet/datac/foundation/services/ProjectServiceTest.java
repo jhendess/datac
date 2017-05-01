@@ -11,6 +11,8 @@ import org.xlrnet.datac.test.util.ReturnFirstArgumentAnswer;
 import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.domain.Branch;
+import org.xlrnet.datac.vcs.services.BranchService;
+import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.*;
@@ -48,7 +50,7 @@ public class ProjectServiceTest {
         repository = mock(ProjectRepository.class);
         when(repository.save(any(Project.class))).thenAnswer(new ReturnFirstArgumentAnswer());
         fileService = mock(FileService.class);
-        projectService = new ProjectService(repository, mock(EventBus.ApplicationEventBus.class), fileService, new EventLogProxy());
+        projectService = new ProjectService(repository, mock(EventBus.ApplicationEventBus.class), fileService, new EventLogProxy(), mock(BranchService.class), mock(ProjectSchedulingService.class));
 
         // Configure branch dummies
         existingBranch = new Branch();

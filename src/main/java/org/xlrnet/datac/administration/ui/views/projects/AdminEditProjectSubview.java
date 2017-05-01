@@ -33,7 +33,6 @@ import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.services.LockingService;
-import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 import org.xlrnet.datac.vcs.services.VersionControlSystemService;
 import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
 import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
@@ -73,11 +72,6 @@ public class AdminEditProjectSubview extends AbstractSubview {
      * The central locking service.
      */
     private final LockingService lockingService;
-
-    /**
-     * Service for scheduling automatic project updates.
-     */
-    private final ProjectSchedulingService projectSchedulingService;
 
     /**
      * Text field for project name.
@@ -195,12 +189,11 @@ public class AdminEditProjectSubview extends AbstractSubview {
     private Button continueButton;
 
     @Autowired
-    public AdminEditProjectSubview(VersionControlSystemService vcsService, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService, ProjectSchedulingService projectSchedulingService) {
+    public AdminEditProjectSubview(VersionControlSystemService vcsService, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService) {
         this.vcsService = vcsService;
         this.taskExecutor = taskExecutor;
         this.projectService = projectService;
         this.lockingService = lockingService;
-        this.projectSchedulingService = projectSchedulingService;
     }
 
     @NotNull
@@ -363,9 +356,11 @@ public class AdminEditProjectSubview extends AbstractSubview {
     @NotNull
     private EntityChangeHandler<VcsConnectionStatus> buildContinueButtonHandler(UI ui) {
         return (s) -> {
-            // Only show a notification if something went wrong
+            // Show a notification if something went wrong
             if (!(VcsConnectionStatus.ESTABLISHED.equals(s))) {
-                changeLogLocationField.setValue("CHANGEME");
+                if (isNewProject) {
+                    changeLogLocationField.setValue("CHANGEME");
+                }
                 ui.access(() -> showConnectionNotification(s));
                 return;
             }
@@ -398,7 +393,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
         if (branches == null) {
             NotificationUtils.showError("Fetching branches failed", null, true);
         } else {
-            vcsSettingsLayout.removeAllComponents();
+            // vcsSettingsLayout.removeAllComponents();
             changeToBranchSelectionState(branches);
         }
     }
@@ -440,9 +435,16 @@ public class AdminEditProjectSubview extends AbstractSubview {
         cancelButton = new Button("Cancel");
         cancelButton.addClickListener(e -> UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME));
 
+        /*Button branchReloadButton = new Button("Reload branches");
+        branchReloadButton.addClickListener(e -> {
+            checkConnection(buildContinueButtonHandler(VaadinUI.getCurrent()));
+        });*/
+
         buttonLayout.removeAllComponents();
         buttonLayout.addComponent(continueButton);
         buttonLayout.addComponent(cancelButton);
+        //buttonLayout.addComponent(branchReloadButton);
+        buttonLayout.addComponent(progressBar);
 
         vcsSettingsLayout.addComponent(changeLogLocationField);
         vcsSettingsLayout.addComponent(pollIntervalField);
@@ -459,16 +461,9 @@ public class AdminEditProjectSubview extends AbstractSubview {
         }
         if (isNewProject || locked) {
             try {
-                // TODO: Make this try-catch construct reusable
-                Project saved = projectService.save(projectBean);
-                if (saved != null) {
-                    if (!isNewProject) {
-                        projectSchedulingService.unscheduleProjectUpdate(saved);
-                    }
-                    projectSchedulingService.scheduleProjectUpdate(saved);
-                    NotificationUtils.showSuccess("Project saved successfully!");
-                    UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME);
-                }
+                projectService.saveProject(projectBean);
+                NotificationUtils.showSuccess("Project saved successfully!");
+                UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME);
             } catch (ConstraintViolationException cve) {    // NOSONAR: Logging of exception not necessary
                 LOGGER.warn("Saving project failed due to constraint violations");
                 NotificationUtils.showValidationError("Saving failed", cve.getConstraintViolations());

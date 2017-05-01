@@ -1,10 +1,16 @@
 package org.xlrnet.datac.vcs.services;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.repository.BranchRepository;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Service for accessing and manipulating branches.
@@ -21,5 +27,19 @@ public class BranchService extends AbstractTransactionalService<Branch, BranchRe
     @Autowired
     public BranchService(BranchRepository crudRepository) {
         super(crudRepository);
+    }
+
+    /**
+     * Removes existing branches from the database to prevent duplicate branches when saving a project. It checks only
+     * based on the persisted project ID. This method must be called from within another transaction which corrects the
+     * branches - otherwise constraints will be violated.
+     *
+     * @param projectBean
+     *         The project whose branches should be removed.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void deleteByProject(@NotNull Project projectBean) {
+        checkArgument(projectBean.isPersisted());
+        getRepository().deleteAllByProject(projectBean);
     }
 }

@@ -20,6 +20,8 @@ import org.xlrnet.datac.vcs.api.VcsConnectionException;
 import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.domain.Branch;
+import org.xlrnet.datac.vcs.services.BranchService;
+import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 
 import java.util.Collection;
 import java.util.regex.Pattern;
@@ -50,24 +52,40 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
     private final EventLogProxy eventLog;
 
     /**
+     * Service for manipulating branches.
+     */
+    private final BranchService branchService;
+
+    /**
+     * Service for scheduling automatic project updates.
+     */
+    private final ProjectSchedulingService projectSchedulingService;
+
+    /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
-     *
-     * @param crudRepository
-     *         The crud repository for providing basic crud operations.
-     * @param applicationEventBus
-     *         Application-wide event bus.
-     * @param fileService
-     *         Service used for accessing files.
-     * @param eventLog
-     *         Thread-scoped proxy for writing event logs.
      */
     @Autowired
-    public ProjectService(ProjectRepository crudRepository, EventBus.ApplicationEventBus applicationEventBus, FileService fileService, EventLogProxy eventLog) {
+    public ProjectService(ProjectRepository crudRepository, EventBus.ApplicationEventBus applicationEventBus, FileService fileService, EventLogProxy eventLog, BranchService branchService, ProjectSchedulingService projectSchedulingService) {
         super(crudRepository);
         this.applicationEventBus = applicationEventBus;
         this.fileService = fileService;
         this.eventLog = eventLog;
+        this.branchService = branchService;
+        this.projectSchedulingService = projectSchedulingService;
     }
+
+    /**
+     * Finds all projects in the given {@link ProjectState}.
+     *
+     * @param states
+     *         The states to look for.
+     * @return All projects in that state.
+     */
+    @Transactional(readOnly = true)
+    public Collection<Project> findAllProjectsInState(Iterable<ProjectState> states) {
+        return getRepository().findAllByStateIn(states);
+    }
+
 
     @Transactional
     public Project updateAvailableBranches(@NotNull Project project, @NotNull VcsLocalRepository localRepository) throws VcsConnectionException {
@@ -91,7 +109,7 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
                 LOGGER.trace("Branch {} [id={}] is not new", remoteBranch.getName(), remoteBranch.getInternalId());
             }
         }
-        return save(project);
+        return getRepository().save(project);
     }
 
     /**
@@ -117,23 +135,39 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
      *         The project to mark as failed.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markProjectAsFailedUpdate(Project project) {
+    public Project markProjectAsFailedUpdate(Project project) {
         checkArgument(project.isPersisted(), "Entity is not persisted");
-        Project reloaded = findOne(project.getId());
+        Project reloaded = super.findOne(project.getId());
         reloaded.setState(ProjectState.ERROR);
-        applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(reloaded));
-        save(reloaded);
+        return saveAndPublishStateChange(reloaded, 0.0f);
     }
 
     /**
-     * Finds all projects in the given {@link ProjectState}.
+     * Saves the project and publishes the latest project state change on the application event bus.
      *
-     * @param states
-     *         The states to look for.
-     * @return All projects in that state.
+     * @param project
+     *         The project to save.
+     * @param progress
+     *         The new progress.
      */
-    @Transactional(readOnly = true)
-    public Collection<Project> findAllProjectsInState(Iterable<ProjectState> states) {
-        return getRepository().findAllByStateIn(states);
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Project saveAndPublishStateChange(@NotNull Project project, double progress) {
+        Project saved = save(project);
+        applicationEventBus.publish(EventTopics.PROJECT_UPDATE, this, new ProjectUpdateEvent(saved, progress));
+        return saved;
+    }
+
+    @Transactional
+    public void saveProject(Project project) {
+        if (project.isPersisted()) {
+            branchService.deleteByProject(project);
+        }
+        Project saved = super.save(project);
+        if (saved != null) {
+            if (!project.isPersisted()) {
+                projectSchedulingService.unscheduleProjectUpdate(saved);
+            }
+            projectSchedulingService.scheduleProjectUpdate(saved);
+        }
     }
 }

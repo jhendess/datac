@@ -1,9 +1,10 @@
 package org.xlrnet.datac.foundation.ui.views;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import com.vaadin.server.ExternalResource;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
+import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -20,11 +21,9 @@ import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import com.vaadin.server.ExternalResource;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Overview for projects.
@@ -201,7 +200,8 @@ public class ProjectSubview extends AbstractSubview {
         }
 
         if (!revisions.isEmpty()) {
-            for (Revision revision : revisions) {
+            for (int i = 0; i < revisions.size() && i < 3; i++) {
+                Revision revision = revisions.get(i);
                 String message = StringUtils.isNotBlank(revision.getMessage()) ? StringUtils.substringBefore(revision.getMessage(), NEWLINE) :
                         revision.getCommitTime() != null ?
                                 DateTimeUtils.format(revision.getCommitTime()) : revision.getInternalId();
