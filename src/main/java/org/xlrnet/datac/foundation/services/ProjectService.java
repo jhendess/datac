@@ -14,6 +14,7 @@ import org.xlrnet.datac.foundation.EventTopics;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.domain.ProjectCredentialsEncryptionListener;
 import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.vcs.api.VcsConnectionException;
@@ -62,16 +63,23 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
     private final ProjectSchedulingService projectSchedulingService;
 
     /**
+     * Since hibernate only calls entity listeners when a non-transient field has changed, we have to call the listener
+     * manually on save operations which is pretty ugly imho...
+     */
+    private final ProjectCredentialsEncryptionListener projectCredentialsEncryptionListener;
+
+    /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
      */
     @Autowired
-    public ProjectService(ProjectRepository crudRepository, EventBus.ApplicationEventBus applicationEventBus, FileService fileService, EventLogProxy eventLog, BranchService branchService, ProjectSchedulingService projectSchedulingService) {
+    public ProjectService(ProjectRepository crudRepository, EventBus.ApplicationEventBus applicationEventBus, FileService fileService, EventLogProxy eventLog, BranchService branchService, ProjectSchedulingService projectSchedulingService, ProjectCredentialsEncryptionListener projectCredentialsEncryptionListener) {
         super(crudRepository);
         this.applicationEventBus = applicationEventBus;
         this.fileService = fileService;
         this.eventLog = eventLog;
         this.branchService = branchService;
         this.projectSchedulingService = projectSchedulingService;
+        this.projectCredentialsEncryptionListener = projectCredentialsEncryptionListener;
     }
 
     /**
@@ -109,7 +117,7 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
                 LOGGER.trace("Branch {} [id={}] is not new", remoteBranch.getName(), remoteBranch.getInternalId());
             }
         }
-        return getRepository().save(project);
+        return save(project);
     }
 
     /**
@@ -162,12 +170,18 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
         if (project.isPersisted()) {
             branchService.deleteByProject(project);
         }
-        Project saved = super.save(project);
+        Project saved = save(project);
         if (saved != null) {
             if (!project.isPersisted()) {
                 projectSchedulingService.unscheduleProjectUpdate(saved);
             }
             projectSchedulingService.scheduleProjectUpdate(saved);
         }
+    }
+
+    @Override
+    public <S extends Project> S save(S entity) {
+        projectCredentialsEncryptionListener.encrypt(entity);
+        return super.save(entity);
     }
 }

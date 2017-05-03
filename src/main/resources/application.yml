@@ -11,9 +11,9 @@ spring:
     username: SA
     password:
     # Configuration for Hikari connection pool
-    type: com.zaxxer.hikari.HikariDataSource
-    hikari:
-      idle-timeout: 10000
+    #type: com.zaxxer.hikari.HikariDataSource
+    #hikari:
+#      idle-timeout: 10000
 
   jpa:
     hibernate:

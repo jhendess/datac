@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.commons.util.WindowUtils;
 import org.xlrnet.datac.session.domain.User;
-import org.xlrnet.datac.session.services.PasswordService;
+import org.xlrnet.datac.session.services.CryptoService;
 import org.xlrnet.datac.session.services.UserService;
 
 import javax.annotation.PostConstruct;
@@ -46,7 +46,7 @@ public class UserProfileWindow extends Window {
     /**
      * Password service.
      */
-    private final PasswordService passwordService;
+    private final CryptoService cryptoService;
 
     /**
      * Text field for login name.
@@ -106,9 +106,9 @@ public class UserProfileWindow extends Window {
     private Button cancelButton;
 
     @Autowired
-    private UserProfileWindow(UserService userService, PasswordService passwordService) {
+    private UserProfileWindow(UserService userService, CryptoService cryptoService) {
         this.userService = userService;
-        this.passwordService = passwordService;
+        this.cryptoService = cryptoService;
     }
 
     @PostConstruct
@@ -259,12 +259,12 @@ public class UserProfileWindow extends Window {
                         StringUtils.isNotEmpty(passwordData.getNewPasswordConfirmation())) {
                     passwordBinder.validate();
                     if (passwordBinder.isValid()) {
-                        if (!passwordService.checkPassword(sessionUser, passwordData.getOldPassword())) {
+                        if (!cryptoService.checkPassword(sessionUser, passwordData.getOldPassword())) {
                             NotificationUtils.showError("Your old password doesn't match", false);
                         } else if (!Objects.equals(passwordData.getNewPassword(), passwordData.getNewPasswordConfirmation())) {
                             NotificationUtils.showError("Your new passwords don't match", false);
                         } else {
-                            passwordService.changePassword(sessionUser, passwordData.getNewPassword());
+                            cryptoService.changePassword(sessionUser, passwordData.getNewPassword());
                             saveUserAndClose();
                         }
                     }

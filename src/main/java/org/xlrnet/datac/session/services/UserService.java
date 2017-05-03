@@ -26,12 +26,12 @@ public class UserService extends AbstractTransactionalService<User, UserReposito
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
 
-    private final PasswordService passwordService;
+    private final CryptoService cryptoService;
 
     @Autowired
-    public UserService(UserRepository userRepository, PasswordService passwordService) {
+    public UserService(UserRepository userRepository, CryptoService cryptoService) {
         super(userRepository);
-        this.passwordService = passwordService;
+        this.cryptoService = cryptoService;
     }
 
     /**
@@ -50,7 +50,7 @@ public class UserService extends AbstractTransactionalService<User, UserReposito
         User user = getRepository().findFirstByLoginNameIgnoreCase(loginName);
 
         if (user != null) {
-            boolean loginSuccessful = passwordService.checkPassword(user, password);
+            boolean loginSuccessful = cryptoService.checkPassword(user, password);
 
             LOGGER.debug("Login attempt for user {} was {}", loginName, loginSuccessful ? "successful" : "not successful");
             if (loginSuccessful) {
@@ -75,9 +75,9 @@ public class UserService extends AbstractTransactionalService<User, UserReposito
     @Transactional
     public Optional<User> createNewUser(@NotNull User user, @NotNull String unhashedPassword) {
         User existingUser = getRepository().findFirstByLoginNameIgnoreCase(user.getLoginName());
-        if (existingUser == null && passwordService.isValid(unhashedPassword)) {
-            byte[] salt = CryptoUtils.generateRandom(CryptoUtils.DEFAULT_SALT_LENGTH);
-            byte[] hashedPassword = passwordService.hashPassword(unhashedPassword, salt);
+        if (existingUser == null && cryptoService.isValid(unhashedPassword)) {
+            byte[] salt = cryptoService.generateSafeRandom(CryptoUtils.DEFAULT_SALT_LENGTH);
+            byte[] hashedPassword = cryptoService.hashPassword(unhashedPassword, salt);
 
             user.setPassword(hashedPassword);
             user.setSalt(salt);

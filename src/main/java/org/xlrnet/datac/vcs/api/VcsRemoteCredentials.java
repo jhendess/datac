@@ -1,8 +1,8 @@
 package org.xlrnet.datac.vcs.api;
 
-import javax.validation.constraints.NotNull;
-
 import org.jetbrains.annotations.Nullable;
+
+import javax.validation.constraints.NotNull;
 
 /**
  * Credentials for connecting to a remote VCS.

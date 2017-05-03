@@ -13,7 +13,7 @@ public final class StartupPhases {
     /**
      * Initial startup phase which performs internal validation and preparation.
      */
-    public static final int PREPARATION = 1;
+    public static final int INITIALIZATION = 1;
 
     /**
      * Infrastructure is prepared. Application can continue with internal configurations.

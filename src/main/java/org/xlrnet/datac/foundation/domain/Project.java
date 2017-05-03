@@ -25,6 +25,7 @@ import java.util.Set;
 @Entity
 @ValidBranches
 @Table(name = "project")
+@EntityListeners(ProjectCredentialsEncryptionListener.class)
 public class Project extends AbstractEntity implements VcsRemoteCredentials, Lockable {
 
     /**
@@ -83,12 +84,24 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
     private String username;
 
     /**
-     * The password which should be used for logging in to the VCS. If the login is anonymous, this value should be
-     * ignored.
+     * The encrypted password which should be used for logging in to the VCS. If the login is anonymous, this value
+     * should be ignored.
      */
-    @Size(max = 50)
     @Column(name = "password")
-    private String password;
+    private String encryptedPassword;
+
+    /**
+     * Salt used for encrypting the user credentials. Will be automatically set by an entity listener.
+     */
+    @Column(name = "salt")
+    private byte[] salt;
+
+    /**
+     * Unencrypted password representation.
+     */
+    @Transient
+    @Size(max = 50)
+    private transient String password;
 
     /**
      * Interval in minutes between checks for new updates.
@@ -184,6 +197,15 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
     }
 
     @Override
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    @Override
     @NotNull
     public String getUrl() {
         return url;
@@ -202,13 +224,12 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
         this.username = username;
     }
 
-    @Override
-    public String getPassword() {
-        return password;
+    public String getEncryptedPassword() {
+        return encryptedPassword;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setEncryptedPassword(String encryptedPassword) {
+        this.encryptedPassword = encryptedPassword;
     }
 
     public Branch getDevelopmentBranch() {
@@ -288,6 +309,14 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
         return this;
     }
 
+    public byte[] getSalt() {
+        return salt;
+    }
+
+    void setSalt(byte[] salt) {
+        this.salt = salt;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -301,14 +330,14 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
                 Objects.equals(adapterClass, project.adapterClass) &&
                 Objects.equals(url, project.url) &&
                 Objects.equals(username, project.username) &&
-                Objects.equals(password, project.password) &&
+                Objects.equals(encryptedPassword, project.encryptedPassword) &&
                 Objects.equals(newBranchPattern, project.newBranchPattern) &&
                 Objects.equals(changelogLocation, project.changelogLocation);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, website, type, adapterClass, url, username, password, pollInterval, newBranchPattern, changelogLocation);
+        return Objects.hash(name, description, website, type, adapterClass, url, username, encryptedPassword, pollInterval, newBranchPattern, changelogLocation);
     }
 
     @org.jetbrains.annotations.NotNull

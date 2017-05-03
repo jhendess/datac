@@ -2,4 +2,14 @@
 # Custom configuration file for DATAC
 #
 datac:
+  #
+  # Directory which is used for storing working files (e.g. checked out repositories)
+  #
   fileDirectory: work
+
+  #
+  # Key used for encrypting authentication credentials - use a unique one in production!
+  # All third-party authentication credentials (e.g. VCS) must be reset before this value is changed or the application
+  # won't start.
+  #
+  secretKey: secret

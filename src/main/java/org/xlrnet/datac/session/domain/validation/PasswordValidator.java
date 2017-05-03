@@ -1,11 +1,11 @@
 package org.xlrnet.datac.session.domain.validation;
 
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
-
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
-import org.xlrnet.datac.session.services.PasswordService;
+import org.xlrnet.datac.session.services.CryptoService;
+
+import javax.validation.ConstraintValidator;
+import javax.validation.ConstraintValidatorContext;
 
 /**
  * Validator for checking passwords.
@@ -13,8 +13,10 @@ import org.xlrnet.datac.session.services.PasswordService;
 @Service
 public class PasswordValidator implements ConstraintValidator<ValidPassword, String> {
 
-    /** Static password service. */
-    private static PasswordService passwordService = new PasswordService();
+    /**
+     * Static password service.
+     */
+    private static CryptoService cryptoService = new CryptoService();
 
     @Override
     public void initialize(@NotNull ValidPassword constraintAnnotation) {
@@ -23,6 +25,6 @@ public class PasswordValidator implements ConstraintValidator<ValidPassword, Str
 
     @Override
     public boolean isValid(@NotNull String value, @NotNull ConstraintValidatorContext context) {
-        return passwordService.isValid(value);
+        return cryptoService.isValid(value);
     }
 }

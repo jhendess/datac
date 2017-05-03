@@ -1,15 +1,5 @@
 package org.xlrnet.datac.foundation.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileVisitOption;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Comparator;
-
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -24,6 +14,16 @@ import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
 import org.xlrnet.datac.foundation.configuration.StartupPhases;
 import org.xlrnet.datac.foundation.domain.Project;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Comparator;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * Service for accessing the file system.
  */
@@ -33,11 +33,15 @@ public class FileService implements SmartLifecycle {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileService.class);
 
-    /** The configuration value for the file directory which should be used for storing files. */
+    /**
+     * The configuration value for the file directory which should be used for storing files.
+     */
     @Value("${datac.fileDirectory}")
     private String fileDirectoryConfiguration;
 
-    /** Path object for the working directory. */
+    /**
+     * Path object for the working directory.
+     */
     Path workPath;
 
     private boolean running = false;
@@ -62,7 +66,7 @@ public class FileService implements SmartLifecycle {
 
     @Override
     public int getPhase() {
-        return StartupPhases.PREPARATION;
+        return StartupPhases.INITIALIZATION;
     }
 
     @Override
@@ -127,8 +131,10 @@ public class FileService implements SmartLifecycle {
     /**
      * Deletes a given file from the file system.
      *
-     * @param path The path to delete.
-     * @throws IOException Will be thrown if deleting fails.
+     * @param path
+     *         The path to delete.
+     * @throws IOException
+     *         Will be thrown if deleting fails.
      */
     public void deleteFile(@NotNull Path path) throws IOException {
         LOGGER.debug("Deleting {}", path);

@@ -3,10 +3,15 @@ package org.xlrnet.datac.foundation.services;
 import com.google.common.collect.Lists;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.spring.events.EventBus;
+import org.xlrnet.datac.AbstractSpringBootTest;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.domain.ProjectCredentialsEncryptionListener;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
+import org.xlrnet.datac.session.services.CryptoService;
+import org.xlrnet.datac.test.domain.EntityCreatorUtil;
 import org.xlrnet.datac.test.util.ReturnFirstArgumentAnswer;
 import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
@@ -23,10 +28,21 @@ import static org.mockito.Mockito.when;
 /**
  * Tests for {@link ProjectService}.
  */
-public class ProjectServiceTest {
+public class ProjectServiceTest extends AbstractSpringBootTest {
 
     private static final String NEW_BRANCH_PATTERN = "[1-9]+\\.[0-9]+\\.x";
 
+    private static final String SAMPLE_PASSWORD = "MY_HIDDEN_PASSWORD_WITH_MAXIMUM_ALLOWED_CHARACTERS";
+
+    /**
+     * Manually mocked project service.
+     */
+    private ProjectService projectServiceMocked;
+
+    /**
+     * The real service.
+     */
+    @Autowired
     private ProjectService projectService;
 
     private FileService fileService;
@@ -50,7 +66,7 @@ public class ProjectServiceTest {
         repository = mock(ProjectRepository.class);
         when(repository.save(any(Project.class))).thenAnswer(new ReturnFirstArgumentAnswer());
         fileService = mock(FileService.class);
-        projectService = new ProjectService(repository, mock(EventBus.ApplicationEventBus.class), fileService, new EventLogProxy(), mock(BranchService.class), mock(ProjectSchedulingService.class));
+        projectServiceMocked = new ProjectService(repository, mock(EventBus.ApplicationEventBus.class), fileService, new EventLogProxy(), mock(BranchService.class), mock(ProjectSchedulingService.class), new ProjectCredentialsEncryptionListener(new CryptoService()));
 
         // Configure branch dummies
         existingBranch = new Branch();
@@ -66,12 +82,41 @@ public class ProjectServiceTest {
     }
 
     @Test
+    public void testTransparentPasswordEncryption() {
+        Project project = EntityCreatorUtil.buildProject();
+        project.setPassword(SAMPLE_PASSWORD);
+        project.addBranch(EntityCreatorUtil.buildBranch());
+
+        Project saved = projectService.save(project);
+        assertNotNull("Encrypted password may not be empty", saved.getEncryptedPassword());
+        assertNotNull("Password salt may not be empty", saved.getSalt());
+
+        Project loaded = projectService.findOne(project.getId());
+        assertEquals("Passwords don't match after decryption", SAMPLE_PASSWORD, loaded.getPassword());
+    }
+
+    @Test
+    public void testTransparentPasswordEncryption_onlyPWUpdate() {
+        Project project = EntityCreatorUtil.buildProject();
+        project.setPassword(SAMPLE_PASSWORD);
+        project.addBranch(EntityCreatorUtil.buildBranch());
+
+        projectService.save(project);
+
+        Project loaded = projectService.findOne(project.getId());
+        loaded.setPassword("NEW_PASSWORD");
+        Project saved = projectService.save(loaded);
+
+        assertEquals("Passwords don't match after updating", "NEW_PASSWORD", saved.getPassword());
+    }
+
+    @Test
     public void testUpdateAvailableBranches_matches() throws Exception {
         Project project = new Project();
         project.addBranch(existingBranch);
         project.setNewBranchPattern(NEW_BRANCH_PATTERN);
 
-        Project updated = projectService.updateAvailableBranches(project, localRepositoryMock);
+        Project updated = projectServiceMocked.updateAvailableBranches(project, localRepositoryMock);
 
         assertEquals(2, updated.getBranches().size());
         assertThat(updated.getBranches()).containsOnlyOnce(newBranch, existingBranch);
@@ -86,7 +131,7 @@ public class ProjectServiceTest {
         project.addBranch(existingBranch);
         project.setNewBranchPattern("xyz");
 
-        Project updated = projectService.updateAvailableBranches(project, localRepositoryMock);
+        Project updated = projectServiceMocked.updateAvailableBranches(project, localRepositoryMock);
 
         assertEquals(2, updated.getBranches().size());
         assertThat(updated.getBranches()).containsOnlyOnce(newBranch, existingBranch);

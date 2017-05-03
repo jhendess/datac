@@ -30,7 +30,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 
 /**
@@ -53,26 +52,8 @@ public class CryptoUtils {
      */
     public static final int DEFAULT_SALT_LENGTH = 32;
 
-    /**
-     * Random generator.
-     */
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-
     private CryptoUtils() {
         // No instances allowed
-    }
-
-    /**
-     * Generates a new random salt of a given length.
-     *
-     * @param length
-     *         Length of the salt to generate
-     * @return The generated salt.
-     */
-    public static byte[] generateRandom(int length) {
-        byte[] salt = new byte[length];
-        SECURE_RANDOM.nextBytes(salt);
-        return salt;
     }
 
     /**

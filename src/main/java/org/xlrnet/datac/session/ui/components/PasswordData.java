@@ -1,10 +1,10 @@
 package org.xlrnet.datac.session.ui.components;
 
+import org.xlrnet.datac.session.domain.validation.ValidPassword;
+import org.xlrnet.datac.session.services.CryptoService;
+
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-
-import org.xlrnet.datac.session.domain.validation.ValidPassword;
-import org.xlrnet.datac.session.services.PasswordService;
 
 /**
  * Data for password fields in {@link UserProfileWindow}.
@@ -16,11 +16,11 @@ public class PasswordData {
 
     @NotNull
     @ValidPassword
-    @Size(min = PasswordService.MINIMUM_PASSWORD_SIZE, max = PasswordService.MAXIMUM_PASSWORD_SIZE)
+    @Size(min = CryptoService.MINIMUM_PASSWORD_SIZE, max = CryptoService.MAXIMUM_PASSWORD_SIZE)
     private String newPassword;
 
     @NotNull
-    @Size(min = PasswordService.MINIMUM_PASSWORD_SIZE, max = PasswordService.MAXIMUM_PASSWORD_SIZE)
+    @Size(min = CryptoService.MINIMUM_PASSWORD_SIZE, max = CryptoService.MAXIMUM_PASSWORD_SIZE)
     private String newPasswordConfirmation;
 
     public String getOldPassword() {

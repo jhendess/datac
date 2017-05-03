@@ -1,16 +1,24 @@
 package org.xlrnet.datac.session.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.jasypt.encryption.pbe.StandardPBEStringEncryptor;
+import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
+import org.jasypt.salt.ByteArrayFixedSaltGenerator;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.xlrnet.datac.commons.exception.EncryptionFailedException;
+import org.xlrnet.datac.commons.util.CryptoUtils;
+import org.xlrnet.datac.session.domain.User;
 
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.xlrnet.datac.commons.util.CryptoUtils;
-import org.xlrnet.datac.session.domain.User;
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Service for generating and validating passwords. Passwords must match at least three of the following
@@ -23,7 +31,19 @@ import org.xlrnet.datac.session.domain.User;
  * </ul>
  */
 @Service
-public class PasswordService {
+public class CryptoService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CryptoService.class);
+
+    /**
+     * Random generator.
+     */
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    private static final String DEFAULT_SECRET_KEY = "DEFAULT_SECRET_KEY";
+
+    @Value("${datac.secretKey}")
+    private transient String secretKey;
 
     /**
      * Minimum password size.
@@ -76,6 +96,61 @@ public class PasswordService {
     private static final String NUMBERS = "0123456789";
 
     /**
+     * Encrypt a given clear-text string using the given salt and the internally configured application secret. This
+     * will produce a decryptable string. <b>NO</b> hashing will be used! For non-recoverable passwords, consider using
+     * {@link #hashPassword(String, byte[])}.
+     *
+     * @param string
+     *         The string to encrypt.
+     * @param salt
+     *         The salt used for encryption.
+     * @return An encrypted string which can be restored.
+     */
+    public String encryptString(String string, byte[] salt) {
+        try {
+            LOGGER.trace("Encrypting string");
+            StandardPBEStringEncryptor stringEncryptor = getEncryptor(salt);
+            return stringEncryptor.encrypt(string);
+        } catch (EncryptionOperationNotPossibleException e) {
+            LOGGER.error("Encrypting string value failed", e);
+            throw new EncryptionFailedException(e);
+        }
+    }
+
+    /**
+     * Returns an initializes string encryptor using the given salt and the configured application secret.
+     */
+    @NotNull
+    private StandardPBEStringEncryptor getEncryptor(byte[] salt) {
+        StandardPBEStringEncryptor stringEncryptor = new StandardPBEStringEncryptor();
+        stringEncryptor.setSaltGenerator(new ByteArrayFixedSaltGenerator(salt));
+        stringEncryptor.setPassword(getSecretKey());
+        stringEncryptor.initialize();
+        return stringEncryptor;
+    }
+
+    /**
+     * Decrypt a given string using the given salt and the internally configured application secret. The method will
+     * always decrypt the given input - even if its decrypted form is wrong.
+     *
+     * @param encryptedString
+     *         The string to decrypt.
+     * @param salt
+     *         The salt used for encryption.
+     * @return A clear-text representation of the given string.
+     */
+    public String decryptString(String encryptedString, byte[] salt) {
+        try {
+            LOGGER.trace("Decrypting string");
+            StandardPBEStringEncryptor encryptor = getEncryptor(salt);
+            return encryptor.decrypt(encryptedString);
+        } catch (EncryptionOperationNotPossibleException e) {
+            LOGGER.error("Decrypting string value failed", e);
+            throw new EncryptionFailedException(e);
+        }
+    }
+
+    /**
      * Checks if the given password is valid. Passwords must match at least three of the following
      * properties to be valid:
      * <ul>
@@ -108,7 +183,7 @@ public class PasswordService {
      *         Length of the new password. Must be greater than 0.
      * @return a generated random password.
      */
-    public String generatePassword(int length) {
+    public String generateUserPassword(int length) {
         checkArgument(length > 0, "Password length must be greater than 0");
 
         StringBuilder stringBuilder = new StringBuilder(length);
@@ -171,5 +246,24 @@ public class PasswordService {
     @NotNull
     public byte[] hashPassword(@NotNull String unhashedPassword, @NotNull byte[] salt) {
         return CryptoUtils.hashPassword(unhashedPassword.toCharArray(), salt, CryptoUtils.DEFAULT_ITERATIONS, CryptoUtils.DEFAULT_KEYLENGTH);
+    }
+
+    /**
+     * Generates a safe random of the given length..
+     *
+     * @param length
+     *         Length of the new salt.
+     * @return A base64 encoded salt.
+     */
+    public byte[] generateSafeRandom(int length) {
+        byte[] salt = new byte[length];
+        SECURE_RANDOM.nextBytes(salt);
+        return salt;
+    }
+
+    @NotNull
+    private String getSecretKey() {
+        // TODO: This null check and alternative value is only used because the test profile doesn't detect the actual key
+        return secretKey != null ? secretKey : DEFAULT_SECRET_KEY;
     }
 }

@@ -105,11 +105,6 @@
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-validator</artifactId>
         </dependency>
-        <!-- Hikari CP -->
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-        </dependency>
         <!-- Vaadin push support -->
         <dependency>
             <groupId>com.vaadin</groupId>
@@ -132,6 +127,12 @@
             <groupId>com.devbury</groupId>
             <artifactId>spring-boot-starter-threadscope</artifactId>
             <version>1.1.0</version>
+        </dependency>
+        <!-- Jasypt simple encryption library -->
+        <dependency>
+            <groupId>org.jasypt</groupId>
+            <artifactId>jasypt</artifactId>
+            <version>1.9.2</version>
         </dependency>
         <!-- Spring boot testing -->
         <dependency>
