@@ -15,7 +15,7 @@ public class BeanInjector implements ApplicationContextAware {
 
     @Override
     public void setApplicationContext(final ApplicationContext context) throws BeansException {
-        CONTEXT = context;
+        CONTEXT = context;  // NOSONAR: Method will only be called when booting the application context
     }
 
     public static <T> T getBean(Class<T> clazz) {
