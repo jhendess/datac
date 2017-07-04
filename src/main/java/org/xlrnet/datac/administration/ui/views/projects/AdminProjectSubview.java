@@ -1,16 +1,11 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import com.vaadin.data.ValueProvider;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.server.VaadinSession;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.spring.annotation.ViewScope;
-import com.vaadin.ui.*;
-import com.vaadin.ui.renderers.ButtonRenderer;
-import com.vaadin.ui.renderers.TextRenderer;
-import elemental.json.JsonValue;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import javax.annotation.PostConstruct;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,10 +27,18 @@ import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 import org.xlrnet.datac.vcs.services.ProjectUpdateStarter;
 
-import javax.annotation.PostConstruct;
-import java.util.Collection;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import com.vaadin.data.ValueProvider;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.server.VaadinSession;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.spring.annotation.ViewScope;
+import com.vaadin.ui.*;
+import com.vaadin.ui.renderers.ButtonRenderer;
+import com.vaadin.ui.renderers.TextRenderer;
+
+import elemental.json.JsonValue;
 
 /**
  * Admin view for managing projects responsible for managing the available users.
@@ -162,7 +165,6 @@ public class AdminProjectSubview extends AbstractSubview {
                 try {
                     projectService.deleteClean(item);
                     NotificationUtils.showSuccess("Project deleted successfully");
-                    projectSchedulingService.unscheduleProjectUpdate(item);
                     reloadProjects();
                 } catch (DatacTechnicalException e) {
                     LOGGER.error("Deleting project failed", e);

@@ -1,5 +1,10 @@
 package org.xlrnet.datac.vcs.services;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,11 +19,6 @@ import org.xlrnet.datac.foundation.configuration.StartupPhases;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.vcs.tasks.ProjectUpdateTask;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Service which is responsible for scheduling automatic project updates.
@@ -120,7 +120,13 @@ public class ProjectSchedulingService implements SmartLifecycle {
             LOGGER.warn("No automatic update scheduled for project {} [id={}]", project.getName(), project.getId());
             return false;
         }
-        return scheduledFuture.cancel(true);
+        boolean cancelled = scheduledFuture.cancel(true);
+        if (cancelled) {
+            LOGGER.debug("Unscheduling automatic update of project {} [id={}] successfully", project.getName(), project.getId());
+        } else {
+            LOGGER.error("Unscheduling automatic update of project {} [id={}] failed for unknown reason", project.getName(), project.getId());
+        }
+        return cancelled;
     }
 
     @Override
