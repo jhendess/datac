@@ -1,12 +1,11 @@
 package org.xlrnet.datac.administration.ui.views.eventlog;
 
-import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
-
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Component;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
 
 /**
  * Admin view for viewing event logs.
@@ -22,6 +21,11 @@ public class AdminEventLogSubview extends AbstractSubview {
     @Autowired
     public AdminEventLogSubview(EventLogLayout eventLogLayout) {
         this.eventLogLayout = eventLogLayout;
+    }
+
+    @Override
+    protected void initialize() {
+        // Nothing to do
     }
 
     @NotNull

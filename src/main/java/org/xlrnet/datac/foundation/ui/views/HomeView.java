@@ -1,11 +1,10 @@
 package org.xlrnet.datac.foundation.ui.views;
 
-import org.jetbrains.annotations.NotNull;
-import org.xlrnet.datac.Application;
-
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.VerticalLayout;
+import org.jetbrains.annotations.NotNull;
+import org.xlrnet.datac.Application;
 
 /**
  * Start page after login.
@@ -14,6 +13,11 @@ import com.vaadin.ui.VerticalLayout;
 public class HomeView extends AbstractSubview implements Subview {
 
     public static final String VIEW_NAME = "home";
+
+    @Override
+    protected void initialize() {
+        // Nothing to do
+    }
 
     @NotNull
     @Override

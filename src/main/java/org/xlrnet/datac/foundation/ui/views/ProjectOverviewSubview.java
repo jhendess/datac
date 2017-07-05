@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
-import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
 import org.xlrnet.datac.commons.util.DateTimeUtils;
 import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
@@ -21,25 +20,26 @@ import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Overview for projects.
  */
 @SpringComponent
-@SpringView(name = ProjectSubview.VIEW_NAME)
-public class ProjectSubview extends AbstractSubview {
+@SpringView(name = ProjectOverviewSubview.VIEW_NAME)
+public class ProjectOverviewSubview extends AbstractSubview {
 
     public static final String VIEW_NAME = "projects";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProjectSubview.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProjectOverviewSubview.class);
 
     private static final int MAX_BEFORE_TRUNCATE = 80;
 
     private static final int MAX_REVISIONS_TO_VISIT = 50;
+
     public static final String NEWLINE = "\n";
+
+    private static final int CHANGE_SETS_TO_DISPLAY = 3;
 
     /**
      * Service for accessing project data.
@@ -56,13 +56,8 @@ public class ProjectSubview extends AbstractSubview {
      */
     private final RevisionGraphService revisionGraphService;
 
-    /**
-     * Helper class for performing breadth first traversals on revision graphs.
-     */
-    private final BreadthFirstTraverser<Revision> breadthFirstTraverser = new BreadthFirstTraverser<>();
-
     @Autowired
-    public ProjectSubview(ProjectService projectService, ChangeSetService changeSetService, RevisionGraphService revisionGraphService) {
+    public ProjectOverviewSubview(ProjectService projectService, ChangeSetService changeSetService, RevisionGraphService revisionGraphService) {
         this.projectService = projectService;
         this.changeSetService = changeSetService;
         this.revisionGraphService = revisionGraphService;
@@ -94,9 +89,15 @@ public class ProjectSubview extends AbstractSubview {
         return layout;
     }
 
+    @Override
+    protected void initialize() {
+        // Nothing to do
+    }
+
     private Component createPanelForProject(Project project) {
         Panel panel = new Panel(project.getName());
         panel.setWidth("75%");
+        panel.addClickListener((e) -> UI.getCurrent().getNavigator().navigateTo(ProjectChangeSubview.VIEW_NAME + "/" + project.getDevelopmentBranch().getId()));
 
         GridLayout panelContent = new GridLayout(2, 5);
         panelContent.setStyleName("projectPanel");
@@ -132,20 +133,10 @@ public class ProjectSubview extends AbstractSubview {
         //changeSetService.findLastChangeSetsInProject(project);
         Layout layout = new GridLayout(1, 3);
         layout.setStyleName("listLayout");
-        Revision lastDevRevision = revisionGraphService.findByInternalIdAndProject(project.getDevelopmentBranch().getInternalId(), project);
-        List<DatabaseChangeSet> changeSets = new ArrayList<>();
-        AtomicInteger visitedRevisions = new AtomicInteger(0);
+        List<DatabaseChangeSet> changeSets = null;
 
         try {
-            breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, (r) -> {
-                if (changeSetService.countByRevision(r) > 0) {
-                    List<DatabaseChangeSet> changeSetsInRevision = changeSetService.findAllInRevision(r);
-                    for (int i = changeSetsInRevision.size() - 1, k = 0; i > 0 && k < 3; i--) {
-                        changeSets.add(changeSetsInRevision.get(i));
-                        k++;
-                    }
-                }
-            }, (r -> (visitedRevisions.incrementAndGet() > MAX_REVISIONS_TO_VISIT || changeSets.size() == 3)));
+            changeSets = changeSetService.findLastDatabaseChangeSetsOnBranch(project.getDevelopmentBranch(), CHANGE_SETS_TO_DISPLAY, MAX_REVISIONS_TO_VISIT);
         } catch (DatacTechnicalException e) {
             Label label = new Label("Unexpected error while loading last changesets");
             label.setStyleName(ValoTheme.LABEL_FAILURE);
@@ -153,7 +144,7 @@ public class ProjectSubview extends AbstractSubview {
             LOGGER.error("Unexpected error while loading last changesets in project {}", project.getName(), e);
         }
 
-        if (!changeSets.isEmpty()) {
+        if (changeSets != null && !changeSets.isEmpty()) {
             for (DatabaseChangeSet changeSet : changeSets) {
                 String message = changeSet.getComment();
                 if (message != null && message.length() > MAX_BEFORE_TRUNCATE) {
@@ -188,10 +179,10 @@ public class ProjectSubview extends AbstractSubview {
     private Component buildLastRevisionsLayout(Project project) {
         Layout layout = new GridLayout(1, 3);
         layout.setStyleName("listLayout");
-        Revision lastDevRevision = revisionGraphService.findByInternalIdAndProject(project.getDevelopmentBranch().getInternalId(), project);
-        List<Revision> revisions = new ArrayList<>();
+
+        List<Revision> revisions = null;
         try {
-            breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, revisions::add, (r -> revisions.size() >= 3));
+            revisions = revisionGraphService.findLastRevisionsOnBranch(project.getDevelopmentBranch());
         } catch (DatacTechnicalException e) {
             Label label = new Label("Unexpected error while loading revisions");
             label.setStyleName(ValoTheme.LABEL_FAILURE);
@@ -199,7 +190,7 @@ public class ProjectSubview extends AbstractSubview {
             LOGGER.error("Unexpected error while loading last revisions in project {}", project.getName(), e);
         }
 
-        if (!revisions.isEmpty()) {
+        if (revisions != null && !revisions.isEmpty()) {
             for (int i = 0; i < revisions.size() && i < 3; i++) {
                 Revision revision = revisions.get(i);
                 String message = StringUtils.isNotBlank(revision.getMessage()) ? StringUtils.substringBefore(revision.getMessage(), NEWLINE) :

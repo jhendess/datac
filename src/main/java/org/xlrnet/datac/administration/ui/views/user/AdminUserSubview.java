@@ -73,6 +73,11 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
     }
 
     @Override
+    protected void initialize() {
+        // Nothing to do
+    }
+
+    @Override
     @NotNull
     protected String getSubtitle() {
         return "Configure who can access the application. Click on an existing user to modify him.";

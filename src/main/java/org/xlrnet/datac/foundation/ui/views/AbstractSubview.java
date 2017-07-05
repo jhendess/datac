@@ -9,10 +9,8 @@ import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.administration.ui.views.AdminSubview;
 
 /**
@@ -21,7 +19,6 @@ import org.xlrnet.datac.administration.ui.views.AdminSubview;
  */
 @UIScope
 @SpringView(name = AdminSubview.VIEW_NAME)
-@Transactional
 public abstract class AbstractSubview extends VerticalLayout implements Subview {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractSubview.class);
@@ -29,17 +26,24 @@ public abstract class AbstractSubview extends VerticalLayout implements Subview 
     @NotNull
     protected abstract Component buildMainPanel();
 
-    protected String parameters;
+    /**
+     * Perform custom initialization logic. Will be called after {@link #enter(ViewChangeListener.ViewChangeEvent)}} and
+     * before any components are built.
+     */
+    protected abstract void initialize();
+
+    String[] parameters;
 
     @Override
     public void enter(ViewChangeListener.ViewChangeEvent event) {
-        parameters = event.getParameters();
-        if (StringUtils.isEmpty(parameters)) {
+        parameters = StringUtils.split(event.getParameters(), "/");
+        if (parameters.length == 0) {
             LOGGER.debug("Entering subview {}", event.getViewName());
         } else {
             LOGGER.debug("Entering subview {} with parameters {}", event.getViewName(), event.getParameters());
         }
 
+        initialize();
         buildComponents();
     }
 
@@ -96,12 +100,12 @@ public abstract class AbstractSubview extends VerticalLayout implements Subview 
     protected abstract String getTitle();
 
     /**
-     * Returns the parameters for the current view.
+     * Returns the parameters for the current view. If no additional parameters are present, the returned array is empty.
      *
      * @return the parameters for the current view.
      */
-    @Nullable
-    protected String getParameters() {
+    @NotNull
+    protected String[] getParameters() {
         return parameters;
     }
 }

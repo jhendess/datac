@@ -196,6 +196,12 @@ public class AdminEditProjectSubview extends AbstractSubview {
         this.lockingService = lockingService;
     }
 
+    @Override
+    protected void initialize() {
+        // Nothing to do
+    }
+
+
     @NotNull
     @Override
     protected String getSubtitle() {
@@ -213,9 +219,9 @@ public class AdminEditProjectSubview extends AbstractSubview {
      * has is no integer, null will returned (indicating that a new project should be created).
      */
     private Project getProjectToEdit() {
-        if (NumberUtils.isDigits(getParameters())) {
-            LOGGER.debug("Trying to open project {} for editing", getParameters());
-            long id = Long.parseLong(getParameters());
+        if (getParameters().length == 1 && NumberUtils.isDigits(getParameters()[0])) {
+            LOGGER.debug("Trying to open project {} for editing", getParameters()[0]);
+            long id = Long.parseLong(getParameters()[0]);
             return projectService.findOne(id);
         } else {
             return null;

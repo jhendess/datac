@@ -13,11 +13,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.domain.LimitOffsetPageable;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.foundation.services.ValidationService;
 import org.xlrnet.datac.vcs.api.VcsRevision;
+import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
 
@@ -43,6 +46,11 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
      * Bean validation service.
      */
     private final ValidationService validator;
+
+    /**
+     * Helper class for performing breadth first traversals on revision graphs.
+     */
+    private final BreadthFirstTraverser<Revision> breadthFirstTraverser = new BreadthFirstTraverser<>();
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
@@ -219,6 +227,15 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         Pair<Revision, Long> convertedRevision = convertRevision(rootRevision, project);
         Revision savedRevision = save(convertedRevision.getLeft());
         return ImmutablePair.of(savedRevision, convertedRevision.getRight());
+    }
+
+    public List<Revision> findLastRevisionsOnBranch(Branch branch) throws DatacTechnicalException {
+        Project project = branch.getProject();
+        Revision lastDevRevision = findByInternalIdAndProject(branch.getInternalId(), project);
+        List<Revision> revisions = new ArrayList<>();
+        breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, revisions::add, (r -> revisions.size() >= 3));
+
+        return revisions;
     }
 
     /**
