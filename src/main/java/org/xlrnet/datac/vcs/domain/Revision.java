@@ -1,21 +1,30 @@
 package org.xlrnet.datac.vcs.domain;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
 import org.hibernate.validator.constraints.NotEmpty;
 import org.xlrnet.datac.commons.graph.TraversableNode;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.validation.SameProjectParent;
-
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A revision represents a single versioning state in a VCS.
@@ -81,7 +90,6 @@ public class Revision extends AbstractEntity implements VcsRevision, Traversable
      */
     @ManyToMany(mappedBy = "parents", fetch = FetchType.LAZY)
     private List<Revision> children = new ArrayList<>();
-
 
     public Revision() {
         // Empty constructor

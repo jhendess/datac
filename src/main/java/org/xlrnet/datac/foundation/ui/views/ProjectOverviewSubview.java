@@ -1,10 +1,7 @@
 package org.xlrnet.datac.foundation.ui.views;
 
-import com.vaadin.server.ExternalResource;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -20,7 +17,18 @@ import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.List;
+import com.vaadin.server.ExternalResource;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.GridLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Layout;
+import com.vaadin.ui.Link;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Overview for projects.
@@ -37,9 +45,11 @@ public class ProjectOverviewSubview extends AbstractSubview {
 
     private static final int MAX_REVISIONS_TO_VISIT = 50;
 
-    public static final String NEWLINE = "\n";
+    private static final String NEWLINE = "\n";
 
     private static final int CHANGE_SETS_TO_DISPLAY = 3;
+
+    private static final int REVISIONS_TO_DISPLAY = 3;
 
     /**
      * Service for accessing project data.
@@ -177,12 +187,12 @@ public class ProjectOverviewSubview extends AbstractSubview {
     }
 
     private Component buildLastRevisionsLayout(Project project) {
-        Layout layout = new GridLayout(1, 3);
+        Layout layout = new GridLayout(1, REVISIONS_TO_DISPLAY);
         layout.setStyleName("listLayout");
 
         List<Revision> revisions = null;
         try {
-            revisions = revisionGraphService.findLastRevisionsOnBranch(project.getDevelopmentBranch());
+            revisions = revisionGraphService.findLastRevisionsOnBranch(project.getDevelopmentBranch(), REVISIONS_TO_DISPLAY);
         } catch (DatacTechnicalException e) {
             Label label = new Label("Unexpected error while loading revisions");
             label.setStyleName(ValoTheme.LABEL_FAILURE);

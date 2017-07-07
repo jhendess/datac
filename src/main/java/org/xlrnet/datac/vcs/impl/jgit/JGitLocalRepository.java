@@ -132,8 +132,8 @@ public class JGitLocalRepository implements VcsLocalRepository {
     @NotNull
     @Override
     public Collection<VcsRevision> listRevisionsWithChangesInPath(@NotNull String path) throws VcsRepositoryException {
-        String cleanedPath = StringUtils.removeStart(path, "/").replace("\\", "/");
-        LOGGER.debug("Listing affected revisions for path {} in repository {}", path, cleanedPath);
+        String cleanedPath = StringUtils.removeStart(path.replace("\\", "/"), "/");
+        LOGGER.debug("Listing affected revisions for path {} in repository {}", cleanedPath, repositoryPath.toString());
         try (Git git = openRepository()) {
             Iterable<RevCommit> call = git.log()
                     .all()

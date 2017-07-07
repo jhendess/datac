@@ -1,12 +1,28 @@
 package org.xlrnet.datac.database.services;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections.keyvalue.MultiKey;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
 import org.xlrnet.datac.commons.util.SortableComparator;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.repository.ChangeSetRepository;
+import org.xlrnet.datac.foundation.configuration.async.ThreadScoped;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.validation.SortOrderValidator;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
@@ -14,15 +30,12 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
- * Transactional service for accessing change set data.
+ * Transactional service for accessing change set data. This service is thread-scoped in order to guarantee isolated
+ * caches. FIXME: Maybe this isn't a good idea if threads are being reused?
  */
 @Service
+@ThreadScoped
 public class ChangeSetService extends AbstractTransactionalService<DatabaseChangeSet, ChangeSetRepository> {
 
     private final SortOrderValidator sortOrderValidator;
@@ -36,6 +49,10 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
      * Helper class for performing breadth first traversals on revision graphs.
      */
     private final BreadthFirstTraverser<Revision> breadthFirstTraverser = new BreadthFirstTraverser<>();
+
+    private Map<MultiKey, Optional<Long>> introducingChangeSetIdCache = new HashMap<>();
+
+    private Map<MultiKey, Optional<Collection<Long>>> overwrittenChangeSetIdCache = new HashMap<>();
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
@@ -107,5 +124,94 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
             }
         }, (r -> (visitedRevisions.incrementAndGet() > revisionsToVisit || changeSets.size() == 3)));
         return changeSets;
+    }
+
+    /**
+     * Returns the last database change sets on the given branch. Traverses only the given amount of revisions before an empty list will be returned.
+     *
+     * @param branch
+     *         The branch on which should be searched.
+     * @param revisionsToVisit
+     *         The amount of revisions that should be visited until the search is given up.
+     */
+    public List<DatabaseChangeSet> findLastDatabaseChangeSetsOnBranch(Branch branch, int revisionsToVisit) throws DatacTechnicalException {
+        Revision lastDevRevision = revisionGraphService.findByInternalIdAndProject(branch.getInternalId(), branch.getProject());
+        final List<DatabaseChangeSet> changeSetsInRevision = new ArrayList<>();
+        AtomicInteger visitedRevisions = new AtomicInteger(0);
+        breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, (r) -> {
+            if (countByRevision(r) > 0) {
+                changeSetsInRevision.addAll(findAllInRevision(r));
+            }
+        }, (r -> (visitedRevisions.incrementAndGet() > revisionsToVisit || !changeSetsInRevision.isEmpty())));
+        return changeSetsInRevision;
+    }
+
+    /**
+     * Adds the following links to the given {@link DatabaseChangeSet}:
+     * <ul>
+     *     <li>The revision where this change set was first introduced</li>
+     *     <li>The revision which is overwritten by this change set</li>
+     * </ul>
+     * Furthermore, if the given change set overwrites a change set, the overwritten change set will be updated, too. Requires an actively running transaction.
+     * @param databaseChangeSet
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void linkRevisions(@NotNull DatabaseChangeSet databaseChangeSet) {
+        checkState(!databaseChangeSet.isPersisted(), "The given change set may not be persisted");
+        Project project = databaseChangeSet.getRevision().getProject();
+
+        DatabaseChangeSet firstChangeSet = findIntroducingChangeSet(databaseChangeSet);
+        if (firstChangeSet != null) {
+            databaseChangeSet.setIntroducingChangeSet(firstChangeSet);
+        }
+
+        Collection<DatabaseChangeSet> overwrittenChangeSets = findOverwrittenChangeSets(databaseChangeSet);
+
+        for (DatabaseChangeSet overwrittenChangeSet : overwrittenChangeSets) {
+            overwrittenChangeSet.setConflictingChangeSet(databaseChangeSet);
+            databaseChangeSet.setOverwrittenChangeSet(overwrittenChangeSet);
+            save(overwrittenChangeSet);
+        }
+    }
+
+    private DatabaseChangeSet findIntroducingChangeSet(@NotNull DatabaseChangeSet databaseChangeSet) {
+        DatabaseChangeSet introducingChangeSet = null;
+        Project project = databaseChangeSet.getRevision().getProject();
+
+        MultiKey introducingChangeKey = new MultiKey(project.getId(), databaseChangeSet.getInternalId(), databaseChangeSet.getSourceFilename());
+        if (introducingChangeSetIdCache.containsKey(introducingChangeKey) && introducingChangeSetIdCache.get(introducingChangeKey).isPresent()) {
+            // If the entry is not present, there is no overwriting change
+            introducingChangeSet = getRepository().findOne(introducingChangeSetIdCache.get(introducingChangeKey).get());
+        } else {
+            introducingChangeSet = getRepository().findIntroducingChangeSet(project, databaseChangeSet.getInternalId(), databaseChangeSet.getSourceFilename());
+            if (introducingChangeSet == null) {
+                introducingChangeSetIdCache.put(introducingChangeKey, Optional.empty());
+            } else {
+                introducingChangeSetIdCache.put(introducingChangeKey, Optional.of(introducingChangeSet.getId()));
+            }
+        }
+        
+        return introducingChangeSet;
+    }
+
+    private Collection<DatabaseChangeSet> findOverwrittenChangeSets(@NotNull DatabaseChangeSet databaseChangeSet) {
+        Collection<DatabaseChangeSet> overwrittenChangeSets = new ArrayList<>();
+        Project project = databaseChangeSet.getRevision().getProject();
+
+        MultiKey overwrittenChangeKey = new MultiKey(project.getId(), databaseChangeSet.getInternalId(), databaseChangeSet.getSourceFilename(), databaseChangeSet.getChecksum());
+        if (overwrittenChangeSetIdCache.containsKey(overwrittenChangeKey)) {
+            // If the entry is not present, there is no overwriting change
+            if (overwrittenChangeSetIdCache.get(overwrittenChangeKey).isPresent()) {
+                getRepository().findAll(overwrittenChangeSetIdCache.get(overwrittenChangeKey).get());
+            }
+        } else {
+            overwrittenChangeSets = getRepository().findOverwrittenChangeSets(project, databaseChangeSet.getInternalId(), databaseChangeSet.getSourceFilename(), databaseChangeSet.getChecksum());
+            if (overwrittenChangeSets == null) {
+                overwrittenChangeSetIdCache.put(overwrittenChangeKey, Optional.empty());
+            } else {
+                overwrittenChangeSetIdCache.put(overwrittenChangeKey, Optional.of(overwrittenChangeSets.stream().map(DatabaseChangeSet::getId).collect(Collectors.toList())));
+            }
+        }
+        return overwrittenChangeSets;
     }
 }

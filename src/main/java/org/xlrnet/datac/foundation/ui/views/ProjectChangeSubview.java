@@ -1,18 +1,26 @@
 package org.xlrnet.datac.foundation.ui.views;
 
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.VerticalLayout;
+import java.util.List;
+
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.IllegalUIStateException;
+import org.xlrnet.datac.database.domain.DatabaseChangeSet;
+import org.xlrnet.datac.database.services.ChangeSetService;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.domain.Branch;
+import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
+import org.xlrnet.datac.vcs.services.RevisionGraphService;
+
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.VerticalLayout;
 
 /**
  * Renders a list of {@link org.xlrnet.datac.database.domain.DatabaseChangeSet} in a given branch/revision.
@@ -24,9 +32,16 @@ public class ProjectChangeSubview extends AbstractSubview {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectChangeSubview.class);
 
     public static final String VIEW_NAME = "project/changes";
+    public static final int REVISIONS_TO_TRAVERSE = 50;
 
     /** Service for accessing branch data. */
     private final BranchService branchService;
+
+    /** Service for accessing revision graph. */
+    private final RevisionGraphService revisionGraphService;
+
+    /** Service for accessing database changes. */
+    private final ChangeSetService changeSetService;
 
     /** The current project. */
     private Project project;
@@ -34,13 +49,17 @@ public class ProjectChangeSubview extends AbstractSubview {
     /** The current branch. */
     private Branch branch;
 
+    private Revision revision;
+
     @Autowired
-    public ProjectChangeSubview(BranchService branchService) {
+    public ProjectChangeSubview(BranchService branchService, RevisionGraphService revisionGraphService, ChangeSetService changeSetService) {
         this.branchService = branchService;
+        this.revisionGraphService = revisionGraphService;
+        this.changeSetService = changeSetService;
     }
 
     @Override
-    protected void initialize() {
+    protected void initialize() throws DatacTechnicalException {
         Long branchId = null;
         if (getParameters().length == 1 && NumberUtils.isDigits(getParameters()[0])) {
             branchId = Long.valueOf(getParameters()[0]);
@@ -52,18 +71,26 @@ public class ProjectChangeSubview extends AbstractSubview {
         } else {
             project = branch.getProject();
         }
+
+        revision = revisionGraphService.findLastRevisionOnBranch(branch);
+        List<DatabaseChangeSet> lastDatabaseChangeSetsOnBranch = changeSetService.findLastDatabaseChangeSetsOnBranch(branch, REVISIONS_TO_TRAVERSE);
     }
 
     @NotNull
     @Override
     protected Component buildMainPanel() {
-        return new VerticalLayout();
+        VerticalLayout layout = new VerticalLayout();
+
+
+
+
+        return layout;
     }
 
     @NotNull
     @Override
     protected String getSubtitle() {
-        return "View all database changes in project in a project.";
+        return "";
     }
 
     @NotNull

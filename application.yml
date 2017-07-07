@@ -13,3 +13,9 @@ datac:
   # won't start.
   #
   secretKey: secret
+
+
+# Embedded database
+#spring:
+  #datasource:
+    #url: jdbc:h2:./database

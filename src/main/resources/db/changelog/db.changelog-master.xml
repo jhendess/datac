@@ -366,4 +366,35 @@
         <setColumnRemarks tableName="project" columnName="password"
                           remarks="Encrypted password for logging into the VCS."/>
     </changeSet>
+    <changeSet id="21" author="jhendess">
+        <comment>Add links to revisions which introduce or overwrite database changes</comment>
+        <addColumn tableName="changeset">
+            <column name="source_filename" type="VARCHAR(1024)"
+                    remarks="The name of the file which contains the changeset."/>
+        </addColumn>
+        <addColumn tableName="changeset">
+            <column name="introducing_changeset_id" type="BIGINT"
+                    remarks="The change set where this change set was first encountered."/>
+        </addColumn>
+        <addColumn tableName="changeset">
+            <column name="conflicting_changeset_id" type="BIGINT"
+                    remarks="The change set which overwrites this change set."/>
+        </addColumn>
+        <addColumn tableName="changeset">
+            <column name="overwritten_changeset_id" type="BIGINT"
+                    remarks="The change set which is overwritten by this change set."/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="changeset" baseColumnNames="introducing_changeset_id"
+                                 constraintName="fk_changeset_introducing"
+                                 referencedTableName="changeset"
+                                 referencedColumnNames="id" onDelete="SET NULL"/>
+        <addForeignKeyConstraint baseTableName="changeset" baseColumnNames="conflicting_changeset_id"
+                                 constraintName="fk_changeset_conflicting"
+                                 referencedTableName="changeset"
+                                 referencedColumnNames="id" onDelete="SET NULL"/>
+        <addForeignKeyConstraint baseTableName="changeset" baseColumnNames="overwritten_changeset_id"
+                                 constraintName="fk_changeset_overwritten"
+                                 referencedTableName="changeset"
+                                 referencedColumnNames="id" onDelete="SET NULL"/>
+    </changeSet>
 </databaseChangeLog>

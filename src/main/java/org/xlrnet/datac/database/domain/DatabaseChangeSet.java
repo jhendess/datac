@@ -1,18 +1,26 @@
 package org.xlrnet.datac.database.domain;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+import javax.validation.Valid;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
 import org.hibernate.validator.constraints.NotEmpty;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.domain.Sortable;
 import org.xlrnet.datac.foundation.domain.validation.Sorted;
 import org.xlrnet.datac.vcs.domain.Revision;
-
-import javax.persistence.*;
-import javax.validation.Valid;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Set of database changes that must be executed together.
@@ -59,11 +67,40 @@ public class DatabaseChangeSet extends AbstractEntity implements Sortable {
     private int sort;       // TODO: Validate unique sorting
 
     /**
+     *  The name of the file which contains the changeset.
+     */
+    @NotEmpty
+    @Size(max = 1024)
+    @Column(name = "source_filename")
+    private String sourceFilename;
+
+    /**
      * The revision to which this change set belongs.
      */
     @JoinColumn(name = "revision_id")
     @OneToOne(targetEntity = Revision.class, cascade = {CascadeType.REMOVE, CascadeType.REFRESH}, fetch = FetchType.LAZY)
     private Revision revision;
+
+    /**
+     * The change set where this change set was first encountered.
+     */
+    @JoinColumn(name = "introducing_changeset_id")
+    @OneToOne(targetEntity = DatabaseChangeSet.class, cascade = {CascadeType.REMOVE, CascadeType.REFRESH, CascadeType.PERSIST}, fetch = FetchType.LAZY)
+    private DatabaseChangeSet introducingChangeSet;
+
+    /**
+     * The change set which overwrites this change set.
+     */
+    @JoinColumn(name = "conflicting_changeset_id")
+    @OneToOne(targetEntity = DatabaseChangeSet.class, cascade = {CascadeType.REMOVE, CascadeType.REFRESH, CascadeType.PERSIST}, fetch = FetchType.LAZY)
+    private DatabaseChangeSet conflictingChangeSet;
+
+    /**
+     * The change set which is overwritten by this change set.
+     */
+    @JoinColumn(name = "overwritten_changeset_id")
+    @OneToOne(targetEntity = DatabaseChangeSet.class, cascade = {CascadeType.REMOVE, CascadeType.REFRESH, CascadeType.PERSIST}, fetch = FetchType.LAZY)
+    private DatabaseChangeSet overwrittenChangeSet;
 
     /**
      * The changes in this change set.
@@ -141,6 +178,42 @@ public class DatabaseChangeSet extends AbstractEntity implements Sortable {
 
     public DatabaseChangeSet setRevision(Revision revision) {
         this.revision = revision;
+        return this;
+    }
+
+    public DatabaseChangeSet getIntroducingChangeSet() {
+        return introducingChangeSet;
+    }
+
+    public DatabaseChangeSet setIntroducingChangeSet(DatabaseChangeSet introducingRevision) {
+        this.introducingChangeSet = introducingRevision;
+        return this;
+    }
+
+    public DatabaseChangeSet getConflictingChangeSet() {
+        return conflictingChangeSet;
+    }
+
+    public DatabaseChangeSet setConflictingChangeSet(DatabaseChangeSet conflictingChangeSet) {
+        this.conflictingChangeSet = conflictingChangeSet;
+        return this;
+    }
+
+    public DatabaseChangeSet getOverwrittenChangeSet() {
+        return overwrittenChangeSet;
+    }
+
+    public DatabaseChangeSet setOverwrittenChangeSet(DatabaseChangeSet overwroteRevision) {
+        this.overwrittenChangeSet = overwroteRevision;
+        return this;
+    }
+
+    public String getSourceFilename() {
+        return sourceFilename;
+    }
+
+    public DatabaseChangeSet setSourceFilename(String sourceFilename) {
+        this.sourceFilename = sourceFilename;
         return this;
     }
 }

@@ -1,7 +1,18 @@
 package org.xlrnet.datac.vcs.services;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -24,9 +35,8 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
 
-import java.util.*;
-
-import static com.google.common.base.Preconditions.checkArgument;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 
 /**
  * Service for accessing and manipulating VCS revision graphs.
@@ -94,6 +104,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
     }
 
     @Transactional(readOnly = true)
+    @Nullable
     public Revision findByInternalIdAndProject(String internalId, Project project) {
         return getRepository().findByInternalIdAndProject(internalId, project);
     }
@@ -108,6 +119,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
      *         Amount of revisions to find.
      * @return a list of the last revisions in the given project.
      */
+    @NotNull
     @Transactional(readOnly = true)
     public List<Revision> findLastRevisionsInProject(Project project, int limit) {
         return getRepository().findAllByProject(project, new LimitOffsetPageable(limit, 0, new Sort(
@@ -229,13 +241,33 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         return ImmutablePair.of(savedRevision, convertedRevision.getRight());
     }
 
-    public List<Revision> findLastRevisionsOnBranch(Branch branch) throws DatacTechnicalException {
+    /**
+     * Finds the last revisions on the given branch.
+     * @param branch The branch on which to search.
+     * @param amount  The amount of revisions to return.
+     * @return The last x revisions on the given branch.
+     * @throws DatacTechnicalException
+     */
+    public List<Revision> findLastRevisionsOnBranch(@NotNull Branch branch, int amount) throws DatacTechnicalException {
         Project project = branch.getProject();
         Revision lastDevRevision = findByInternalIdAndProject(branch.getInternalId(), project);
-        List<Revision> revisions = new ArrayList<>();
-        breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, revisions::add, (r -> revisions.size() >= 3));
+        List<Revision> revisions = new ArrayList<>(amount);
+        breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, revisions::add, (r -> revisions.size() >= amount));
 
         return revisions;
+    }
+
+    /**
+     * Returns the latest revision on the given branch.
+     * @param branch The branch on which to get the revision.
+     * @return the latest revision on the given branch.
+     * @throws DatacTechnicalException
+     */
+    @Nullable
+    @Transactional(readOnly = true)
+    public Revision findLastRevisionOnBranch(@NotNull Branch branch) throws DatacTechnicalException {
+        Project project = branch.getProject();
+        return findByInternalIdAndProject(branch.getInternalId(), project);
     }
 
     /**
@@ -297,6 +329,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         return newRevisions;
     }
 
+
     @NotNull
     private Map<String, Revision> buildRevisionMap(@NotNull VcsRevision rootRevision, @NotNull Project project) {
         Map<String, Revision> revisionMap = new HashMap<>();
@@ -326,7 +359,6 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         }
         return revisionMap;
     }
-
 
     private void saveAndReplaceChildren(Revision revisionToPersist, Multimap<Revision, Revision> revisionChildMap) {
         LOGGER.trace("Saving revision {}", revisionToPersist.getInternalId());

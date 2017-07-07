@@ -173,7 +173,7 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
         }
         Project saved = save(project);
         if (saved != null) {
-            if (!project.isPersisted()) {
+            if (project.isPersisted()) {
                 projectSchedulingService.unscheduleProjectUpdate(saved);
             }
             projectSchedulingService.scheduleProjectUpdate(saved);

@@ -1,5 +1,12 @@
 package org.xlrnet.datac.database.services;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,20 +27,16 @@ import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
- * Created by xolor on 01.05.17.
+ * Service responsible for indexing database changes in a project.
  */
 @Service
 public class ChangeIndexingService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChangeIndexingService.class);
+
+    /** Transaction timeout for indexing is increased to avoid errors. */
+    private static final int INDEX_TRANSACTION_TIMEOUT = 600;
 
     /**
      * Thread-scoped event log proxy.
@@ -79,7 +82,7 @@ public class ChangeIndexingService {
     }
 
 
-    @Transactional
+    @Transactional(timeout = INDEX_TRANSACTION_TIMEOUT)
     public Project indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository) throws DatacTechnicalException {
         LOGGER.info("Begin indexing changes in project {}", project.getName());
 
@@ -156,12 +159,16 @@ public class ChangeIndexingService {
         LOGGER.debug("Indexing database changes of project {} in revision {}", project.getName(), revision.getInternalId());
 
         localRepository.checkoutRevision(revision);
+
         List<DatabaseChangeSet> databaseChangeSets = liquibaseProcessService.listDatabaseChangeSetsForProject(project);
+
+        LOGGER.trace("Linking change sets to revisions");
+
         for (DatabaseChangeSet databaseChangeSet : databaseChangeSets) {
             databaseChangeSet.setRevision(revision);
+            changeSetService.linkRevisions(databaseChangeSet);
         }
 
         return changeSetService.save(databaseChangeSets);
     }
-
 }

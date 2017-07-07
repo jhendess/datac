@@ -71,6 +71,7 @@ public class LiquibaseProcessService {
     @NotNull
     public List<DatabaseChangeSet> listDatabaseChangeSetsForProject(@NotNull Project project) throws DatacTechnicalException {
         ArrayList<DatabaseChangeSet> datacChangeSets = new ArrayList<>();
+        LOGGER.debug("Listing database changes in project {}", project);
         try {
             DatabaseChangeLog databaseChangeLog = getDatabaseChangeLog(project.getChangelogLocation(), project);
 
@@ -104,7 +105,8 @@ public class LiquibaseProcessService {
         datacChangeSet.setAuthor(author)
                 .setComment(liquibaseChangeSet.getComments())
                 .setInternalId(liquibaseChangeSet.getId())
-                .setChecksum(liquibaseChangeSet.generateCheckSum().toString());
+                .setChecksum(liquibaseChangeSet.generateCheckSum().toString())
+                .setSourceFilename(liquibaseChangeSet.getFilePath());
 
         int changeOrder = 0;
         for (Change change : liquibaseChangeSet.getChanges()) {

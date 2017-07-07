@@ -1,5 +1,9 @@
 package org.xlrnet.datac.vcs.services;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -22,13 +26,13 @@ import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.services.EventLogService;
 import org.xlrnet.datac.foundation.services.FileService;
 import org.xlrnet.datac.foundation.services.ProjectService;
-import org.xlrnet.datac.vcs.api.*;
+import org.xlrnet.datac.vcs.api.VcsAdapter;
+import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
+import org.xlrnet.datac.vcs.api.VcsLocalRepository;
+import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
+import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
 
 /**
  * Service which is responsible for collecting all database changes in a project.
