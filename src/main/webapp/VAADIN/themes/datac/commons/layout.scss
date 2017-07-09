@@ -27,9 +27,18 @@
     color: #8a6d3b;
   }
 
-  .listLayout div > div {
+  .list-layout > div > div {
     display: list-item;
     list-style: disc inside;
     padding-left: 12px;
+
+    div.v-caption {
+      display: inline;
+    }
+  }
+
+  .v-slot-caption-padding-right .v-caption {
+    display: inline;
+    padding-right: 12px;
   }
 }

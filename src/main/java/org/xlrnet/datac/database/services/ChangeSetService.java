@@ -1,17 +1,7 @@
 package org.xlrnet.datac.database.services;
 
-import static com.google.common.base.Preconditions.checkState;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
 import org.apache.commons.collections.keyvalue.MultiKey;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
 import org.xlrnet.datac.commons.util.SortableComparator;
+import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.repository.ChangeSetRepository;
 import org.xlrnet.datac.foundation.configuration.async.ThreadScoped;
@@ -29,6 +20,12 @@ import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
+
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Transactional service for accessing change set data. This service is thread-scoped in order to guarantee isolated
@@ -56,7 +53,8 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
-     *  @param crudRepository
+     *
+     * @param crudRepository
      *         The crud repository for providing basic crud operations.
      */
     @Autowired
@@ -127,7 +125,8 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     }
 
     /**
-     * Returns the last database change sets on the given branch. Traverses only the given amount of revisions before an empty list will be returned.
+     * Returns the last database change sets on the given branch. Traverses only the given amount of revisions before an
+     * empty list will be returned. The resulting list begins with the oldest change set and ends with the newest.
      *
      * @param branch
      *         The branch on which should be searched.
@@ -147,18 +146,16 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     }
 
     /**
-     * Adds the following links to the given {@link DatabaseChangeSet}:
-     * <ul>
-     *     <li>The revision where this change set was first introduced</li>
-     *     <li>The revision which is overwritten by this change set</li>
-     * </ul>
-     * Furthermore, if the given change set overwrites a change set, the overwritten change set will be updated, too. Requires an actively running transaction.
+     * Adds the following links to the given {@link DatabaseChangeSet}: <ul> <li>The revision where this change set was
+     * first introduced</li> <li>The revision which is overwritten by this change set</li> </ul> Furthermore, if the
+     * given change set overwrites a change set, the overwritten change set will be updated, too. Requires an actively
+     * running transaction.
+     *
      * @param databaseChangeSet
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void linkRevisions(@NotNull DatabaseChangeSet databaseChangeSet) {
         checkState(!databaseChangeSet.isPersisted(), "The given change set may not be persisted");
-        Project project = databaseChangeSet.getRevision().getProject();
 
         DatabaseChangeSet firstChangeSet = findIntroducingChangeSet(databaseChangeSet);
         if (firstChangeSet != null) {
@@ -172,6 +169,51 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
             databaseChangeSet.setOverwrittenChangeSet(overwrittenChangeSet);
             save(overwrittenChangeSet);
         }
+    }
+
+    /**
+     * Use a fallback algorithm to determine how a change should be displayed:
+     * <ol>
+     * <li>Try the actual comment</li>
+     * <li>If the no comment is available, use the filename</li>
+     * <li>If there is no filename, use the SQL preview</li>
+     * <li>If no SQL preview, use the change type</li>
+     * <li>If there is no change content, use the checksum</li>
+     * </ol>
+     * <p>
+     */
+    @NotNull
+    @Transactional(readOnly = true)
+    public String formatDatabaseChangeSetTitle(@NotNull DatabaseChangeSet changeSet) {
+        String message = changeSet.getComment();
+
+        if (StringUtils.isBlank(message)) {
+            message = StringUtils.substringAfterLast(changeSet.getSourceFilename().replace("\\", "/"), "/");
+
+            if ("raw".equalsIgnoreCase(changeSet.getInternalId())) {
+                if (StringUtils.isBlank(message)) {
+                    DatabaseChangeSet refreshed = getRepository().findOne(changeSet.getId());
+                    if (!refreshed.getChanges().isEmpty()) {
+                        DatabaseChange firstChange = refreshed.getChanges().get(0);
+                        if (StringUtils.isNotBlank(firstChange.getPreviewSql())) {
+                            message = firstChange.getPreviewSql();
+                        } else {
+                            message = firstChange.getType();
+                        }
+                    } else {
+                        message = refreshed.getChecksum();
+                    }
+                }
+            } else {
+                message += " (" + changeSet.getInternalId() + ")";
+            }
+        }
+
+        if (message == null) {
+            message = "";
+        }
+
+        return message;
     }
 
     private DatabaseChangeSet findIntroducingChangeSet(@NotNull DatabaseChangeSet databaseChangeSet) {
@@ -190,7 +232,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
                 introducingChangeSetIdCache.put(introducingChangeKey, Optional.of(introducingChangeSet.getId()));
             }
         }
-        
+
         return introducingChangeSet;
     }
 

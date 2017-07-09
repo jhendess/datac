@@ -10,14 +10,13 @@ spring:
     url: jdbc:h2:tcp://localhost/~/datac
     username: SA
     password:
-    # Configuration for Hikari connection pool
-    #type: com.zaxxer.hikari.HikariDataSource
-    #hikari:
-#      idle-timeout: 10000
-
   jpa:
     hibernate:
       ddl-auto: none
+  jta:
+    bitronix:
+      properties:
+        warn-about-zero-resource-transaction: false
     #show-sql: true
 
 liquibase:

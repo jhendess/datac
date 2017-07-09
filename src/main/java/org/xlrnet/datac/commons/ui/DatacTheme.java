@@ -9,4 +9,14 @@ public class DatacTheme {
      * Wide textfield.
      */
     public static final String FIELD_WIDE = "field-wide";
+
+    /**
+     * Render as list.
+     */
+    public static final String LIST_LAYOUT = "list-layout";
+
+    /**
+     * Adds a small padding to the right.
+     */
+    public static final String CAPTION_PADDING_RIGHT = "caption-padding-right";
 }

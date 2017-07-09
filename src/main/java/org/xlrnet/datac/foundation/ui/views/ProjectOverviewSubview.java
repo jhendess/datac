@@ -1,15 +1,18 @@
 package org.xlrnet.datac.foundation.ui.views;
 
-import java.util.List;
-
+import com.vaadin.server.ExternalResource;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
+import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.commons.util.DateTimeUtils;
-import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.services.ChangeSetService;
 import org.xlrnet.datac.foundation.domain.Project;
@@ -17,18 +20,7 @@ import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import com.vaadin.server.ExternalResource;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.GridLayout;
-import com.vaadin.ui.Label;
-import com.vaadin.ui.Layout;
-import com.vaadin.ui.Link;
-import com.vaadin.ui.Panel;
-import com.vaadin.ui.UI;
-import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.List;
 
 /**
  * Overview for projects.
@@ -142,7 +134,7 @@ public class ProjectOverviewSubview extends AbstractSubview {
     private Component buildLastChangesLayout(Project project) {
         //changeSetService.findLastChangeSetsInProject(project);
         Layout layout = new GridLayout(1, 3);
-        layout.setStyleName("listLayout");
+        layout.setStyleName(DatacTheme.LIST_LAYOUT);
         List<DatabaseChangeSet> changeSets = null;
 
         try {
@@ -156,24 +148,9 @@ public class ProjectOverviewSubview extends AbstractSubview {
 
         if (changeSets != null && !changeSets.isEmpty()) {
             for (DatabaseChangeSet changeSet : changeSets) {
-                String message = changeSet.getComment();
-                if (message != null && message.length() > MAX_BEFORE_TRUNCATE) {
+                String message = changeSetService.formatDatabaseChangeSetTitle(changeSet);
+                if (message.length() > MAX_BEFORE_TRUNCATE) {
                     message = StringUtils.truncate(message, MAX_BEFORE_TRUNCATE) + "...";
-                }
-                if (StringUtils.isBlank(message)) {
-                    if (!changeSet.getChanges().isEmpty()) {
-                        DatabaseChange firstChange = changeSet.getChanges().get(0);
-                        if (StringUtils.isNotBlank(firstChange.getPreviewSql())) {
-                            message = firstChange.getPreviewSql();
-                            if (message.length() > MAX_BEFORE_TRUNCATE) {
-                                message = StringUtils.truncate(message, MAX_BEFORE_TRUNCATE) + "...";
-                            }
-                        } else {
-                            message = firstChange.getType();
-                        }
-                    } else {
-                        message = changeSet.getChecksum();
-                    }
                 }
                 layout.addComponent(new Label(message));
                 // TODO: Add links to more information about the changesets
@@ -181,7 +158,6 @@ public class ProjectOverviewSubview extends AbstractSubview {
         } else {
             layout.addComponent(new Label("No changesets found on dev branch"));
         }
-
 
         return layout;
     }
