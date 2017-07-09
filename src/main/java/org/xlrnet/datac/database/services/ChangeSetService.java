@@ -2,6 +2,7 @@ package org.xlrnet.datac.database.services;
 
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.Hibernate;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -126,7 +127,8 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
 
     /**
      * Returns the last database change sets on the given branch. Traverses only the given amount of revisions before an
-     * empty list will be returned. The resulting list begins with the oldest change set and ends with the newest.
+     * empty list will be returned. The resulting list begins with the oldest change set and ends with the newest. The
+     * changes inside the change sets will be completely initialized.
      *
      * @param branch
      *         The branch on which should be searched.
@@ -139,7 +141,10 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
         AtomicInteger visitedRevisions = new AtomicInteger(0);
         breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, (r) -> {
             if (countByRevision(r) > 0) {
-                changeSetsInRevision.addAll(findAllInRevision(r));
+                for (DatabaseChangeSet databaseChangeSet : findAllInRevision(r)) {
+                    changeSetsInRevision.add(databaseChangeSet);
+                    Hibernate.initialize(databaseChangeSet.getChanges());
+                }
             }
         }, (r -> (visitedRevisions.incrementAndGet() > revisionsToVisit || !changeSetsInRevision.isEmpty())));
         return changeSetsInRevision;
@@ -217,7 +222,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     }
 
     private DatabaseChangeSet findIntroducingChangeSet(@NotNull DatabaseChangeSet databaseChangeSet) {
-        DatabaseChangeSet introducingChangeSet = null;
+        DatabaseChangeSet introducingChangeSet;
         Project project = databaseChangeSet.getRevision().getProject();
 
         MultiKey introducingChangeKey = new MultiKey(project.getId(), databaseChangeSet.getInternalId(), databaseChangeSet.getSourceFilename());

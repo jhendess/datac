@@ -1,12 +1,14 @@
 package org.xlrnet.datac.foundation.ui.views;
 
 import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.hibernate.engine.jdbc.internal.BasicFormatterImpl;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,7 +138,7 @@ public class ProjectChangeSubview extends AbstractSubview {
         grid.addComponent(new Label("First revision: "));
         grid.addComponent(new Label(StringUtils.substring(firstRevision.getInternalId(), 0, REVISION_LENGTH) + " - " + StringUtils.substringBefore(firstRevision.getMessage(), "\n")));
         grid.addComponent(new Label("Created by: "));
-        grid.addComponent(new Label(StringUtils.isNotBlank(changeSet.getAuthor()) ? changeSet.getAuthor() : firstRevision.getAuthor()));
+        grid.addComponent(new Label(firstRevision.getAuthor()));
         grid.addComponent(new Label("Created at: "));
         grid.addComponent(new Label(firstRevision.getCommitTime().toString()));
 
@@ -147,6 +149,13 @@ public class ProjectChangeSubview extends AbstractSubview {
             grid.addComponent(new Label("Modified at: "));
             grid.addComponent(new Label(overwrittenChangeSet.getRevision().getCommitTime().toString()));
         }
+
+        grid.addComponent(new Label("SQL Preview:"));
+        String previewSql = new BasicFormatterImpl().format(changeSet.getChanges().get(0).getPreviewSql());
+        Label label = new Label(previewSql, ContentMode.PREFORMATTED);
+        label.setWidth("80%");
+        grid.addComponent(label);
+
         return panelContent;
     }
 

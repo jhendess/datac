@@ -164,7 +164,7 @@ public class ProjectOverviewSubview extends AbstractSubview {
 
     private Component buildLastRevisionsLayout(Project project) {
         Layout layout = new GridLayout(1, REVISIONS_TO_DISPLAY);
-        layout.setStyleName("listLayout");
+        layout.setStyleName(DatacTheme.LIST_LAYOUT);
 
         List<Revision> revisions = null;
         try {
