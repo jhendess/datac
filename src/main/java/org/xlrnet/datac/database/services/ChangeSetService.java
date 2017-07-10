@@ -1,16 +1,5 @@
 package org.xlrnet.datac.database.services;
 
-import static com.google.common.base.Preconditions.checkState;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
@@ -29,11 +18,7 @@ import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.repository.ChangeSetRepository;
 import org.xlrnet.datac.foundation.configuration.async.ThreadScoped;
-import org.xlrnet.datac.foundation.domain.EventLog;
-import org.xlrnet.datac.foundation.domain.EventLogMessage;
-import org.xlrnet.datac.foundation.domain.EventType;
-import org.xlrnet.datac.foundation.domain.MessageSeverity;
-import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.domain.*;
 import org.xlrnet.datac.foundation.domain.validation.SortOrderValidator;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.foundation.services.EventLogService;
@@ -41,6 +26,12 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
+
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Transactional service for accessing change set data. This service is thread-scoped in order to guarantee isolated
@@ -80,7 +71,8 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
-     *  @param crudRepository
+     *
+     * @param crudRepository
      *         The crud repository for providing basic crud operations.
      * @param lockingService
      * @param eventLogService
@@ -301,8 +293,8 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
             LOGGER.warn("Deleting all change sets in project {}", project.getName());
             eventLog.addMessage(new EventLogMessage("Resetting change sets").setSeverity(MessageSeverity.WARNING));
             getRepository().deleteAllByProjectId(project.getId());
+            eventLogService.save(eventLog);
         } catch (RuntimeException e) {
-            LOGGER.error("Deleting all change sets in project {} failed", project.getName(), e);
             eventLogService.addExceptionToEventLog(eventLog, "Resetting change sets failed", e);
             eventLogService.save(eventLog);
             throw new DatacTechnicalException(e);
