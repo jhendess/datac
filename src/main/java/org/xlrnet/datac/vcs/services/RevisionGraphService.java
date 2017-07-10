@@ -121,8 +121,8 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
      */
     @NotNull
     @Transactional(readOnly = true)
-    public List<Revision> findLastRevisionsInProject(Project project, int limit) {
-        return getRepository().findAllByProject(project, new LimitOffsetPageable(limit, 0, new Sort(
+    public List<Revision> findLastRevisionsInProjectPaged(Project project, int limit, int offset) {
+        return getRepository().findAllByProject(project, new LimitOffsetPageable(limit, offset, new Sort(
                 new Sort.Order(Sort.Direction.DESC, "commitTime"))
         ));
     }

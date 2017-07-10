@@ -1,32 +1,46 @@
 package org.xlrnet.datac.database.services;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.exception.LockFailedException;
 import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
 import org.xlrnet.datac.commons.util.SortableComparator;
 import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.repository.ChangeSetRepository;
 import org.xlrnet.datac.foundation.configuration.async.ThreadScoped;
+import org.xlrnet.datac.foundation.domain.EventLog;
+import org.xlrnet.datac.foundation.domain.EventLogMessage;
+import org.xlrnet.datac.foundation.domain.EventType;
+import org.xlrnet.datac.foundation.domain.MessageSeverity;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.validation.SortOrderValidator;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
+import org.xlrnet.datac.foundation.services.EventLogService;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
+import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Transactional service for accessing change set data. This service is thread-scoped in order to guarantee isolated
@@ -36,12 +50,24 @@ import static com.google.common.base.Preconditions.checkState;
 @ThreadScoped
 public class ChangeSetService extends AbstractTransactionalService<DatabaseChangeSet, ChangeSetRepository> {
 
+    private final Logger LOGGER = LoggerFactory.getLogger(ChangeSetService.class);
+
     private final SortOrderValidator sortOrderValidator;
 
     /**
      * Service for accessing the revision graph.
      */
     private final RevisionGraphService revisionGraphService;
+
+    /**
+     * Central locking service.
+     */
+    private final LockingService lockingService;
+
+    /**
+     * Event logging service.
+     */
+    private final EventLogService eventLogService;
 
     /**
      * Helper class for performing breadth first traversals on revision graphs.
@@ -54,15 +80,18 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
-     *
-     * @param crudRepository
+     *  @param crudRepository
      *         The crud repository for providing basic crud operations.
+     * @param lockingService
+     * @param eventLogService
      */
     @Autowired
-    public ChangeSetService(ChangeSetRepository crudRepository, SortOrderValidator sortOrderValidator, RevisionGraphService revisionGraphService) {
+    public ChangeSetService(ChangeSetRepository crudRepository, SortOrderValidator sortOrderValidator, RevisionGraphService revisionGraphService, LockingService lockingService, EventLogService eventLogService) {
         super(crudRepository);
         this.sortOrderValidator = sortOrderValidator;
         this.revisionGraphService = revisionGraphService;
+        this.lockingService = lockingService;
+        this.eventLogService = eventLogService;
     }
 
     /**
@@ -260,5 +289,25 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
             }
         }
         return overwrittenChangeSets;
+    }
+
+    @Transactional
+    public void resetChanges(Project project) throws DatacTechnicalException {
+        if (!lockingService.tryLock(project)) {
+            throw new LockFailedException(project);
+        }
+        EventLog eventLog = eventLogService.newEventLog().setProject(project).setType(EventType.CHANGESET_RESET);
+        try {
+            LOGGER.warn("Deleting all change sets in project {}", project.getName());
+            eventLog.addMessage(new EventLogMessage("Resetting change sets").setSeverity(MessageSeverity.WARNING));
+            getRepository().deleteAllByProjectId(project.getId());
+        } catch (RuntimeException e) {
+            LOGGER.error("Deleting all change sets in project {} failed", project.getName(), e);
+            eventLogService.addExceptionToEventLog(eventLog, "Resetting change sets failed", e);
+            eventLogService.save(eventLog);
+            throw new DatacTechnicalException(e);
+        } finally {
+            lockingService.unlock(project);
+        }
     }
 }

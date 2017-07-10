@@ -10,5 +10,9 @@ public enum EventType {
     /** An uncaught exception was thrown. */
     UNCAUGHT_EXCEPTION,
     /** Application startup. */
-    STARTUP, PROJECT_CLEANUP;
+    STARTUP,
+    /** Project is being cleaned. */
+    PROJECT_CLEANUP,
+    /** Change sets are reset manually. */
+    CHANGESET_RESET;
 }

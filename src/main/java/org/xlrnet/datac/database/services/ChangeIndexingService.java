@@ -143,6 +143,7 @@ public class ChangeIndexingService {
         AtomicInteger indexed = new AtomicInteger(0);
         AtomicInteger newChangeSets = new AtomicInteger(0);
 
+        // FIXME: breadth-first traversing doesn't honor the correct order in which revision were originally committed - try depth-first instead
         breadthFirstTraverser.traverseChildren(rootRevision, (Revision r) -> {
             if (revisionsToIndex.contains(r)) {
                 double progress = (indexed.getAndIncrement() / (double) revisionsToIndex.size()) * 100.0;

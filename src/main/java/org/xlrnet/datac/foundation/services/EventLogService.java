@@ -1,6 +1,8 @@
 package org.xlrnet.datac.foundation.services;
 
-import com.google.common.base.Throwables;
+import java.time.Instant;
+import java.util.List;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -20,8 +22,7 @@ import org.xlrnet.datac.foundation.domain.MessageSeverity;
 import org.xlrnet.datac.foundation.domain.repository.EventLogMessageRepository;
 import org.xlrnet.datac.foundation.domain.repository.EventLogRepository;
 
-import java.time.Instant;
-import java.util.List;
+import com.google.common.base.Throwables;
 
 /**
  * Service for high-level event logging. Provides convenient methods for creating and reading event logs.
@@ -54,6 +55,7 @@ public class EventLogService extends AbstractTransactionalService<EventLog, Even
     @NotNull
     @Transactional(propagation = Propagation.SUPPORTS)
     public EventLog newEventLog() {
+        // TODO: Set username if available
         return new EventLog().setCreated(Instant.now());
     }
 

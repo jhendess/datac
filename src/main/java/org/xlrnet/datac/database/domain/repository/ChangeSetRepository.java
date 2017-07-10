@@ -3,6 +3,7 @@ package org.xlrnet.datac.database.domain.repository;
 import java.util.Collection;
 import java.util.List;
 
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
@@ -34,4 +35,11 @@ public interface ChangeSetRepository extends PagingAndSortingRepository<Database
     @Query("SELECT d FROM DatabaseChangeSet d WHERE d.revision.project = ?1 AND d.internalId = ?2 AND d.sourceFilename = ?3 AND d.checksum <> ?4 AND d.conflictingChangeSet IS NULL")
     Collection<DatabaseChangeSet> findOverwrittenChangeSets(Project project, String internalId, String sourceFileName, String checksum);
 
+    /**
+     * Deletes all change sets which belong to a given project.
+     * @param projectId Id of the project.
+     */
+    @Modifying
+    @Query(value = "DELETE FROM CHANGESET WHERE REVISION_ID IN (SELECT REVISION_ID FROM REVISION WHERE PROJECT_ID = ?1)", nativeQuery = true)
+    void deleteAllByProjectId(Long projectId);
 }

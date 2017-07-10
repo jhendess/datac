@@ -1,11 +1,9 @@
 package org.xlrnet.datac.foundation.ui.views;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.hibernate.engine.jdbc.internal.BasicFormatterImpl;
@@ -25,9 +23,16 @@ import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.GridLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Renders a list of {@link org.xlrnet.datac.database.domain.DatabaseChangeSet} in a given branch/revision. The view does not display the actual change sets in the given revision, but the change sets which are present in the closest revision
@@ -106,8 +111,10 @@ public class ProjectChangeSubview extends AbstractSubview {
         for (DatabaseChangeSet changeSet : changeSets) {
             String title = changeSetService.formatDatabaseChangeSetTitle(changeSet);
             Panel panel = new Panel(title);
-            if (changeSet.getOverwrittenChangeSet() != null) {
-                panel.setDescription("This change set modifies a change set of an earlier revision.");
+            DatabaseChangeSet firstChangeSet = changeSet.getIntroducingChangeSet() != null ? changeSet.getIntroducingChangeSet() : changeSet;
+            DatabaseChangeSet conflictingChangeSet = firstChangeSet.getConflictingChangeSet();  // FIXME: What happens if there are multiple overwritten change sets?
+            if (conflictingChangeSet != null) {
+                panel.setDescription("This change set was modified after check-in.");
                 panel.setIcon(VaadinIcons.BOLT);
             } else if (changeSet.getIntroducingChangeSet() == null && Objects.equals(changeSet.getRevision().getId(), revision.getId())) {
                 panel.setDescription("This change set was introduced in this revision.");
@@ -134,20 +141,32 @@ public class ProjectChangeSubview extends AbstractSubview {
         GridLayout grid = new GridLayout(2, 6);
         panelContent.addComponent(grid);
 
-        Revision firstRevision = changeSet.getIntroducingChangeSet() != null ? changeSet.getIntroducingChangeSet().getRevision() : changeSet.getRevision();
-        grid.addComponent(new Label("First revision: "));
-        grid.addComponent(new Label(StringUtils.substring(firstRevision.getInternalId(), 0, REVISION_LENGTH) + " - " + StringUtils.substringBefore(firstRevision.getMessage(), "\n")));
+        DatabaseChangeSet firstChangeSet = changeSet.getIntroducingChangeSet() != null ? changeSet.getIntroducingChangeSet() : changeSet;
+        Revision firstRevision = firstChangeSet.getRevision();
+        grid.addComponent(new Label("Created revision: "));
+        grid.addComponent(new Label(formatRevision(firstRevision)));
         grid.addComponent(new Label("Created by: "));
-        grid.addComponent(new Label(firstRevision.getAuthor()));
+        grid.addComponent(new Label(firstRevision.getAuthor()));    // TODO: Map the authors to actual users
+        if (StringUtils.isNotBlank(firstRevision.getReviewer())) {
+            grid.addComponent(new Label("Reviewed by: "));
+            grid.addComponent(new Label(firstRevision.getReviewer()));
+        }
         grid.addComponent(new Label("Created at: "));
         grid.addComponent(new Label(firstRevision.getCommitTime().toString()));
 
-        if (changeSet.getOverwrittenChangeSet() != null) {
-            DatabaseChangeSet overwrittenChangeSet = changeSet.getOverwrittenChangeSet();
+        DatabaseChangeSet conflictingChangeSet = firstChangeSet.getConflictingChangeSet();  // FIXME: What happens if there are multiple overwritten change sets?
+        if (conflictingChangeSet != null) {
+            Revision conflictingRevision = conflictingChangeSet.getRevision();
+            grid.addComponent(new Label("Modified revision: "));
+            grid.addComponent(new Label(formatRevision(conflictingRevision)));
             grid.addComponent(new Label("Modified by: "));
-            grid.addComponent(new Label(overwrittenChangeSet.getAuthor()));   // TODO: Map the authors to actual users
+            grid.addComponent(new Label(conflictingRevision.getAuthor()));   // TODO: Map the authors to actual users
+            if (StringUtils.isNotBlank(conflictingRevision.getReviewer())) {
+                grid.addComponent(new Label("Modification reviewed by: "));
+                grid.addComponent(new Label(conflictingRevision.getReviewer()));
+            }
             grid.addComponent(new Label("Modified at: "));
-            grid.addComponent(new Label(overwrittenChangeSet.getRevision().getCommitTime().toString()));
+            grid.addComponent(new Label(conflictingRevision.getCommitTime().toString()));
         }
 
         grid.addComponent(new Label("SQL Preview:"));
@@ -156,7 +175,16 @@ public class ProjectChangeSubview extends AbstractSubview {
         label.setWidth("80%");
         grid.addComponent(label);
 
+        if (changeSet.getConflictingChangeSet() != null) {
+            panelContent.addComponent(new Label("Warning: this change set is modified in a later revision."));
+        }
+
         return panelContent;
+    }
+
+    @NotNull
+    private String formatRevision(Revision firstRevision) {
+        return StringUtils.substring(firstRevision.getInternalId(), 0, REVISION_LENGTH) + " - " + StringUtils.substringBefore(firstRevision.getMessage(), "\n");
     }
 
     @NotNull

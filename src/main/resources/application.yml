@@ -13,11 +13,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
+    #show-sql: true
   jta:
     bitronix:
       properties:
         warn-about-zero-resource-transaction: false
-    #show-sql: true
 
 liquibase:
   change-log: classpath:db/changelog/db.changelog-master.xml       # Use XML changelog for liquibase
