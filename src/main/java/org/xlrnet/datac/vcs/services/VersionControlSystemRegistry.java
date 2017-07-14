@@ -1,6 +1,13 @@
 package org.xlrnet.datac.vcs.services;
 
-import com.google.common.collect.ImmutableList;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -15,10 +22,7 @@ import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.api.VcsAdapter;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 
-import javax.annotation.PostConstruct;
-import java.util.*;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Service which provides central access to the available VCS adapters. The adapters will be registered on application
@@ -26,9 +30,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 @Component
 @Scope("singleton")
-public class VersionControlSystemService implements SmartLifecycle {
+public class VersionControlSystemRegistry implements SmartLifecycle {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(VersionControlSystemService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(VersionControlSystemRegistry.class);
 
     /**
      * All raw discovered vcs adapters.
@@ -51,7 +55,7 @@ public class VersionControlSystemService implements SmartLifecycle {
     private boolean running;
 
     @Autowired
-    public VersionControlSystemService(List<VcsAdapter> vcsAdapters) {
+    public VersionControlSystemRegistry(List<VcsAdapter> vcsAdapters) {
         this.vcsAdapters = vcsAdapters;
     }
 
@@ -102,13 +106,13 @@ public class VersionControlSystemService implements SmartLifecycle {
      */
     @NotNull
     public VcsAdapter getVcsAdapter(@NotNull Project project) throws DatacTechnicalException {
-        Optional<VcsMetaInfo> metaInfo = findMetaInfoByAdapterClassName(project.getAdapterClass());
+        Optional<VcsMetaInfo> metaInfo = findMetaInfoByAdapterClassName(project.getVcsAdapterClass());
         if (!metaInfo.isPresent()) {
-            metaInfo = findMetaInfoByVcsType(project.getType());
-            metaInfo.ifPresent(m -> LOGGER.warn("No VCS of class {} found - falling back to adapter {} with same type {}", project.getAdapterClass(), m.getAdapterName(), m.getVcsName()));
+            metaInfo = findMetaInfoByVcsType(project.getVcsType());
+            metaInfo.ifPresent(m -> LOGGER.warn("No VCS of class {} found - falling back to adapter {} with same type {}", project.getVcsAdapterClass(), m.getAdapterName(), m.getVcsName()));
         }
         if (!metaInfo.isPresent()) {
-            throw new DatacTechnicalException("No VCS adapter of type " + project.getType() + " or class " + project.getAdapterClass() + " is available");
+            throw new DatacTechnicalException("No VCS adapter of type " + project.getVcsType() + " or class " + project.getVcsAdapterClass() + " is available");
         }
 
         Optional<VcsAdapter> adapterByMetaInfo = findAdapterByMetaInfo(metaInfo.get());
@@ -154,8 +158,7 @@ public class VersionControlSystemService implements SmartLifecycle {
         return running;
     }
 
-    @PostConstruct
-    void init() {
+    private void init() {
         vcsAdapterMetaInfo = new ArrayList<>(vcsAdapters.size());
         for (VcsAdapter vcsAdapter : vcsAdapters) {
             try {
@@ -193,9 +196,9 @@ public class VersionControlSystemService implements SmartLifecycle {
     private void registerVcsAdapter(@NotNull VcsAdapter vcsAdapter) {
         VcsMetaInfo metaInfo = vcsAdapter.getMetaInfo();
 
-        checkNotNull(metaInfo, "Metainfo for VCS adapter may not be null", vcsAdapter.getClass().getName());
-        checkNotNull(metaInfo.getVcsName(), "VCS name for VCS adapter may not be null", vcsAdapter.getClass().getName());
-        checkNotNull(metaInfo.getAdapterName(), "Returned metainfo for VCS adapter may not be null", vcsAdapter.getClass().getName());
+        checkNotNull(metaInfo, "Metainfo for VCS adapter %s may not be null", vcsAdapter.getClass().getName());
+        checkNotNull(metaInfo.getVcsName(), "VCS name for VCS adapter %s may not be null", vcsAdapter.getClass().getName());
+        checkNotNull(metaInfo.getAdapterName(), "Returned metainfo for VCS adapter %s may not be null", vcsAdapter.getClass().getName());
 
         vcsAdapterMetaInfo.add(metaInfo);
         metaInfoAdapterMap.put(metaInfo, vcsAdapter);

@@ -15,9 +15,9 @@ import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.LockFailedException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
+import org.xlrnet.datac.database.impl.liquibase.LiquibaseAdapter;
 import org.xlrnet.datac.database.services.ChangeIndexingService;
 import org.xlrnet.datac.database.services.ChangeSetService;
-import org.xlrnet.datac.database.services.LiquibaseProcessService;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
 import org.xlrnet.datac.foundation.domain.EventType;
@@ -50,7 +50,7 @@ public class ProjectUpdateService {
     /**
      * The VCS Adapter that will be used for updating the project.
      */
-    private final VersionControlSystemService vcsService;
+    private final VersionControlSystemRegistry vcsService;
 
     /**
      * Central locking service.
@@ -88,7 +88,7 @@ public class ProjectUpdateService {
     private final EventLogService eventLogService;
 
     @Autowired
-    public ProjectUpdateService(EventLogProxy eventLog1, VersionControlSystemService vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, BranchService branchService, RevisionGraphService revisionGraphService, EventLogService eventLogService, EventLogProxy eventLog, LiquibaseProcessService liquibaseProcessService, ChangeSetService changeSetService, ChangeIndexingService changeIndexingService) {
+    public ProjectUpdateService(EventLogProxy eventLog1, VersionControlSystemRegistry vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, BranchService branchService, RevisionGraphService revisionGraphService, EventLogService eventLogService, EventLogProxy eventLog, LiquibaseAdapter databaseChangeSystemAdapter, ChangeSetService changeSetService, ChangeIndexingService changeIndexingService) {
         this.eventLog = eventLog1;
         this.vcsService = vcsService;
         this.lockingService = lockingService;

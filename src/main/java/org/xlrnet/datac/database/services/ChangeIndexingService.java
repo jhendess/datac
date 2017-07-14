@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jetbrains.annotations.NotNull;
@@ -13,8 +14,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.exception.MissingDatabaseChangeSystemAdapter;
 import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
 import org.xlrnet.datac.commons.graph.DepthFirstTraverser;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
@@ -46,7 +49,7 @@ public class ChangeIndexingService {
     /**
      * Service for accessing and parsing changelog files.
      */
-    private final LiquibaseProcessService liquibaseProcessService;
+    private final DatabaseChangeSystemAdapterRegistry databaseChangeSystemAdapterRegistry;
 
     /**
      * Service for accessing change sets.
@@ -73,9 +76,9 @@ public class ChangeIndexingService {
      */
     private DepthFirstTraverser<Revision> depthFirstTraverser = new DepthFirstTraverser<>();
 
-    public ChangeIndexingService(EventLogProxy eventLog, LiquibaseProcessService liquibaseProcessService, ChangeSetService changeSetService, ProjectService projectService, RevisionGraphService revisionGraphService) {
+    public ChangeIndexingService(EventLogProxy eventLog, DatabaseChangeSystemAdapterRegistry databaseChangeSystemAdapterRegistry, ChangeSetService changeSetService, ProjectService projectService, RevisionGraphService revisionGraphService) {
         this.eventLog = eventLog;
-        this.liquibaseProcessService = liquibaseProcessService;
+        this.databaseChangeSystemAdapterRegistry = databaseChangeSystemAdapterRegistry;
         this.changeSetService = changeSetService;
         this.projectService = projectService;
         this.revisionGraphService = revisionGraphService;
@@ -161,7 +164,13 @@ public class ChangeIndexingService {
 
         localRepository.checkoutRevision(revision);
 
-        List<DatabaseChangeSet> databaseChangeSets = liquibaseProcessService.listDatabaseChangeSetsForProject(project);
+        Optional<DatabaseChangeSystemAdapter> databaseChangeSystemAdapter = databaseChangeSystemAdapterRegistry.getAdapterByProject(project);
+        List<DatabaseChangeSet> databaseChangeSets;
+        if (databaseChangeSystemAdapter.isPresent()) {
+            databaseChangeSets = databaseChangeSystemAdapter.get().listDatabaseChangeSetsForProject(project);
+        } else {
+            throw new MissingDatabaseChangeSystemAdapter(project);
+        }
 
         LOGGER.trace("Linking change sets to revisions");
 

@@ -36,12 +36,12 @@ public class CleanupProjectsInLifecycleService implements SmartLifecycle {
 
     private final ProjectService projectService;
 
-    private final VersionControlSystemService vcsService;
+    private final VersionControlSystemRegistry vcsService;
 
     private final FileService fileService;
 
     @Autowired
-    public CleanupProjectsInLifecycleService(EventLogService eventLogService, ProjectService projectService, VersionControlSystemService vcsService, FileService fileService) {
+    public CleanupProjectsInLifecycleService(EventLogService eventLogService, ProjectService projectService, VersionControlSystemRegistry vcsService, FileService fileService) {
         this.eventLogService = eventLogService;
         this.projectService = projectService;
         this.vcsService = vcsService;

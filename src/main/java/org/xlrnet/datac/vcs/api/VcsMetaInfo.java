@@ -3,7 +3,7 @@ package org.xlrnet.datac.vcs.api;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Metadata for a version control system. The concrete implementation of this class should be either a singleton or
+ * Metadata for a version control system adapter. The concrete implementation of this class should be either a singleton or
  * equal to any other object of the concrete implementation.
  */
 public interface VcsMetaInfo {

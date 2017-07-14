@@ -1,4 +1,4 @@
-package org.xlrnet.datac.database.services;
+package org.xlrnet.datac.database.impl.liquibase;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,9 +10,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
 import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
-import org.xlrnet.datac.database.util.CustomLiquibaseFileSystemResourceAccessor;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.FileService;
 
@@ -36,7 +37,7 @@ import liquibase.statement.SqlStatement;
  * Service which provides access to liquibase change log files.
  */
 @Service
-public class LiquibaseProcessService {
+public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
 
     private static final String UNKNOWN_AUTHOR = "unknown";
 
@@ -45,10 +46,10 @@ public class LiquibaseProcessService {
      */
     private final FileService fileService;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LiquibaseProcessService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LiquibaseAdapter.class);
 
     @Autowired
-    public LiquibaseProcessService(FileService fileService) {
+    public LiquibaseAdapter(FileService fileService) {
         this.fileService = fileService;
     }
 
@@ -60,14 +61,13 @@ public class LiquibaseProcessService {
         return parser.parse(changeLogFile, changeLogParameters, resourceAccessor);
     }
 
-    /**
-     * Returns all database change sets in the given project. The project will be scanned in its current state.
-     * Therefore you have to make sure, that you checked out the correct revision manually before.
-     *
-     * @param project
-     *         The project to index.
-     * @return List of database change sets. Begins with the oldest currently present.
-     */
+    @NotNull
+    @Override
+    public DatabaseChangeSystemMetaInfo getMetaInfo() {
+        return LiquibaseAdapterMetaInfo.getInstance();
+    }
+
+    @Override
     @NotNull
     public List<DatabaseChangeSet> listDatabaseChangeSetsForProject(@NotNull Project project) throws DatacTechnicalException {
         ArrayList<DatabaseChangeSet> datacChangeSets = new ArrayList<>();
@@ -98,7 +98,7 @@ public class LiquibaseProcessService {
      * @return A converted change set for datac.
      */
     @NotNull
-    public DatabaseChangeSet convertChangeSet(@NotNull ChangeSet liquibaseChangeSet) {
+    private DatabaseChangeSet convertChangeSet(@NotNull ChangeSet liquibaseChangeSet) {
         DatabaseChangeSet datacChangeSet = new DatabaseChangeSet();
 
         String author = StringUtils.isNotBlank(liquibaseChangeSet.getAuthor()) ? liquibaseChangeSet.getAuthor() : UNKNOWN_AUTHOR;
@@ -127,7 +127,7 @@ public class LiquibaseProcessService {
      * @return A converted change set for datac.
      */
     @NotNull
-    public DatabaseChange convertChange(@NotNull Change liquibaseChange) {
+    private DatabaseChange convertChange(@NotNull Change liquibaseChange) {
         Database mockDatabase = getReadOnlyDatabase();
         DatabaseChange datacChange = new DatabaseChange();
 
@@ -151,7 +151,7 @@ public class LiquibaseProcessService {
     }
 
     @NotNull
-    public StringBuilder generateSql(@NotNull Change change, @NotNull Database database) throws DatacTechnicalException {
+    private StringBuilder generateSql(@NotNull Change change, @NotNull Database database) throws DatacTechnicalException {
         StringBuilder sqlBuilder = new StringBuilder();
         try {
             SqlStatement[] sqlStatements = change.generateStatements(database);

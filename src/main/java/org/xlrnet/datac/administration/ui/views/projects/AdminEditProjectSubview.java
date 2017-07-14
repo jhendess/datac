@@ -1,15 +1,11 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import com.google.common.base.Objects;
-import com.vaadin.annotations.PropertyId;
-import com.vaadin.data.BeanValidationBinder;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.shared.ui.MarginInfo;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.validation.ConstraintViolationException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
@@ -23,7 +19,10 @@ import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.tasks.RunnableTask;
 import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
 import org.xlrnet.datac.database.services.ChangeSetService;
+import org.xlrnet.datac.database.services.DatabaseChangeSystemAdapterRegistry;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.services.ProjectService;
@@ -36,14 +35,33 @@ import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.services.LockingService;
-import org.xlrnet.datac.vcs.services.VersionControlSystemService;
+import org.xlrnet.datac.vcs.services.VersionControlSystemRegistry;
 import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
 import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
 
-import javax.validation.ConstraintViolationException;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.google.common.base.Objects;
+import com.vaadin.annotations.PropertyId;
+import com.vaadin.data.BeanValidationBinder;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.shared.ui.MarginInfo;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.CheckBoxGroup;
+import com.vaadin.ui.ComboBox;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Layout;
+import com.vaadin.ui.PasswordField;
+import com.vaadin.ui.ProgressBar;
+import com.vaadin.ui.TextArea;
+import com.vaadin.ui.TextField;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Assistant for creating new projects.
@@ -59,7 +77,12 @@ public class AdminEditProjectSubview extends AbstractSubview {
     /**
      * The VCS Service.
      */
-    private final VersionControlSystemService vcsService;
+    private final VersionControlSystemRegistry vcsRegistry;
+
+    /**
+     * The registry for available database change system adapters.
+     */
+    private final DatabaseChangeSystemAdapterRegistry dcsRegistry;
 
     /**
      * Task executor.
@@ -103,6 +126,11 @@ public class AdminEditProjectSubview extends AbstractSubview {
      * Selection box for various VCS implementations.
      */
     private final ComboBox<VcsMetaInfo> vcsSelect = new ComboBox<>("VCS System");
+
+    /**
+     * Selection box for various database change system implementations.
+     */
+    private final ComboBox<DatabaseChangeSystemMetaInfo> dcsSelect = new ComboBox<>("Database change system");
 
     /**
      * Text field for vcs target URL.
@@ -199,8 +227,9 @@ public class AdminEditProjectSubview extends AbstractSubview {
     private Button resetButton;
 
     @Autowired
-    public AdminEditProjectSubview(VersionControlSystemService vcsService, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService, ChangeSetService changeSetService) {
-        this.vcsService = vcsService;
+    public AdminEditProjectSubview(VersionControlSystemRegistry vcsRegistry, DatabaseChangeSystemAdapterRegistry dcsRegistry, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService, ChangeSetService changeSetService) {
+        this.vcsRegistry = vcsRegistry;
+        this.dcsRegistry = dcsRegistry;
         this.taskExecutor = taskExecutor;
         this.projectService = projectService;
         this.lockingService = lockingService;
@@ -250,6 +279,8 @@ public class AdminEditProjectSubview extends AbstractSubview {
         vcsUsernameField.addStyleName(DatacTheme.FIELD_WIDE);
         vcsPasswordField.addStyleName(DatacTheme.FIELD_WIDE);
 
+        dcsSelect.addStyleName(DatacTheme.FIELD_WIDE);
+        dcsSelect.setEmptySelectionAllowed(false);
         changeLogLocationField.addStyleName(DatacTheme.FIELD_WIDE);
         pollIntervalField.addStyleName(DatacTheme.FIELD_WIDE);
         vcsDevBranchSelect.addStyleName(DatacTheme.FIELD_WIDE);
@@ -272,12 +303,12 @@ public class AdminEditProjectSubview extends AbstractSubview {
         if (!isNewProject) {
             changeToBranchSelectionState(projectBean.getBranches());
             vcsDevBranchSelect.setValue(projectBean.getDevelopmentBranch());
-            Optional<VcsMetaInfo> metaInfo = vcsService.findMetaInfoByAdapterClassName(projectBean.getAdapterClass());
-            if (!metaInfo.isPresent()) {
-                metaInfo = vcsService.findMetaInfoByVcsType(projectBean.getType());
+            Optional<VcsMetaInfo> vcsMetaInfo = vcsRegistry.findMetaInfoByAdapterClassName(projectBean.getVcsAdapterClass());
+            if (!vcsMetaInfo.isPresent()) {
+                vcsMetaInfo = vcsRegistry.findMetaInfoByVcsType(projectBean.getVcsType());
             }
-            if (metaInfo.isPresent()) {
-                vcsSelect.setValue(metaInfo.get());
+            if (vcsMetaInfo.isPresent()) {
+                vcsSelect.setValue(vcsMetaInfo.get());
                 setVcsFieldEnabled(true);
             } else {
                 NotificationUtils.showError("The VCS adapter used for creating the project is missing.", true);
@@ -321,7 +352,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
         vcsUrlField.setDescription("URL which is used for fetching data from a repository");
         vcsUsernameField.setDescription("Leave blank if anonymous access should be used.");
 
-        vcsSelect.setItems(vcsService.listSupportedVersionControlSystems());
+        vcsSelect.setItems(vcsRegistry.listSupportedVersionControlSystems());
         vcsSelect.setItemCaptionGenerator(m -> String.format("%s (%s)", m.getVcsName(), m.getAdapterName()));
         vcsSelect.addValueChangeListener(c -> setVcsFieldEnabled(c.getValue() != null));
 
@@ -381,7 +412,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
                 ui.access(() -> showConnectionNotification(s));
                 return;
             }
-            Optional<VcsAdapter> adapter = vcsService.findAdapterByMetaInfo(vcsSelect.getValue());
+            Optional<VcsAdapter> adapter = vcsRegistry.findAdapterByMetaInfo(vcsSelect.getValue());
 
             FetchRemoteVcsBranchesTask fetchBranches = new FetchRemoteVcsBranchesTask(adapter.get(), projectBean);
             fetchBranches.setRunningStatusHandler(buildRunningStatusHandler(ui));
@@ -391,7 +422,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
     }
 
     private void checkConnection(@NotNull EntityChangeHandler<VcsConnectionStatus> entityChangeHandler) {
-        Optional<VcsAdapter> adapter = vcsService.findAdapterByMetaInfo(vcsSelect.getValue());
+        Optional<VcsAdapter> adapter = vcsRegistry.findAdapterByMetaInfo(vcsSelect.getValue());
 
         UI ui = UI.getCurrent();
         RunnableTask<VcsConnectionStatus> checkConnection = new CheckRemoteVcsConnectionTask(adapter.get(), projectBean);
@@ -487,6 +518,14 @@ public class AdminEditProjectSubview extends AbstractSubview {
         }
         buttonLayout.addComponent(progressBar);
 
+        dcsSelect.setItems(dcsRegistry.listSupportedDatabaseChangeSystems());
+        dcsSelect.setItemCaptionGenerator(m -> String.format("%s", m.getAdapterName()));
+        if (StringUtils.isNotBlank(projectBean.getChangeSystemAdapterClass())) {
+            Optional<DatabaseChangeSystemMetaInfo> dcsMetaInfo = dcsRegistry.findMetaInfoByAdapterClassName(projectBean.getChangeSystemAdapterClass());
+            dcsMetaInfo.ifPresent(dcsSelect::setValue);
+        }
+
+        vcsSettingsLayout.addComponent(dcsSelect);
         vcsSettingsLayout.addComponent(changeLogLocationField);
         vcsSettingsLayout.addComponent(pollIntervalField);
         vcsSettingsLayout.addComponent(vcsDevBranchSelect);
@@ -522,9 +561,17 @@ public class AdminEditProjectSubview extends AbstractSubview {
     }
 
     private void prepareBeansForSaving() {
-        VcsAdapter vcsAdapter = vcsService.findAdapterByMetaInfo(vcsSelect.getValue()).get();
-        projectBean.setAdapterClass(vcsAdapter.getClass().getName());
-        projectBean.setType(vcsAdapter.getMetaInfo().getVcsName());
+        VcsAdapter vcsAdapter = vcsRegistry.findAdapterByMetaInfo(vcsSelect.getValue()).get();
+        projectBean.setVcsAdapterClass(vcsAdapter.getClass().getName());
+        projectBean.setVcsType(vcsAdapter.getMetaInfo().getVcsName());
+        Optional<DatabaseChangeSystemAdapter> dcsAdapterByMetaInfo = dcsRegistry.findAdapterByMetaInfo(dcsSelect.getValue());
+        if (dcsAdapterByMetaInfo.isPresent()) {
+            DatabaseChangeSystemAdapter dcsAdapter = dcsAdapterByMetaInfo.get();
+            projectBean.setChangeSystemAdapterClass(dcsAdapter.getClass().getName());
+        } else {
+            NotificationUtils.showError("Database change system is missing", false);
+            return;
+        }
 
         if (!isNewProject && !StringUtils.equalsIgnoreCase(oldVcsUrl, projectBean.getUrl()) && projectBean.isInitialized()) {
             SimpleOkCancelWindow vcsChangeCheckWindow = new SimpleOkCancelWindow("VCS changed", "Yes", "No");
@@ -572,7 +619,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
         if (!(o instanceof AdminEditProjectSubview)) return false;
         if (!super.equals(o)) return false;
         AdminEditProjectSubview that = (AdminEditProjectSubview) o;
-        return Objects.equal(vcsService, that.vcsService) &&
+        return Objects.equal(vcsRegistry, that.vcsRegistry) &&
                 Objects.equal(taskExecutor, that.taskExecutor) &&
                 Objects.equal(projectService, that.projectService) &&
                 Objects.equal(nameField, that.nameField) &&
@@ -596,6 +643,6 @@ public class AdminEditProjectSubview extends AbstractSubview {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), vcsService, taskExecutor, projectService, nameField, descriptionArea, websiteField, vcsSelect, vcsUrlField, vcsUsernameField, vcsPasswordField, vcsDevBranchSelect, pollIntervalField, releaseBranchesCheckboxGroup, newBranchesPattern, changeLogLocationField, progressBar, mainLayout, buttonLayout, projectBinder, projectBean);
+        return Objects.hashCode(super.hashCode(), vcsRegistry, taskExecutor, projectService, nameField, descriptionArea, websiteField, vcsSelect, vcsUrlField, vcsUsernameField, vcsPasswordField, vcsDevBranchSelect, pollIntervalField, releaseBranchesCheckboxGroup, newBranchesPattern, changeLogLocationField, progressBar, mainLayout, buttonLayout, projectBinder, projectBean);
     }
 }

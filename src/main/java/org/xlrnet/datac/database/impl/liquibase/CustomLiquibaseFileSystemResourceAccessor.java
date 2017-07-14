@@ -1,4 +1,4 @@
-package org.xlrnet.datac.database.util;
+package org.xlrnet.datac.database.impl.liquibase;
 
 import liquibase.resource.FileSystemResourceAccessor;
 

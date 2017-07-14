@@ -397,4 +397,14 @@
                                  referencedTableName="changeset"
                                  referencedColumnNames="id" onDelete="SET NULL"/>
     </changeSet>
+    <changeSet id="22" author="jhendess">
+        <renameColumn tableName="project" oldColumnName="type" newColumnName="vcs_type"/>
+        <renameColumn tableName="project" oldColumnName="adapter" newColumnName="vcs_adapter"/>
+        <addColumn tableName="project">
+            <column name="change_system_adapter" type="VARCHAR(200)" defaultValue=""
+                    remarks="Adapter class used for accessing database changes.">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

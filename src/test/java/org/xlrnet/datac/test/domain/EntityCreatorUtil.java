@@ -26,8 +26,8 @@ public class EntityCreatorUtil {
     public static Project buildProject() {
         Project p = new Project();
         p.setChangelogLocation("/");
-        p.setAdapterClass("TEST");
-        p.setType("TEST");
+        p.setVcsAdapterClass("TEST");
+        p.setVcsType("TEST");
         p.setUrl("Some_URL");
         p.setNewBranchPattern(".*");
         p.setName("TEST");

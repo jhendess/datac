@@ -1,22 +1,33 @@
 package org.xlrnet.datac.foundation.domain;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EntityListeners;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+import javax.persistence.Transient;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
 import org.hibernate.validator.constraints.NotEmpty;
 import org.hibernate.validator.constraints.URL;
 import org.xlrnet.datac.foundation.domain.validation.Regex;
 import org.xlrnet.datac.foundation.domain.validation.ValidBranches;
 import org.xlrnet.datac.vcs.api.VcsRemoteCredentials;
 import org.xlrnet.datac.vcs.domain.Branch;
-
-import javax.persistence.*;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
 
 /**
  * A project represents the main configuration entity in the application. It contains both meta information (e.g. name)
@@ -56,16 +67,24 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
      */
     @NotEmpty
     @Size(max = 20)
-    @Column(name = "type")
-    private String type;
+    @Column(name = "vcs_type")
+    private String vcsType;
 
     /**
      * The adapter used for connecting to the VCS.
      */
     @NotEmpty
     @Size(max = 200)
-    @Column(name = "adapter")
-    private String adapterClass;
+    @Column(name = "vcs_adapter")
+    private String vcsAdapterClass;
+
+    /**
+     * The adapter class used for accessing database changes.
+     */
+    @NotEmpty
+    @Size(max = 200)
+    @Column(name = "change_system_adapter")
+    private String changeSystemAdapterClass;
 
     /**
      * Checkout URL for the VCS. This may be e.g. a git repository to clone or a SVN path to checkout.
@@ -180,20 +199,20 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
         this.website = website;
     }
 
-    public String getType() {
-        return type;
+    public String getVcsType() {
+        return vcsType;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public void setVcsType(String vcsType) {
+        this.vcsType = vcsType;
     }
 
-    public String getAdapterClass() {
-        return adapterClass;
+    public String getVcsAdapterClass() {
+        return vcsAdapterClass;
     }
 
-    public void setAdapterClass(String adapterClass) {
-        this.adapterClass = adapterClass;
+    public void setVcsAdapterClass(String vcsAdapterClass) {
+        this.vcsAdapterClass = vcsAdapterClass;
     }
 
     @Override
@@ -317,6 +336,15 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
         this.salt = salt;
     }
 
+    public String getChangeSystemAdapterClass() {
+        return changeSystemAdapterClass;
+    }
+
+    public Project setChangeSystemAdapterClass(String changeSystemAdapterClass) {
+        this.changeSystemAdapterClass = changeSystemAdapterClass;
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -326,18 +354,19 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
                 Objects.equals(name, project.name) &&
                 Objects.equals(description, project.description) &&
                 Objects.equals(website, project.website) &&
-                Objects.equals(type, project.type) &&
-                Objects.equals(adapterClass, project.adapterClass) &&
+                Objects.equals(vcsType, project.vcsType) &&
+                Objects.equals(vcsAdapterClass, project.vcsAdapterClass) &&
                 Objects.equals(url, project.url) &&
                 Objects.equals(username, project.username) &&
                 Objects.equals(encryptedPassword, project.encryptedPassword) &&
                 Objects.equals(newBranchPattern, project.newBranchPattern) &&
-                Objects.equals(changelogLocation, project.changelogLocation);
+                Objects.equals(changelogLocation, project.changelogLocation) &&
+                Objects.equals(changeSystemAdapterClass, project.changeSystemAdapterClass);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, website, type, adapterClass, url, username, encryptedPassword, pollInterval, newBranchPattern, changelogLocation);
+        return Objects.hash(name, description, website, vcsType, vcsAdapterClass, url, username, encryptedPassword, pollInterval, newBranchPattern, changelogLocation, changeSystemAdapterClass);
     }
 
     @org.jetbrains.annotations.NotNull
