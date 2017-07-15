@@ -1,9 +1,11 @@
 package org.xlrnet.datac.foundation.ui.views;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
+import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.hibernate.engine.jdbc.internal.BasicFormatterImpl;
@@ -23,16 +25,9 @@ import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.GridLayout;
-import com.vaadin.ui.Label;
-import com.vaadin.ui.Panel;
-import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Renders a list of {@link org.xlrnet.datac.database.domain.DatabaseChangeSet} in a given branch/revision. The view does not display the actual change sets in the given revision, but the change sets which are present in the closest revision
@@ -169,11 +164,15 @@ public class ProjectChangeSubview extends AbstractSubview {
             grid.addComponent(new Label(conflictingRevision.getCommitTime().toString()));
         }
 
-        grid.addComponent(new Label("SQL Preview:"));
-        String previewSql = new BasicFormatterImpl().format(changeSet.getChanges().get(0).getPreviewSql());
-        Label label = new Label(previewSql, ContentMode.PREFORMATTED);
-        label.setWidth("80%");
-        grid.addComponent(label);
+        if (!changeSet.getChanges().isEmpty() && StringUtils.isNotBlank(changeSet.getChanges().get(0).getPreviewSql())) {
+            grid.addComponent(new Label("SQL Preview:"));
+            String previewSql = new BasicFormatterImpl().format(changeSet.getChanges().get(0).getPreviewSql());
+            Label sqlPreview = new Label(previewSql, ContentMode.PREFORMATTED);
+            sqlPreview.setWidth("80%");
+            grid.addComponent(sqlPreview);
+        } else {
+            grid.addComponent(new Label("No SQL preview available"));
+        }
 
         if (changeSet.getConflictingChangeSet() != null) {
             panelContent.addComponent(new Label("Warning: this change set is modified in a later revision."));

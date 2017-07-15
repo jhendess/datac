@@ -1,24 +1,6 @@
 package org.xlrnet.datac.database.impl.liquibase;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.xlrnet.datac.commons.exception.DatacTechnicalException;
-import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
-import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
-import org.xlrnet.datac.database.domain.DatabaseChange;
-import org.xlrnet.datac.database.domain.DatabaseChangeSet;
-import org.xlrnet.datac.foundation.domain.Project;
-import org.xlrnet.datac.foundation.services.FileService;
-
 import com.google.common.base.Throwables;
-
 import liquibase.change.Change;
 import liquibase.changelog.ChangeLogParameters;
 import liquibase.changelog.ChangeSet;
@@ -32,11 +14,27 @@ import liquibase.resource.ResourceAccessor;
 import liquibase.sql.Sql;
 import liquibase.sqlgenerator.SqlGeneratorFactory;
 import liquibase.statement.SqlStatement;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
+import org.xlrnet.datac.database.domain.DatabaseChange;
+import org.xlrnet.datac.database.domain.DatabaseChangeSet;
+import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.services.FileService;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Service which provides access to liquibase change log files.
  */
-@Service
+@Component
 public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
 
     private static final String UNKNOWN_AUTHOR = "unknown";

@@ -407,4 +407,12 @@
             </column>
         </addColumn>
     </changeSet>
+    <changeSet id="23" author="jhendess">
+        <comment>Remove NOT NULL constraint from changeset author.</comment>
+        <dropNotNullConstraint tableName="changeset" columnName="author" columnDataType="VARCHAR"/>
+    </changeSet>
+    <changeSet id="24" author="jhendess">
+        <comment>Add NOT NULL constraint on revision commit time</comment>
+        <addNotNullConstraint tableName="revision" columnName="commit_time" columnDataType="TIMESTAMP"/>
+    </changeSet>
 </databaseChangeLog>

@@ -44,6 +44,10 @@ public class DummyRevision implements VcsRevision {
         // Empty constructor
     }
 
+    public DummyRevision(String internalId) {
+        this.internalId = internalId;
+    }
+
     /**
      * Copy-constructor from an external {@link VcsRevision} object. Parents won't be copied and remain empty.
      *

@@ -1,13 +1,5 @@
 package org.xlrnet.datac.database.services;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +21,14 @@ import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Service responsible for indexing database changes in a project.
@@ -102,14 +102,17 @@ public class ChangeIndexingService {
 
         // For performing the actual indexing, retrieve all revisions which changed the whole directory in which the changelog lies
         Path parentPath = Paths.get(project.getChangelogLocation()).getParent();
-        Collection<VcsRevision> changeLogDirectoryRevisions = localRepository.listRevisionsWithChangesInPath(parentPath.toString());
+        LOGGER.warn("Parent directory of change log may not be null - this is probably a bug in the VCS adapter");
+        if (parentPath != null) {
+            changeLogRevisions = localRepository.listRevisionsWithChangesInPath(parentPath.toString());
+        }
 
         project.setState(ProjectState.INDEXING);
         Project updatedProject = projectService.save(project);
         projectService.saveAndPublishStateChange(updatedProject, 0);
 
         // Convert the external revisions to internal ones
-        Collection<Revision> internalRevisions = revisionGraphService.findMatchingInternalRevisions(updatedProject, changeLogDirectoryRevisions);
+        Collection<Revision> internalRevisions = revisionGraphService.findMatchingInternalRevisions(updatedProject, changeLogRevisions);
         // Find those revisions which don't have a change set yet
         List<Revision> revisionsToIndex = new ArrayList<>();
         for (Revision revision : internalRevisions) {
