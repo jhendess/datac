@@ -1,10 +1,5 @@
 package org.xlrnet.datac.foundation.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.util.Collection;
-import java.util.regex.Pattern;
-
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -28,6 +23,11 @@ import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
+
+import java.util.Collection;
+import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Transactional service for accessing project data.
@@ -167,7 +167,7 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
     }
 
     @Transactional
-    public void saveProject(Project project) {
+    public Project saveProject(Project project) {
         if (project.isPersisted()) {
             branchService.deleteByProject(project);
         }
@@ -178,6 +178,7 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
             }
             projectSchedulingService.scheduleProjectUpdate(saved);
         }
+        return saved;
     }
 
     @Override

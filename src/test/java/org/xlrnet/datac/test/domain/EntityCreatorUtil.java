@@ -31,6 +31,7 @@ public class EntityCreatorUtil {
         p.setUrl("Some_URL");
         p.setNewBranchPattern(".*");
         p.setName("TEST");
+        p.setChangeSystemAdapterClass("TEST");
         p.setState(ProjectState.NEW);
         return p;
     }

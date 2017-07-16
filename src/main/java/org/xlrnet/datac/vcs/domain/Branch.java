@@ -37,12 +37,14 @@ public class Branch extends AbstractEntity {
     @JoinColumn(name = "project_id", insertable = false, updatable = false)
     private Project project;
 
-    public void setName(String name) {
+    public Branch setName(String name) {
         this.name = name;
+        return this;
     }
 
-    public void setInternalId(String internalId) {
+    public Branch setInternalId(String internalId) {
         this.internalId = internalId;
+        return this;
     }
 
     /**
@@ -83,25 +85,28 @@ public class Branch extends AbstractEntity {
         return watched;
     }
 
-    public void setWatched(boolean watched) {
+    public Branch setWatched(boolean watched) {
         this.watched = watched;
+        return this;
     }
 
     public Project getProject() {
         return project;
     }
 
-    public void setProject(Project project) {
+    public Branch setProject(Project project) {
         this.project = project;
         project.addBranch(this);
+        return this;
     }
 
     public boolean isDevelopment() {
         return development;
     }
 
-    public void setDevelopment(boolean development) {
+    public Branch setDevelopment(boolean development) {
         this.development = development;
+        return this;
     }
 
     @Override

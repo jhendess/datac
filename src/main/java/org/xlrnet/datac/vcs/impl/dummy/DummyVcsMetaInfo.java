@@ -8,10 +8,12 @@ import org.xlrnet.datac.vcs.api.VcsMetaInfo;
  */
 public class DummyVcsMetaInfo implements VcsMetaInfo {
 
+    public static final String VCS_NAME = "Dummy";
+
     @NotNull
     @Override
     public String getVcsName() {
-        return "Dummy";
+        return VCS_NAME;
     }
 
     @NotNull

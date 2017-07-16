@@ -111,7 +111,7 @@ public class ProjectUpdateService {
         }
     }
 
-    private void startProjectUpdate(@NotNull Project project) throws LockFailedException {
+    void startProjectUpdate(@NotNull Project project) throws LockFailedException {
         if (lockingService.tryLock(project)) {
             try {
                 LOGGER.info("Begin update of project {}", project.getName());

@@ -94,9 +94,8 @@ public class ProjectChangeSubview extends AbstractSubview {
     @NotNull
     @Override
     protected Component buildMainPanel() {
-        VerticalLayout changeListLayout = buildChangeSetList();
 
-        return changeListLayout;
+        return buildChangeSetList();
     }
 
     @NotNull

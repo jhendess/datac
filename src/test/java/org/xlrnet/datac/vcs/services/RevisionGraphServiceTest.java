@@ -106,12 +106,12 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
 
     @Test
     public void testSaveStackOverflow() {
-        Revision newRoot = new Revision().setInternalId("0").setProject(testProject);
+        Revision newRoot = new Revision().setInternalId("0").setProject(testProject).setCommitTime(Instant.now());
         Revision revision = newRoot;
 
 
         for (int i = 1; i < 1000; i++) {
-            Revision parent = new Revision().setInternalId(Integer.toString(i)).setProject(testProject);
+            Revision parent = new Revision().setInternalId(Integer.toString(i)).setCommitTime(Instant.now()).setProject(testProject);
             revision.addParent(parent);
             revision = parent;
         }
@@ -121,10 +121,10 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
 
     @Test
     public void testSaveMultipleParents() {
-        Revision root = new Revision().setInternalId("0").setProject(testProject);
+        Revision root = new Revision().setInternalId("0").setProject(testProject).setCommitTime(Instant.now());
 
-        root.addParent(new Revision().setInternalId("1").setProject(testProject));
-        root.addParent(new Revision().setInternalId("2").setProject(testProject));
+        root.addParent(new Revision().setInternalId("1").setProject(testProject).setCommitTime(Instant.now()));
+        root.addParent(new Revision().setInternalId("2").setProject(testProject).setCommitTime(Instant.now()));
 
         revisionGraphService.save(root);
 
@@ -135,11 +135,11 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
 
     @Test
     public void testSaveMultipleParentsSameRoot() {
-        Revision root = new Revision().setInternalId("0").setProject(testProject);
+        Revision root = new Revision().setInternalId("0").setProject(testProject).setCommitTime(Instant.now());
 
-        Revision parent1 = new Revision().setInternalId("1").setProject(testProject);
-        Revision parent2 = new Revision().setInternalId("2").setProject(testProject);
-        Revision oldestParent = new Revision().setInternalId("3").setProject(testProject);
+        Revision parent1 = new Revision().setInternalId("1").setProject(testProject).setCommitTime(Instant.now());
+        Revision parent2 = new Revision().setInternalId("2").setProject(testProject).setCommitTime(Instant.now());
+        Revision oldestParent = new Revision().setInternalId("3").setProject(testProject).setCommitTime(Instant.now());
 
         root.addParent(parent1);
         root.addParent(parent2);
@@ -156,8 +156,8 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
 
     @Test
     public void testFindRootRevision() {
-        Revision root = new Revision().setInternalId("0").setProject(testProject);
-        Revision parent1 = new Revision().setInternalId("1").setProject(testProject);
+        Revision root = new Revision().setInternalId("0").setProject(testProject).setCommitTime(Instant.now());
+        Revision parent1 = new Revision().setInternalId("1").setProject(testProject).setCommitTime(Instant.now());
         root.addParent(parent1);
 
         revisionGraphService.save(root);

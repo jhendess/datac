@@ -15,6 +15,7 @@ import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.impl.dummy.DummyRevision;
 
 import javax.transaction.Transactional;
+import java.time.Instant;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -62,11 +63,11 @@ public class ProjectUpdateServiceTest extends AbstractSpringBootTest {
 
     @NotNull
     private DummyRevision buildDummyGraph() {
-        DummyRevision root = new DummyRevision().setInternalId("1");
+        DummyRevision root = new DummyRevision().setInternalId("1").setCommitTime(Instant.now());
         root.addParent(
-                new DummyRevision().setInternalId("2")
-                        .addParent(new DummyRevision().setInternalId("3"))
-                        .addParent(new DummyRevision().setInternalId("4"))
+                new DummyRevision().setInternalId("2").setCommitTime(Instant.now())
+                        .addParent(new DummyRevision().setInternalId("3").setCommitTime(Instant.now()))
+                        .addParent(new DummyRevision().setInternalId("4").setCommitTime(Instant.now()))
         );
         return root;
     }
@@ -81,7 +82,8 @@ public class ProjectUpdateServiceTest extends AbstractSpringBootTest {
         projectUpdateService.updateRevisionsInBranch(testProject, testBranch, mockedRepository);
 
         // Prepare second update
-        DummyRevision newRoot = new DummyRevision().setInternalId("NEW").addParent(new DummyRevision().setInternalId("1"));
+        DummyRevision newRoot = new DummyRevision().setInternalId("NEW").setCommitTime(Instant.now())
+                .addParent(new DummyRevision().setInternalId("1").setCommitTime(Instant.now()));
         when(mockedRepository.listLatestRevisionOnBranch(testBranch)).thenReturn(newRoot);
         // Perform second update
         projectUpdateService.updateRevisionsInBranch(testProject, testBranch, mockedRepository);

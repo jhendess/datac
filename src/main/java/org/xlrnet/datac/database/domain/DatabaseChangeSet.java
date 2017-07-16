@@ -13,6 +13,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Set of database changes that must be executed together.
@@ -206,5 +207,23 @@ public class DatabaseChangeSet extends AbstractEntity implements Sortable {
     public DatabaseChangeSet setSourceFilename(String sourceFilename) {
         this.sourceFilename = sourceFilename;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DatabaseChangeSet)) return false;
+        DatabaseChangeSet that = (DatabaseChangeSet) o;
+        return sort == that.sort &&
+                Objects.equals(internalId, that.internalId) &&
+                Objects.equals(comment, that.comment) &&
+                Objects.equals(author, that.author) &&
+                Objects.equals(checksum, that.checksum) &&
+                Objects.equals(sourceFilename, that.sourceFilename);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(internalId, comment, author, checksum, sort, sourceFilename);
     }
 }
