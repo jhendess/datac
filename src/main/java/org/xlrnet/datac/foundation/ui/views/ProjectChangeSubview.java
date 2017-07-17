@@ -1,11 +1,9 @@
 package org.xlrnet.datac.foundation.ui.views;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.hibernate.engine.jdbc.internal.BasicFormatterImpl;
@@ -25,9 +23,16 @@ import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.GridLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Renders a list of {@link org.xlrnet.datac.database.domain.DatabaseChangeSet} in a given branch/revision. The view does not display the actual change sets in the given revision, but the change sets which are present in the closest revision
@@ -111,7 +116,7 @@ public class ProjectChangeSubview extends AbstractSubview {
                 panel.setDescription("This change set was modified after check-in.");
                 panel.setIcon(VaadinIcons.BOLT);
             } else if (changeSet.getIntroducingChangeSet() == null && Objects.equals(changeSet.getRevision().getId(), revision.getId())) {
-                panel.setDescription("This change set was introduced in this revision.");
+                panel.setDescription("This change set was introduced in the current revision.");
                 panel.setIcon(VaadinIcons.PLUS);
                 panel.addStyleName(ValoTheme.LABEL_SUCCESS);
             } else {

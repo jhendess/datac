@@ -1,14 +1,15 @@
 package org.xlrnet.datac.foundation.services;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.xlrnet.datac.foundation.domain.Project;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.spy;
+import org.junit.Before;
+import org.junit.Test;
+import org.xlrnet.datac.foundation.domain.Project;
 
 /**
  * Tests for {@link FileService}
@@ -22,7 +23,7 @@ public class FileServiceTest {
     @Before
     public void setup() {
         fileService = spy(new FileService());
-        fileService.workPath = Paths.get(BASE_PATH);
+        when(fileService.getWorkingDirectoryPath()).thenReturn(Paths.get(BASE_PATH));
     }
 
     @Test
@@ -37,5 +38,4 @@ public class FileServiceTest {
         Path projectRepositoryPath = fileService.getProjectRepositoryPath(project);
         assertEquals(projectRepositoryPath, Paths.get(BASE_PATH, "123456789"));
     }
-
 }

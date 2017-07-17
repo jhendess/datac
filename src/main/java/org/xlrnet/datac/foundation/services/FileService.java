@@ -1,5 +1,15 @@
 package org.xlrnet.datac.foundation.services;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Comparator;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -13,16 +23,6 @@ import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
 import org.xlrnet.datac.foundation.configuration.StartupPhases;
 import org.xlrnet.datac.foundation.domain.Project;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileVisitOption;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Comparator;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Service for accessing the file system.
@@ -42,14 +42,14 @@ public class FileService implements SmartLifecycle {
     /**
      * Path object for the working directory.
      */
-    Path workPath;
+    private Path workingDirectoryPath;
 
     private boolean running = false;
 
     @Override
     public void start() {
         LOGGER.info("Starting file service...");
-        checkDirectory();
+        initializeWorkingDirectory();
     }
 
     @Override
@@ -112,20 +112,7 @@ public class FileService implements SmartLifecycle {
      */
     public void deleteProjectRepository(@NotNull Project project) throws DatacTechnicalException {
         Path projectRepositoryPath = getProjectRepositoryPath(project);
-        LOGGER.info("Deleting directory {} recursively", projectRepositoryPath.toString());
-        try {
-            if (Files.exists(projectRepositoryPath)) {
-                Files.walk(projectRepositoryPath, FileVisitOption.FOLLOW_LINKS)
-                        .sorted(Comparator.reverseOrder())
-                        .map(Path::toFile)
-                        .peek((f) -> LOGGER.trace("Deleting {}", f))
-                        .forEach(File::delete);
-            }
-        } catch (IOException e) {
-            LOGGER.error("Deleting directory {} failed - the file system may be in an inconsistent state.", projectRepositoryPath.toString(), e);
-            throw new DatacTechnicalException(e);
-        }
-        LOGGER.info("Deleted directory {} successfully", projectRepositoryPath.toString());
+        deleteRecursively(projectRepositoryPath);
     }
 
     /**
@@ -152,22 +139,47 @@ public class FileService implements SmartLifecycle {
     public Path getProjectRepositoryPath(@NotNull Project project) {
         String id = StringUtils.deleteWhitespace(String.valueOf(project.getId()));
         checkArgument(!StringUtils.isBlank(id));
-        return workPath.resolve(id);
+        return getWorkingDirectoryPath().resolve(id);
     }
 
-    private void checkDirectory() {
-        workPath = Paths.get(fileDirectoryConfiguration).toAbsolutePath();
-        if (Files.isRegularFile(workPath)) {
-            throw new DatacRuntimeException("Working path " + workPath.toString() + " is a file");
-        } else if (!Files.isDirectory(workPath)) {
+    void deleteRecursively(Path pathToDelete) throws DatacTechnicalException {
+        LOGGER.info("Deleting directory {} recursively", pathToDelete.toString());
+        try {
+            if (Files.exists(pathToDelete)) {
+                Files.walk(pathToDelete, FileVisitOption.FOLLOW_LINKS)
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .peek((f) -> LOGGER.trace("Deleting {}", f))
+                        .forEach(File::delete);
+            }
+        } catch (IOException e) {
+            LOGGER.error("Deleting directory {} failed - the file system may be in an inconsistent state.", pathToDelete.toString(), e);
+            throw new DatacTechnicalException(e);
+        }
+        LOGGER.info("Deleted directory {} successfully", pathToDelete.toString());
+    }
+
+    private void initializeWorkingDirectory() {
+        this.workingDirectoryPath = Paths.get(fileDirectoryConfiguration).toAbsolutePath();
+        if (Files.isRegularFile(getWorkingDirectoryPath())) {
+            throw new DatacRuntimeException("Working path " + getWorkingDirectoryPath().toString() + " is a file");
+        } else if (!Files.isDirectory(getWorkingDirectoryPath())) {
             try {
-                Files.createDirectory(workPath);
+                Files.createDirectory(getWorkingDirectoryPath());
             } catch (IOException e) {
-                LOGGER.error("Creating directory " + workPath.toString() + " failed", e);
-                throw new DatacRuntimeException("Creating directory " + workPath.toString() + " failed", e);
+                LOGGER.error("Creating directory " + getWorkingDirectoryPath().toString() + " failed", e);
+                throw new DatacRuntimeException("Creating directory " + getWorkingDirectoryPath().toString() + " failed", e);
             }
         }
-        LOGGER.info("Using path {} as working directory", workPath.toAbsolutePath().toString());
+        LOGGER.info("Using path {} as working directory", getWorkingDirectoryPath().toAbsolutePath().toString());
         running = true;
+    }
+
+    /**
+     * Returns the {@link Path} to the working directory.
+     * @return the {@link Path} to the working directory.
+     */
+    public Path getWorkingDirectoryPath() {
+        return workingDirectoryPath;
     }
 }

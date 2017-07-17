@@ -1,13 +1,13 @@
 package org.xlrnet.datac.commons.graph;
 
-import org.xlrnet.datac.commons.exception.DatacTechnicalException;
-import org.xlrnet.datac.commons.util.ThrowingConsumer;
-
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.function.Function;
+
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.util.ThrowingConsumer;
 
 /**
  * Traverses a graph of {@link TraversableNode} objects using a depth first algorithm.
@@ -28,7 +28,7 @@ public class DepthFirstTraverser<T extends TraversableNode> {
      * @throws DatacTechnicalException
      *         May be thrown by the action.
      */
-    public void traverseChildrenAbortOnCondition(T nodeToBegin, Function<T, Boolean> preCondition, ThrowingConsumer<T> action) throws DatacTechnicalException {
+    public void traverseChildrenAbortOnConditionFailure(T nodeToBegin, Function<T, Boolean> preCondition, ThrowingConsumer<T> action) throws DatacTechnicalException {
         Set<T> visited = new HashSet<>();
         Deque<T> nodeStack = new LinkedList<>();
         nodeStack.push(nodeToBegin);
@@ -45,5 +45,4 @@ public class DepthFirstTraverser<T extends TraversableNode> {
             }
         }
     }
-
 }

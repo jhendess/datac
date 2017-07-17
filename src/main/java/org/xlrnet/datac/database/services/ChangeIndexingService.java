@@ -1,5 +1,15 @@
 package org.xlrnet.datac.database.services;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,14 +31,6 @@ import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Service responsible for indexing database changes in a project.
@@ -145,26 +147,54 @@ public class ChangeIndexingService {
      *         The revisions that should be indexed.
      */
     private void indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository, @NotNull Collection<Revision> revisionsToIndex) throws DatacTechnicalException {
-        Revision rootRevision = revisionGraphService.findProjectRootRevision(project);
-        AtomicInteger indexed = new AtomicInteger(0);
-        AtomicInteger newChangeSets = new AtomicInteger(0);
+        List<Revision> orderedRevisionsToIndex = orderRevisionsToIndex(project, revisionsToIndex);
+        int indexed = 0;
+        int newChangeSets = 0;
 
-        // FIXME: breadth-first traversing doesn't honor the correct order in which revision were originally committed - try depth-first instead
-        breadthFirstTraverser.traverseChildren(rootRevision, (Revision r) -> {
-            if (revisionsToIndex.contains(r)) {
-                double progress = (indexed.getAndIncrement() / (double) revisionsToIndex.size()) * 100.0;
-                projectService.saveAndPublishStateChange(project, progress);
-                Collection<DatabaseChangeSet> changeSets = indexDatabaseChangesInRevision(project, localRepository, r);
-                newChangeSets.addAndGet(changeSets.size());
+        for (Revision toIndex : orderedRevisionsToIndex) {
+            double progress = (indexed++ / (double) revisionsToIndex.size()) * 100.0;
+            projectService.saveAndPublishStateChange(project, progress);
+            Collection<DatabaseChangeSet> changeSets = indexDatabaseChangesInRevision(project, localRepository, toIndex);
+            newChangeSets += changeSets.size();
+        }
+
+        eventLog.addMessage(new EventLogMessage(String.format("Indexed total of %s new change sets", newChangeSets)));
+        LOGGER.info("Indexed total of {} new change sets in project {} [id={}]", newChangeSets, project.getName(), project.getId());
+    }
+
+    @NotNull
+    private List<Revision> orderRevisionsToIndex(@NotNull Project project, @NotNull Collection<Revision> revisionsToIndex) throws DatacTechnicalException {
+        Revision rootRevision = revisionGraphService.findProjectRootRevision(project);
+        List<Revision> orderedRevisionsToIndex = new LinkedList<>();
+        HashMap<String, AtomicInteger> mergeMap = new HashMap<>();
+        breadthFirstTraverser.traverseChildrenCutOnMatch(rootRevision, (Revision r) -> {
+            if (r.getChildren().size() == 1) {
+                Revision child = r.getChildren().get(0);
+                if (child.getParents().size() >= 2) {
+                    // Whenever the next revision is a merge, don't continue on the current branch but wait until
+                    // another branch reaches that revision
+                    AtomicInteger pathsToVisit = mergeMap.computeIfAbsent(child.getInternalId(), x -> new AtomicInteger(child.getParents().size()));
+                    boolean cut = pathsToVisit.decrementAndGet() > 0;
+                    if (!cut && changeSetService.countByRevision(child) == 0) {
+                        // TODO: Enforce indexing if the encountered revision is a merge and doesn't contain any change sets
+                        // orderedRevisionsToIndex.add(child);
+                    }
+                    return cut;
+                }
+            }
+            return false;
+        }, r -> {
+            if (revisionsToIndex.contains(r) && !orderedRevisionsToIndex.contains(r)) {
+                orderedRevisionsToIndex.add(r);
             }
         });
-        eventLog.addMessage(new EventLogMessage(String.format("Indexed total of %s new change sets", newChangeSets.get())));
-        LOGGER.info("Indexed total of {} new change sets in project {} [id={}]", newChangeSets.get(), project.getName(), project.getId());
+        return orderedRevisionsToIndex;
     }
 
     private Collection<DatabaseChangeSet> indexDatabaseChangesInRevision(Project project, VcsLocalRepository localRepository, Revision revision) throws DatacTechnicalException {
         LOGGER.debug("Indexing database changes of project {} in revision {}", project.getName(), revision.getInternalId());
 
+        // TODO: Check if the file even exists in that revision (somewhere -> maybe a bit earlier while calculating the list of revs to index)
         localRepository.checkoutRevision(revision);
 
         Optional<DatabaseChangeSystemAdapter> databaseChangeSystemAdapter = databaseChangeSystemAdapterRegistry.getAdapterByProject(project);

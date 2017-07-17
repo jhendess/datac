@@ -15,3 +15,6 @@ spring:
         journal: "null"
   jpa:
     show-sql: true
+
+datac:
+  fileDirectory: "work-test"
