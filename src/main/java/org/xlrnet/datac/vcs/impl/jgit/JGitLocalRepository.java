@@ -1,14 +1,7 @@
 package org.xlrnet.datac.vcs.impl.jgit;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -29,12 +22,22 @@ import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+
 /**
  * Implementation of a local git repository using JGit.
  */
 public class JGitLocalRepository implements VcsLocalRepository {
 
     private static final String HEAD = "HEAD";
+
+    private static final String REMOTE_PREFIX = "origin/";
 
     private static Logger LOGGER = LoggerFactory.getLogger(JGitLocalRepository.class);
 
@@ -77,9 +80,10 @@ public class JGitLocalRepository implements VcsLocalRepository {
         LOGGER.debug("Fetching latest revisions from remote {} on branch {}", remoteRepositoryUrl, branchName);
         try (Git git = openRepository()) {
             if (!isBranchInRepository(git, branch.getName())) {
-                git.checkout().setName(branchName).setForce(true).setCreateBranch(true).call();
+                git.checkout().setCreateBranch(true).setName(branchName).setStartPoint(REMOTE_PREFIX + branchName)
+                        .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).call();
             } else {
-                git.checkout().setName(branchName).setForce(true).call();
+                git.checkout().setName(branchName).call();
             }
             git.pull().setCredentialsProvider(credentialsProvider).setRemoteBranchName(branchName).setStrategy(MergeStrategy.THEIRS).call();
 
