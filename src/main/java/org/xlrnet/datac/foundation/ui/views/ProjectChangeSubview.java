@@ -1,9 +1,11 @@
 package org.xlrnet.datac.foundation.ui.views;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
+import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.hibernate.engine.jdbc.internal.BasicFormatterImpl;
@@ -12,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.addons.stackpanel.StackPanel;
+import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.IllegalUIStateException;
@@ -23,19 +26,14 @@ import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.GridLayout;
-import com.vaadin.ui.Label;
-import com.vaadin.ui.Panel;
-import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 /**
- * Renders a list of {@link org.xlrnet.datac.database.domain.DatabaseChangeSet} in a given branch/revision. The view does not display the actual change sets in the given revision, but the change sets which are present in the closest revision
+ * Renders a list of {@link org.xlrnet.datac.database.domain.DatabaseChangeSet} in a given branch/revision. The view
+ * does not display the actual change sets in the given revision, but the change sets which are present in the closest
+ * revision
  */
 @SpringComponent
 @SpringView(name = ProjectChangeSubview.VIEW_NAME)
@@ -49,25 +47,39 @@ public class ProjectChangeSubview extends AbstractSubview {
 
     private static final int REVISION_LENGTH = 7;
 
-    /** Service for accessing branch data. */
+    /**
+     * Service for accessing branch data.
+     */
     private final BranchService branchService;
 
-    /** Service for accessing revision graph. */
+    /**
+     * Service for accessing revision graph.
+     */
     private final RevisionGraphService revisionGraphService;
 
-    /** Service for accessing database changes. */
+    /**
+     * Service for accessing database changes.
+     */
     private final ChangeSetService changeSetService;
 
-    /** The current project. */
+    /**
+     * The current project.
+     */
     private Project project;
 
-    /** The current branch. */
+    /**
+     * The current branch.
+     */
     private Branch branch;
 
-    /** The revision which is effectively displayed. */
+    /**
+     * The revision which is effectively displayed.
+     */
     private Revision revision;
 
-    /** The change sets which will be displayed. */
+    /**
+     * The change sets which will be displayed.
+     */
     private List<DatabaseChangeSet> changeSets;
 
     @Autowired
@@ -99,20 +111,42 @@ public class ProjectChangeSubview extends AbstractSubview {
     @NotNull
     @Override
     protected Component buildMainPanel() {
+        MVerticalLayout mainPanel = new MVerticalLayout();
+        mainPanel.add(buildNavigationPanel());
+        mainPanel.add(buildChangeSetList());
 
-        return buildChangeSetList();
+        return mainPanel;
+    }
+
+    private Component buildNavigationPanel() {
+        MHorizontalLayout navigationPanel = new MHorizontalLayout();
+
+        NativeSelect<Branch> branchSelector = new NativeSelect<>();
+        List<Branch> branchList = branchService.findAllWatchedByProject(project);
+        if (!branchList.contains(branch)) {
+            branchList.add(branch);
+        }
+        Collections.sort(branchList);
+        branchSelector.setItems(branchList);
+        branchSelector.setSelectedItem(branch);
+        branchSelector.setEmptySelectionAllowed(false);
+        branchSelector.addValueChangeListener(e -> UI.getCurrent().getNavigator().navigateTo(VIEW_NAME + "/" + e.getValue().getId()));
+        branchSelector.setItemCaptionGenerator(Branch::getName);
+        branchSelector.setCaption("Change branch");
+        branchSelector.setIcon(VaadinIcons.ROAD_BRANCH);
+        navigationPanel.add(branchSelector);
+
+        return navigationPanel;
     }
 
     @NotNull
-    private VerticalLayout buildChangeSetList() {
+    private Component buildChangeSetList() {
         VerticalLayout changeListLayout = new MVerticalLayout();
 
         for (DatabaseChangeSet changeSet : changeSets) {
             String title = changeSetService.formatDatabaseChangeSetTitle(changeSet);
             Panel panel = new Panel(title);
-            DatabaseChangeSet firstChangeSet = changeSet.getIntroducingChangeSet() != null ? changeSet.getIntroducingChangeSet() : changeSet;
-            DatabaseChangeSet conflictingChangeSet = firstChangeSet.getConflictingChangeSet();  // FIXME: What happens if there are multiple overwritten change sets?
-            if (conflictingChangeSet != null) {
+            if (changeSet.isModifying()) {
                 panel.setDescription("This change set was modified after check-in.");
                 panel.setIcon(VaadinIcons.BOLT);
             } else if (changeSet.getIntroducingChangeSet() == null && Objects.equals(changeSet.getRevision().getId(), revision.getId())) {
@@ -153,9 +187,8 @@ public class ProjectChangeSubview extends AbstractSubview {
         grid.addComponent(new Label("Created at: "));
         grid.addComponent(new Label(firstRevision.getCommitTime().toString()));
 
-        DatabaseChangeSet conflictingChangeSet = firstChangeSet.getConflictingChangeSet();  // FIXME: What happens if there are multiple overwritten change sets?
-        if (conflictingChangeSet != null) {
-            Revision conflictingRevision = conflictingChangeSet.getRevision();
+        if (changeSet.isModifying()) {
+            Revision conflictingRevision = changeSet.getRevision();
             grid.addComponent(new Label("Modified revision: "));
             grid.addComponent(new Label(formatRevision(conflictingRevision)));
             grid.addComponent(new Label("Modified by: "));
@@ -178,9 +211,9 @@ public class ProjectChangeSubview extends AbstractSubview {
             grid.addComponent(new Label("No SQL preview available"));
         }
 
-        if (changeSet.getConflictingChangeSet() != null) {
+        /*if (changeSet.getConflictingChangeSet() != null) {
             panelContent.addComponent(new Label("Warning: this change set is modified in a later revision."));
-        }
+        }*/
 
         return panelContent;
     }

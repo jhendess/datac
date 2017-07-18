@@ -1,6 +1,7 @@
 package org.xlrnet.datac.vcs.domain;
 
 import com.google.common.base.MoreObjects;
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.domain.Project;
@@ -15,7 +16,7 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "branch")
-public class Branch extends AbstractEntity {
+public class Branch extends AbstractEntity implements Comparable<Branch> {
 
     @NotEmpty
     @Size(max = 256)
@@ -107,6 +108,11 @@ public class Branch extends AbstractEntity {
     public Branch setDevelopment(boolean development) {
         this.development = development;
         return this;
+    }
+
+    @Override
+    public int compareTo(@org.jetbrains.annotations.NotNull Branch o) {
+        return StringUtils.compare(name, o.getName());
     }
 
     @Override

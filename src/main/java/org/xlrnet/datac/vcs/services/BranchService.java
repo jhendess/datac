@@ -10,6 +10,8 @@ import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.repository.BranchRepository;
 
+import java.util.List;
+
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
@@ -41,5 +43,17 @@ public class BranchService extends AbstractTransactionalService<Branch, BranchRe
     public void deleteByProject(@NotNull Project projectBean) {
         checkArgument(projectBean.isPersisted());
         getRepository().deleteAllByProject(projectBean);
+    }
+
+    /**
+     * Returns all watched branches in the given project.
+     *
+     * @param project
+     *         The project in which the branches must be.
+     * @return All branhes in the given project.
+     */
+    @Transactional(readOnly = true)
+    public List<Branch> findAllWatchedByProject(@NotNull Project project) {
+        return getRepository().findAllWatchedOrDevelopmentByProject(project);
     }
 }

@@ -415,4 +415,13 @@
         <comment>Add NOT NULL constraint on revision commit time</comment>
         <addNotNullConstraint tableName="revision" columnName="commit_time" columnDataType="TIMESTAMP"/>
     </changeSet>
+    <changeSet id="25" author="jhendess">
+        <comment>Remove explicit conflict references on change sets and remove them by a boolean flag</comment>
+        <dropColumn tableName="changeset" columnName="conflicting_changeset_id"/>
+        <dropColumn tableName="changeset" columnName="overwritten_changeset_id"/>
+        <addColumn tableName="changeset">
+            <column type="BOOLEAN" name="modifying"
+                    remarks="Flag to indicate if this change set is modifying its introducing changeset."/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

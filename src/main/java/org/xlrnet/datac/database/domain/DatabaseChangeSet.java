@@ -59,7 +59,7 @@ public class DatabaseChangeSet extends AbstractEntity implements Sortable {
     private int sort;       // TODO: Validate unique sorting
 
     /**
-     *  The name of the file which contains the changeset.
+     * The name of the file which contains the changeset.
      */
     @NotEmpty
     @Size(max = 1024)
@@ -81,18 +81,10 @@ public class DatabaseChangeSet extends AbstractEntity implements Sortable {
     private DatabaseChangeSet introducingChangeSet;
 
     /**
-     * The change set which overwrites this change set.
+     * Flag to indicate if this change set conflicts (i.e. modifies) with its introducing change set.
      */
-    @JoinColumn(name = "conflicting_changeset_id")
-    @OneToOne(targetEntity = DatabaseChangeSet.class, cascade = {CascadeType.REFRESH, CascadeType.PERSIST}, fetch = FetchType.EAGER)
-    private DatabaseChangeSet conflictingChangeSet;
-
-    /**
-     * The change set which is overwritten by this change set.
-     */
-    @JoinColumn(name = "overwritten_changeset_id")
-    @OneToOne(targetEntity = DatabaseChangeSet.class, cascade = {CascadeType.REFRESH, CascadeType.PERSIST}, fetch = FetchType.EAGER)
-    private DatabaseChangeSet overwrittenChangeSet;
+    @Column(name = "modifying")
+    private boolean modifying;
 
     /**
      * The changes in this change set.
@@ -182,22 +174,12 @@ public class DatabaseChangeSet extends AbstractEntity implements Sortable {
         return this;
     }
 
-    public DatabaseChangeSet getConflictingChangeSet() {
-        return conflictingChangeSet;
+    public boolean isModifying() {
+        return modifying;
     }
 
-    public DatabaseChangeSet setConflictingChangeSet(DatabaseChangeSet conflictingChangeSet) {
-        this.conflictingChangeSet = conflictingChangeSet;
-        return this;
-    }
-
-    public DatabaseChangeSet getOverwrittenChangeSet() {
-        return overwrittenChangeSet;
-    }
-
-    public DatabaseChangeSet setOverwrittenChangeSet(DatabaseChangeSet overwroteRevision) {
-        this.overwrittenChangeSet = overwroteRevision;
-        return this;
+    public void setModifying(boolean modifying) {
+        this.modifying = modifying;
     }
 
     public String getSourceFilename() {
@@ -219,11 +201,12 @@ public class DatabaseChangeSet extends AbstractEntity implements Sortable {
                 Objects.equals(comment, that.comment) &&
                 Objects.equals(author, that.author) &&
                 Objects.equals(checksum, that.checksum) &&
+                Objects.equals(modifying, that.modifying) &&
                 Objects.equals(sourceFilename, that.sourceFilename);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(internalId, comment, author, checksum, sort, sourceFilename);
+        return Objects.hash(internalId, comment, author, checksum, sort, modifying, sourceFilename);
     }
 }

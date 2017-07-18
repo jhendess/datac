@@ -29,7 +29,6 @@ import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -65,9 +64,10 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
      */
     private final BreadthFirstTraverser<Revision> breadthFirstTraverser = new BreadthFirstTraverser<>();
 
+    /**
+     * Cache for introducing change set ids.
+     */
     private Map<MultiKey, Optional<Long>> introducingChangeSetIdCache = new HashMap<>();
-
-    private Map<MultiKey, Optional<Collection<Long>>> overwrittenChangeSetIdCache = new HashMap<>();
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
@@ -117,8 +117,8 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     }
 
     /**
-     * Finds the last database change sets on a given branch. This method will iterate via breadth-first traversal
-     * over the VCS revisions in order to find the latest change sets.
+     * Finds the last database change sets on a given branch. This method will iterate via breadth-first traversal over
+     * the VCS revisions in order to find the latest change sets.
      *
      * @param branch
      *         The branch on which should be searched.
@@ -172,10 +172,9 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     }
 
     /**
-     * Adds the following links to the given {@link DatabaseChangeSet}: <ul> <li>The revision where this change set was
-     * first introduced</li> <li>The revision which is overwritten by this change set</li> </ul> Furthermore, if the
-     * given change set overwrites a change set, the overwritten change set will be updated, too. Requires an actively
-     * running transaction.
+     * If the given database change set doesn't occur for the first time on the revision graph, link it with the change
+     * set that introduced it. If the introducing change set has a different checksum, the given change set is marked as
+     * modifying. Requires an actively running transaction.
      *
      * @param databaseChangeSet
      */
@@ -186,26 +185,16 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
         DatabaseChangeSet firstChangeSet = findIntroducingChangeSet(databaseChangeSet);
         if (firstChangeSet != null) {
             databaseChangeSet.setIntroducingChangeSet(firstChangeSet);
-        }
-
-        Collection<DatabaseChangeSet> overwrittenChangeSets = findOverwrittenChangeSets(databaseChangeSet);
-
-        for (DatabaseChangeSet overwrittenChangeSet : overwrittenChangeSets) {
-            overwrittenChangeSet.setConflictingChangeSet(databaseChangeSet);
-            databaseChangeSet.setOverwrittenChangeSet(overwrittenChangeSet);
-            save(overwrittenChangeSet);
+            if (!StringUtils.equals(databaseChangeSet.getChecksum(), firstChangeSet.getChecksum())) {
+                databaseChangeSet.setModifying(true);
+            }
         }
     }
 
     /**
-     * Use a fallback algorithm to determine how a change should be displayed:
-     * <ol>
-     * <li>Try the actual comment</li>
-     * <li>If the no comment is available, use the filename</li>
-     * <li>If there is no filename, use the SQL preview</li>
-     * <li>If no SQL preview, use the change type</li>
-     * <li>If there is no change content, use the checksum</li>
-     * </ol>
+     * Use a fallback algorithm to determine how a change should be displayed: <ol> <li>Try the actual comment</li>
+     * <li>If the no comment is available, use the filename</li> <li>If there is no filename, use the SQL preview</li>
+     * <li>If no SQL preview, use the change type</li> <li>If there is no change content, use the checksum</li> </ol>
      * <p>
      */
     @NotNull
@@ -260,27 +249,6 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
         }
 
         return introducingChangeSet;
-    }
-
-    private Collection<DatabaseChangeSet> findOverwrittenChangeSets(@NotNull DatabaseChangeSet databaseChangeSet) {
-        Collection<DatabaseChangeSet> overwrittenChangeSets = new ArrayList<>();
-        Project project = databaseChangeSet.getRevision().getProject();
-
-        MultiKey overwrittenChangeKey = new MultiKey(project.getId(), databaseChangeSet.getInternalId(), databaseChangeSet.getSourceFilename(), databaseChangeSet.getChecksum());
-        if (overwrittenChangeSetIdCache.containsKey(overwrittenChangeKey)) {
-            // If the entry is not present, there is no overwriting change
-            if (overwrittenChangeSetIdCache.get(overwrittenChangeKey).isPresent()) {
-                getRepository().findAll(overwrittenChangeSetIdCache.get(overwrittenChangeKey).get());
-            }
-        } else {
-            overwrittenChangeSets = getRepository().findOverwrittenChangeSets(project, databaseChangeSet.getInternalId(), databaseChangeSet.getSourceFilename(), databaseChangeSet.getChecksum());
-            if (overwrittenChangeSets == null) {
-                overwrittenChangeSetIdCache.put(overwrittenChangeKey, Optional.empty());
-            } else {
-                overwrittenChangeSetIdCache.put(overwrittenChangeKey, Optional.of(overwrittenChangeSets.stream().map(DatabaseChangeSet::getId).collect(Collectors.toList())));
-            }
-        }
-        return overwrittenChangeSets;
     }
 
     @Transactional
