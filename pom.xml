@@ -168,6 +168,9 @@
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
             </resource>
+            <resource>
+                <directory>src/main/webapp</directory>
+            </resource>
         </resources>
         <plugins>
             <!-- Vaadin plugin -->
@@ -177,7 +180,6 @@
                 <version>${vaadin.version}</version>
 
                 <configuration>
-                    <webappDirectory>src/main/webapp/VAADIN/widgetsets</webappDirectory>
                     <modules>
                         <module>AppWidgetset</module>
                     </modules>
