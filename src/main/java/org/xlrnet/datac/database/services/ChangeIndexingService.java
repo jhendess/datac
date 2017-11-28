@@ -1,22 +1,13 @@
 package org.xlrnet.datac.database.services;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import com.google.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
-import org.xlrnet.datac.commons.exception.MissingDatabaseChangeSystemAdapter;
+import org.xlrnet.datac.commons.exception.MissingDatabaseChangeSystemAdapterException;
 import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
 import org.xlrnet.datac.commons.graph.DepthFirstTraverser;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
@@ -31,6 +22,11 @@ import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Service responsible for indexing database changes in a project.
@@ -107,7 +103,7 @@ public class ChangeIndexingService {
         if (parentPath != null) {
             changeLogRevisions = localRepository.listRevisionsWithChangesInPath(parentPath.toString());
         } else {
-            LOGGER.warn("Parent directory of change log may not be null - this is probably a bug in the VCS adapter. Falling back to file changes");
+            LOGGER.warn("Parent directory of change log may not be null - this is probably a bug in the VCS adapter. Falling back to direct file changes");
         }
 
         project.setState(ProjectState.INDEXING);
@@ -123,6 +119,10 @@ public class ChangeIndexingService {
                 revisionsToIndex.add(revision);
             }
         }
+
+        // TODO: Scan for merge commits and add them to the list - this is currently done in orderRevisionsToIndex()
+        // which is not the correct place. This makes it atm impossible to index a merge if has no child which is
+        // supposed to be indexed.
 
         if (!revisionsToIndex.isEmpty()) {
             LOGGER.debug("Indexing {} revisions", revisionsToIndex.size());
@@ -153,7 +153,7 @@ public class ChangeIndexingService {
         int newChangeSets = 0;
 
         for (Revision toIndex : orderedRevisionsToIndex) {
-            double progress = (indexed++ / (double) revisionsToIndex.size()) * 100.0;
+            double progress = (indexed++ / (double) orderedRevisionsToIndex.size()) * 100.0;
             projectService.saveAndPublishStateChange(project, progress);
             Collection<DatabaseChangeSet> changeSets = indexDatabaseChangesInRevision(project, localRepository, toIndex);
             newChangeSets += changeSets.size();
@@ -166,7 +166,7 @@ public class ChangeIndexingService {
     @NotNull
     private List<Revision> orderRevisionsToIndex(@NotNull Project project, @NotNull Collection<Revision> revisionsToIndex) throws DatacTechnicalException {
         Revision rootRevision = revisionGraphService.findProjectRootRevision(project);
-        List<Revision> orderedRevisionsToIndex = new LinkedList<>();
+        Set<Revision> orderedRevisionsToIndex = new LinkedHashSet<Revision>();
         HashMap<String, AtomicInteger> mergeMap = new HashMap<>();
         breadthFirstTraverser.traverseChildrenCutOnMatch(rootRevision, (Revision r) -> {
             if (r.getChildren().size() == 1) {
@@ -177,8 +177,8 @@ public class ChangeIndexingService {
                     AtomicInteger pathsToVisit = mergeMap.computeIfAbsent(child.getInternalId(), x -> new AtomicInteger(child.getParents().size()));
                     boolean cut = pathsToVisit.decrementAndGet() > 0;
                     if (!cut && changeSetService.countByRevision(child) == 0) {
-                        // TODO: Enforce indexing if the encountered revision is a merge and doesn't contain any change sets
-                        // orderedRevisionsToIndex.add(child);
+                        orderedRevisionsToIndex.add(child);
+                        LOGGER.debug("Adding merge revision {} to list of revisions to index", child.getInternalId());
                     }
                     return cut;
                 }
@@ -189,7 +189,7 @@ public class ChangeIndexingService {
                 orderedRevisionsToIndex.add(r);
             }
         });
-        return orderedRevisionsToIndex;
+        return Lists.newArrayList(orderedRevisionsToIndex);
     }
 
     private Collection<DatabaseChangeSet> indexDatabaseChangesInRevision(Project project, VcsLocalRepository localRepository, Revision revision) throws DatacTechnicalException {
@@ -203,7 +203,7 @@ public class ChangeIndexingService {
         if (databaseChangeSystemAdapter.isPresent()) {
             databaseChangeSets = databaseChangeSystemAdapter.get().listDatabaseChangeSetsForProject(project);
         } else {
-            throw new MissingDatabaseChangeSystemAdapter(project);
+            throw new MissingDatabaseChangeSystemAdapterException(project);
         }
 
         LOGGER.trace("Linking change sets to revisions");

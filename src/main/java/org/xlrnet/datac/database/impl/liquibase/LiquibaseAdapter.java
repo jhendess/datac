@@ -8,6 +8,7 @@ import liquibase.changelog.DatabaseChangeLog;
 import liquibase.database.Database;
 import liquibase.database.core.H2Database;
 import liquibase.exception.LiquibaseException;
+import liquibase.exception.LiquibaseParseException;
 import liquibase.parser.ChangeLogParser;
 import liquibase.parser.ChangeLogParserFactory;
 import liquibase.resource.ResourceAccessor;
@@ -38,6 +39,8 @@ import java.util.List;
 public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
 
     private static final String UNKNOWN_AUTHOR = "unknown";
+
+    private static final String DOES_NOT_EXIST = "does not exist";
 
     /**
      * Service for accessing the file system.
@@ -81,6 +84,12 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
                 sort++;
             }
 
+        } catch (LiquibaseParseException pe) {
+            if (StringUtils.endsWith(pe.getMessage(), DOES_NOT_EXIST)) {
+                LOGGER.warn("Unable to find find changelog file {}", StringUtils.substringBefore(DOES_NOT_EXIST, pe.getMessage()));
+            } else {
+                throw new DatacTechnicalException(pe);
+            }
         } catch (LiquibaseException e) {
             throw new DatacTechnicalException(e);
         }

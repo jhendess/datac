@@ -145,7 +145,7 @@ public class CryptoService {
             StandardPBEStringEncryptor encryptor = getEncryptor(salt);
             return encryptor.decrypt(encryptedString);
         } catch (EncryptionOperationNotPossibleException e) {
-            LOGGER.error("Decrypting string value failed", e);
+            LOGGER.error("Decrypting string value failed - make sure that you use the same secret key as for encoding", e);
             throw new EncryptionFailedException(e);
         }
     }

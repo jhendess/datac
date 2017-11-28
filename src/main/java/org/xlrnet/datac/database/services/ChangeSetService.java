@@ -129,6 +129,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
      * @return
      * @throws DatacTechnicalException
      */
+    // TODO: Write tests for this method
     public List<DatabaseChangeSet> findLastDatabaseChangeSetsOnBranch(Branch branch, int changeSetsToFind, int revisionsToVisit) throws DatacTechnicalException {
         Project project = branch.getProject();
         Revision lastDevRevision = revisionGraphService.findByInternalIdAndProject(branch.getInternalId(), project);
@@ -137,9 +138,8 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
         breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, (r) -> {
             if (countByRevision(r) > 0) {
                 List<DatabaseChangeSet> changeSetsInRevision = findAllInRevision(r);
-                for (int i = changeSetsInRevision.size() - 1, k = 0; i > 0 && k < changeSetsToFind; i--) {
+                for (int i = changeSetsInRevision.size() - 1; i > 0 && changeSets.size() < changeSetsToFind; i--) {
                     changeSets.add(changeSetsInRevision.get(i));
-                    k++;
                 }
             }
         }, (r -> (visitedRevisions.incrementAndGet() > revisionsToVisit || changeSets.size() == 3)));
@@ -161,7 +161,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
         final List<DatabaseChangeSet> changeSetsInRevision = new ArrayList<>();
         AtomicInteger visitedRevisions = new AtomicInteger(0);
         breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, (r) -> {
-            if (countByRevision(r) > 0) {
+            if (changeSetsInRevision.isEmpty() && countByRevision(r) > 0) {
                 for (DatabaseChangeSet databaseChangeSet : findAllInRevision(r)) {
                     changeSetsInRevision.add(databaseChangeSet);
                     Hibernate.initialize(databaseChangeSet.getChanges());

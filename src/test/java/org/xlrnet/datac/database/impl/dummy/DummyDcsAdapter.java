@@ -26,8 +26,6 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
 
     private static final String CHECKSUM_A_ORIGINAL = RandomStringUtils.random(16);
 
-    private static final String CHECKSUM_A_MODIFIED_2 = RandomStringUtils.random(16);
-
     private static final String CHECKSUM_A_MODIFIED_4 = RandomStringUtils.random(16);
 
     private static final String CHECKSUM_A_MODIFIED_5 = RandomStringUtils.random(16);
@@ -107,7 +105,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                         new DatabaseChangeSet()
                                 .setInternalId("A")
                                 .setSourceFilename("DUMMY")
-                                .setChecksum(CHECKSUM_A_MODIFIED_2)
+                                .setChecksum(CHECKSUM_A_MODIFIED_4)
                                 .addChange(buildDummyChange())
                 );
                 changeSets.add(
@@ -130,7 +128,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                         new DatabaseChangeSet()
                                 .setInternalId("A")
                                 .setSourceFilename("DUMMY")
-                                .setChecksum(CHECKSUM_A_MODIFIED_2)
+                                .setChecksum(CHECKSUM_A_MODIFIED_4)
                                 .addChange(buildDummyChange())
                 );
                 changeSets.add(

@@ -43,7 +43,7 @@ public class ProjectChangeSubview extends AbstractSubview {
 
     public static final String VIEW_NAME = "project/changes";
 
-    private static final int REVISIONS_TO_TRAVERSE = 50;
+    private static final int REVISIONS_TO_TRAVERSE = 200;
 
     private static final int REVISION_LENGTH = 7;
 
