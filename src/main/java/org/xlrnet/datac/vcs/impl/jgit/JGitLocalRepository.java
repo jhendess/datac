@@ -1,5 +1,13 @@
 package org.xlrnet.datac.vcs.impl.jgit;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
@@ -21,14 +29,6 @@ import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * Implementation of a local git repository using JGit.
@@ -151,7 +151,7 @@ public class JGitLocalRepository implements VcsLocalRepository {
                 LOGGER.trace("ID: {}, Time: {}, Parents: {}, Message: {}", revCommit.getId(), revCommit.getCommitTime(), revCommit.getParentCount(), revCommit.getShortMessage().trim());
             }
 
-            LOGGER.debug("Found {} affected revisions for path {} in repository {}", affectedRevisions.size(), path, cleanedPath);
+            LOGGER.debug("Found {} affected revisions for path {} in repository {}", affectedRevisions.size(), cleanedPath, repositoryPath.toString());
             return affectedRevisions;
         } catch (JGitInternalException | GitAPIException e) {
             LOGGER.error("Unexpected exception while communicating with git", e);

@@ -104,9 +104,10 @@ public class ChangeIndexingService {
 
         // For performing the actual indexing, retrieve all revisions which changed the whole directory in which the changelog lies
         Path parentPath = Paths.get(project.getChangelogLocation()).getParent();
-        LOGGER.warn("Parent directory of change log may not be null - this is probably a bug in the VCS adapter");
         if (parentPath != null) {
             changeLogRevisions = localRepository.listRevisionsWithChangesInPath(parentPath.toString());
+        } else {
+            LOGGER.warn("Parent directory of change log may not be null - this is probably a bug in the VCS adapter. Falling back to file changes");
         }
 
         project.setState(ProjectState.INDEXING);
