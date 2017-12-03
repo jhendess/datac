@@ -87,7 +87,7 @@ public class ProjectUpdateServiceFullTest extends AbstractSpringBootTest {
                 // Verify revision 2
                 assertEquals("2", rev2.getInternalId());
                 assertEquals(2, rev2.getParents().size());
-                assertEquals(2, rev2.getChildren().size());
+                assertEquals(1, rev2.getChildren().size());
                 for (Revision revision10 : rev2.getChildren()) {
                     if (!("0".equals(revision10.getInternalId()) || "1".equals(revision10.getInternalId()))) {
                         fail("Encountered unexpected revision with internal id " + revision10.getInternalId());
@@ -95,10 +95,11 @@ public class ProjectUpdateServiceFullTest extends AbstractSpringBootTest {
                 }
             } else if ("4".equals(revision.getInternalId())) {
                 // Verify revision 4
-                assertEquals(1, revision.getChildren().size());
+                assertEquals(2, revision.getChildren().size());
                 assertEquals(1, revision.getParents().size());
                 assertEquals("6", revision.getParents().get(0).getInternalId());
                 assertEquals("2", revision.getChildren().get(0).getInternalId());
+                assertEquals("0", revision.getChildren().get(1).getInternalId());
             } else {
                 fail("Encountered unexpected revision with internal id " + revision.getInternalId());
             }
@@ -142,7 +143,7 @@ public class ProjectUpdateServiceFullTest extends AbstractSpringBootTest {
         assertFalse(initialChangeSetC.isModifying());
 
         List<DatabaseChangeSet> rev2changes = changeSetService.findAllInRevision(revisionGraphService.findRevisionInProject(project, "2"));
-        assertEquals(3, rev2changes.size());
+        assertEquals("Number of revisions doesn't match for rev 2 - this indicates a problem detecting merge revisions", 3, rev2changes.size());
         assertEquals("A", rev2changes.get(0).getInternalId());
         assertNotNull(rev2changes.get(0).getIntroducingChangeSet());
         assertEquals(initialChangeSetA, rev2changes.get(0).getIntroducingChangeSet());
@@ -170,6 +171,21 @@ public class ProjectUpdateServiceFullTest extends AbstractSpringBootTest {
         assertNotNull(rev1changes.get(2).getIntroducingChangeSet());
         assertEquals(initialChangeSetC, rev1changes.get(2).getIntroducingChangeSet());
         assertTrue(rev1changes.get(2).isModifying());
+
+        List<DatabaseChangeSet> rev0changes = changeSetService.findAllInRevision(revisionGraphService.findRevisionInProject(project, "0"));
+        assertEquals("Number of revisions doesn't match for rev 0 - this indicates a problem detecting merge revisions", 3, rev0changes.size());
+        assertEquals("A", rev0changes.get(0).getInternalId());
+        assertNotNull(rev0changes.get(0).getIntroducingChangeSet());
+        assertEquals(initialChangeSetA, rev0changes.get(0).getIntroducingChangeSet());
+        assertTrue(rev0changes.get(0).isModifying());
+        assertEquals("B", rev0changes.get(1).getInternalId());
+        assertNotNull(rev0changes.get(1).getIntroducingChangeSet());
+        assertEquals(initialChangeSetB, rev0changes.get(1));
+        assertFalse(rev0changes.get(1).isModifying());
+        assertEquals("C", rev0changes.get(2).getInternalId());
+        assertNotNull(rev0changes.get(2).getIntroducingChangeSet());
+        assertEquals(initialChangeSetC, rev0changes.get(2).getIntroducingChangeSet());
+        assertTrue(rev0changes.get(2).isModifying());
 
         commit();
     }

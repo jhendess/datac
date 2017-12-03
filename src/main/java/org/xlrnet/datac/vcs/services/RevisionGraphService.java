@@ -1,18 +1,7 @@
 package org.xlrnet.datac.vcs.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -35,8 +24,11 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
+import java.math.BigInteger;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Service for accessing and manipulating VCS revision graphs.
@@ -186,7 +178,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
 
 
     /**
-     * Returns the root revision in a project - i.e. the revision without any parents.
+     * Returns the root revision in a project - i.e. the earliest revision without any parents.
      *
      * @param project
      *         The project to check
@@ -268,6 +260,23 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
     public Revision findLastRevisionOnBranch(@NotNull Branch branch) throws DatacTechnicalException {
         Project project = branch.getProject();
         return findByInternalIdAndProject(branch.getInternalId(), project);
+    }
+
+    /**
+     * Returns a collection of all revisions which are merge revisions (i.e. all revisions which have more than one
+     * parent).
+     *
+     * @param project
+     *         The project in which the revisions must lie.
+     * @return
+     */
+    @NotNull
+    @Transactional(readOnly = true)
+    public Iterable<Revision> findMergeRevisionsInProject(Project project) {
+        checkArgument(project.isPersisted(), "Project must be persisted");
+
+        List<BigInteger> mergeRevisionIdsInProject = this.getRepository().findMergeRevisionIdsInProject(project.getId());
+        return getRepository().findAll(mergeRevisionIdsInProject.stream().map(BigInteger::longValue).collect(Collectors.toList()));
     }
 
     /**

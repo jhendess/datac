@@ -226,20 +226,20 @@ public class AdminEditProjectSubview extends AbstractSubview {
 
     @Override
     protected void initialize() {
-        // Nothing to do
+        setupProject();
     }
 
 
     @NotNull
     @Override
     protected String getSubtitle() {
-        return "This assistant will help you setting up a new project and configure branches and versions to track.";
+        return isNewProject ? "This assistant will help you setting up a new project and configure branches and versions to track." : "";
     }
 
     @NotNull
     @Override
     protected String getTitle() {
-        return "New project";
+        return isNewProject ? "New project" : "Edit project";
     }
 
     /**
@@ -287,7 +287,6 @@ public class AdminEditProjectSubview extends AbstractSubview {
         Layout vcsSetupLayout = buildVcsSetupLayout();
         mainLayout.addComponent(vcsSetupLayout);
 
-        setupProject();
         if (!isNewProject) {
             changeToBranchSelectionState(projectBean.getBranches());
             vcsDevBranchSelect.setValue(projectBean.getDevelopmentBranch());
@@ -489,7 +488,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
                 try {
                     changeSetService.resetChanges(projectBean);
                     NotificationUtils.showSuccess("Changes reset successfully ");
-                } catch (DatacTechnicalException ex) {
+                } catch (DatacTechnicalException | RuntimeException ex) {
                     LOGGER.error("Resetting changes in project {} failed", projectBean.getName(), ex);
                     NotificationUtils.showError("Resetting changes failed", ex.getMessage(), false);
                 } finally {

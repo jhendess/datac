@@ -37,23 +37,26 @@ public class DummyLocalRepository implements VcsLocalRepository {
     @NotNull
     @Override
     public VcsRevision listLatestRevisionOnBranch(@NotNull Branch branch) throws VcsConnectionException, VcsRepositoryException {
-        String headId = "master".equalsIgnoreCase(branch.getName()) ? "1" : "0";
-
         DummyRevision root = new DummyRevision("6").setCommitTime(Instant.now());
 
-        return new DummyRevision(headId).setCommitTime(Instant.now())
+        DummyRevision revision4 = new DummyRevision("4").setCommitTime(Instant.now())
+                .addParent(root);
+        return new DummyRevision("0").setCommitTime(Instant.now())
+                .addParent(revision4)
                 .addParent(
-                        new DummyRevision("2").setCommitTime(Instant.now())
+                        new DummyRevision("1").setCommitTime(Instant.now())
                                 .addParent(
-                                        new DummyRevision("3").setCommitTime(Instant.now())
+                                        new DummyRevision("2").setCommitTime(Instant.now())
                                                 .addParent(
-                                                        new DummyRevision("5").setCommitTime(Instant.now())
-                                                                .addParent(root)
+                                                        new DummyRevision("3").setCommitTime(Instant.now())
+                                                                .addParent(
+                                                                        new DummyRevision("5").setCommitTime(Instant.now())
+                                                                                .addParent(root)
+                                                                )
                                                 )
-                                )
-                                .addParent(
-                                        new DummyRevision("4").setCommitTime(Instant.now())
-                                                .addParent(root)
+                                                .addParent(
+                                                        revision4
+                                                )
                                 )
                 );
     }
@@ -62,9 +65,9 @@ public class DummyLocalRepository implements VcsLocalRepository {
     @Override
     public Collection<VcsRevision> listRevisionsWithChangesInPath(@NotNull String path) {
         return ImmutableList.of(
+                // Revision 0 is a merge commit -> the system must detect that automatically
             new DummyRevision("1").setCommitTime(Instant.now()),
                 // Revision 2 is a merge commit -> the system must detect that automatically
-                // new DummyRevision("2").setCommitTime(Instant.now()),
             new DummyRevision("4").setCommitTime(Instant.now()),
             new DummyRevision("5").setCommitTime(Instant.now()),
             new DummyRevision("3").setCommitTime(Instant.now()),
@@ -82,5 +85,10 @@ public class DummyLocalRepository implements VcsLocalRepository {
     @Override
     public void cleanupIfNecessary() throws VcsRepositoryException {
         // Do nothing
+    }
+
+    @Override
+    public boolean existsPathInRevision(@NotNull VcsRevision revision, @NotNull String path) {
+        return true;
     }
 }

@@ -1,6 +1,5 @@
 package org.xlrnet.datac.database.services;
 
-import com.google.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,20 +112,29 @@ public class ChangeIndexingService {
         // Convert the external revisions to internal ones
         Collection<Revision> internalRevisions = revisionGraphService.findMatchingInternalRevisions(updatedProject, changeLogRevisions);
         // Find those revisions which don't have a change set yet
-        List<Revision> revisionsToIndex = new ArrayList<>();
+        Set<Revision> revisionsToIndex = new LinkedHashSet<>();
         for (Revision revision : internalRevisions) {
             if (changeSetService.countByRevision(revision) == 0) {
                 revisionsToIndex.add(revision);
             }
         }
 
-        // TODO: Scan for merge commits and add them to the list - this is currently done in orderRevisionsToIndex()
-        // which is not the correct place. This makes it atm impossible to index a merge if has no child which is
-        // supposed to be indexed.
-
         if (!revisionsToIndex.isEmpty()) {
-            LOGGER.debug("Indexing {} revisions", revisionsToIndex.size());
-            indexDatabaseChanges(updatedProject, localRepository, revisionsToIndex);
+            Set<Revision> orderedRevisionsToIndex = orderRevisionsToIndex(project, revisionsToIndex);
+
+            // Add merge revisions after the regular revisions -> this works fine, since a merge revision is never an introducing change
+            // The java Set makes sure that no revisions are indexed twice
+            Iterable<Revision> mergeRevisionsInProject = revisionGraphService.findMergeRevisionsInProject(project);
+            LOGGER.debug("Checking for merge revisions in project {} [id={}]", updatedProject.getName(), updatedProject.getId());
+            for (Revision revision : mergeRevisionsInProject) {
+                if (changeSetService.countByRevision(revision) == 0 && localRepository.existsPathInRevision(revision, project.getChangelogLocation())) {
+                    orderedRevisionsToIndex.add(revision);
+                    LOGGER.debug("Adding merge revision {} to index", revision.getInternalId());
+                }
+            }
+
+            LOGGER.debug("Indexing {} revisions in project {} [id={}]", orderedRevisionsToIndex.size(), updatedProject.getName(), updatedProject.getId());
+            indexDatabaseChanges(updatedProject, localRepository, orderedRevisionsToIndex);
         } else {
             LOGGER.info("No new revisions in project {} [id={}]", updatedProject.getName(), updatedProject.getId());
         }
@@ -148,12 +156,11 @@ public class ChangeIndexingService {
      *         The revisions that should be indexed.
      */
     private void indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository, @NotNull Collection<Revision> revisionsToIndex) throws DatacTechnicalException {
-        List<Revision> orderedRevisionsToIndex = orderRevisionsToIndex(project, revisionsToIndex);
         int indexed = 0;
         int newChangeSets = 0;
 
-        for (Revision toIndex : orderedRevisionsToIndex) {
-            double progress = (indexed++ / (double) orderedRevisionsToIndex.size()) * 100.0;
+        for (Revision toIndex : revisionsToIndex) {
+            double progress = (indexed++ / (double) revisionsToIndex.size()) * 100.0;
             projectService.saveAndPublishStateChange(project, progress);
             Collection<DatabaseChangeSet> changeSets = indexDatabaseChangesInRevision(project, localRepository, toIndex);
             newChangeSets += changeSets.size();
@@ -164,7 +171,7 @@ public class ChangeIndexingService {
     }
 
     @NotNull
-    private List<Revision> orderRevisionsToIndex(@NotNull Project project, @NotNull Collection<Revision> revisionsToIndex) throws DatacTechnicalException {
+    private Set<Revision> orderRevisionsToIndex(@NotNull Project project, @NotNull Collection<Revision> revisionsToIndex) throws DatacTechnicalException {
         Revision rootRevision = revisionGraphService.findProjectRootRevision(project);
         Set<Revision> orderedRevisionsToIndex = new LinkedHashSet<Revision>();
         HashMap<String, AtomicInteger> mergeMap = new HashMap<>();
@@ -175,12 +182,7 @@ public class ChangeIndexingService {
                     // Whenever the next revision is a merge, don't continue on the current branch but wait until
                     // another branch reaches that revision
                     AtomicInteger pathsToVisit = mergeMap.computeIfAbsent(child.getInternalId(), x -> new AtomicInteger(child.getParents().size()));
-                    boolean cut = pathsToVisit.decrementAndGet() > 0;
-                    if (!cut && changeSetService.countByRevision(child) == 0) {
-                        orderedRevisionsToIndex.add(child);
-                        LOGGER.debug("Adding merge revision {} to list of revisions to index", child.getInternalId());
-                    }
-                    return cut;
+                    return pathsToVisit.decrementAndGet() > 0;
                 }
             }
             return false;
@@ -189,7 +191,7 @@ public class ChangeIndexingService {
                 orderedRevisionsToIndex.add(r);
             }
         });
-        return Lists.newArrayList(orderedRevisionsToIndex);
+        return orderedRevisionsToIndex;
     }
 
     private Collection<DatabaseChangeSet> indexDatabaseChangesInRevision(Project project, VcsLocalRepository localRepository, Revision revision) throws DatacTechnicalException {

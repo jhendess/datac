@@ -1,5 +1,6 @@
 package org.xlrnet.datac.database.impl.liquibase;
 
+import ch.qos.logback.classic.Level;
 import com.google.common.base.Throwables;
 import liquibase.change.Change;
 import liquibase.changelog.ChangeLogParameters;
@@ -29,6 +30,7 @@ import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.FileService;
 
+import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,6 +64,15 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
         return parser.parse(changeLogFile, changeLogParameters, resourceAccessor);
     }
 
+    @PostConstruct
+    public void initialize() {
+        // TODO: Better use a filter to get rid of the "No database connection available ..." messages?
+        LOGGER.info("Disabling liquibase WARN logging level");
+        // Disable liquibase warning logging manually (at the moment - this doesn't seem very good)
+        ch.qos.logback.classic.Logger liquibaseLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger("liquibase");
+        liquibaseLogger.setLevel(Level.ERROR);
+    }
+
     @NotNull
     @Override
     public DatabaseChangeSystemMetaInfo getMetaInfo() {
@@ -72,7 +83,7 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
     @NotNull
     public List<DatabaseChangeSet> listDatabaseChangeSetsForProject(@NotNull Project project) throws DatacTechnicalException {
         ArrayList<DatabaseChangeSet> datacChangeSets = new ArrayList<>();
-        LOGGER.debug("Listing database changes in project {}", project);
+        LOGGER.debug("Listing database changes in project {} [id={}]", project.getName(), project.getId());
         try {
             DatabaseChangeLog databaseChangeLog = getDatabaseChangeLog(project.getChangelogLocation(), project);
 

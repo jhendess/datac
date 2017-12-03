@@ -1,14 +1,10 @@
 package org.xlrnet.datac.commons.graph;
 
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Set;
-import java.util.function.Function;
-
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.util.ThrowingConsumer;
+
+import java.util.*;
+import java.util.function.Function;
 
 /**
  * Traverses a graph of {@link TraversableNode} objects using a breadth first algorithm.

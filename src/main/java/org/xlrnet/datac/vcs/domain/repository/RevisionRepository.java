@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.domain.Revision;
 
+import java.math.BigInteger;
 import java.util.List;
 
 /**
@@ -29,4 +30,19 @@ public interface RevisionRepository extends PagingAndSortingRepository<Revision,
     @Transactional(readOnly = true)
     @Query(value = "SELECT * FROM REVISION LEFT JOIN REVISION_GRAPH ON REVISION.ID = REVISION_GRAPH.REVISION_ID WHERE REVISION.PROJECT_ID = ?1 AND PARENT_REVISION_ID IS NULL", nativeQuery = true)
     Revision findProjectRootRevision(long projectId);
+
+    /**
+     * Returns a list of all revision ids which are a merge revision.
+     */
+    @Transactional(readOnly = true)
+    @Query(value = "SELECT REVISION_ID FROM (\n" +
+            "  SELECT\n" +
+            "    REVISION_ID,\n" +
+            "    COUNT(REVISION_ID) AS REV_COUNT\n" +
+            "  FROM REVISION\n" +
+            "    LEFT JOIN REVISION_GRAPH ON REVISION.ID = REVISION_GRAPH.REVISION_ID\n" +
+            "  WHERE REVISION.PROJECT_ID = ?1\n" +
+            "  GROUP BY REVISION_ID\n" +
+            ") WHERE REV_COUNT > 1", nativeQuery = true)
+    List<BigInteger> findMergeRevisionIdsInProject(long projectId);
 }

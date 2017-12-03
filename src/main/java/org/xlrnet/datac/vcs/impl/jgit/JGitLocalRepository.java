@@ -1,24 +1,23 @@
 package org.xlrnet.datac.vcs.impl.jgit;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.JGitInternalException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +28,14 @@ import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Implementation of a local git repository using JGit.
@@ -208,6 +215,20 @@ public class JGitLocalRepository implements VcsLocalRepository {
         }
     }
 
+    @Override
+    public boolean existsPathInRevision(@NotNull VcsRevision revision, @NotNull String path) throws VcsRepositoryException {
+        String cleanedPath = StringUtils.removeStart(path.replace("\\", "/"), "/");
+        try {
+            return fetchBlob(revision.getInternalId(), cleanedPath) != null;
+        } catch (JGitInternalException e) {
+            LOGGER.error("Unexpected exception while communicating with git", e);
+            throw new VcsRepositoryException(e);
+        } catch (IOException e) {
+            LOGGER.error("Unexpected IOException", e);
+            throw new VcsRepositoryException(e);
+        }
+    }
+
     private void unlockRepository() throws IOException {
         LOGGER.info("Unlocking git repository {}", repositoryPath);
         fileService.deleteFile(getLockFilePath());
@@ -224,5 +245,38 @@ public class JGitLocalRepository implements VcsLocalRepository {
 
     private Path getLockFilePath() {
         return repositoryPath.resolve(".git").resolve("index.lock");
+    }
+
+    /**
+     * Fetches a file's content in a specific revision from a given path.
+     */
+    private byte[] fetchBlob(String revSpec, String path) throws MissingObjectException, IncorrectObjectTypeException,
+            IOException {
+        try (Git git = openRepository()) {
+            Repository repo = git.getRepository();
+
+            // Resolve the revision specification
+            final ObjectId id = repo.resolve(revSpec);
+
+            // Makes it simpler to release the allocated resources in one go
+
+            try (ObjectReader reader = repo.newObjectReader()) {
+                // Get the commit object for that revision
+                RevWalk walk = new RevWalk(reader);
+                RevCommit commit = walk.parseCommit(id);
+
+                // Get the revision's file tree
+                RevTree tree = commit.getTree();
+                // .. and narrow it down to the single file's path
+                TreeWalk treewalk = TreeWalk.forPath(reader, path, tree);
+
+                if (treewalk != null) {
+                    // use the blob id to read the file's data
+                    return reader.open(treewalk.getObjectId(0)).getBytes();
+                } else {
+                    return null;
+                }
+            }
+        }
     }
 }

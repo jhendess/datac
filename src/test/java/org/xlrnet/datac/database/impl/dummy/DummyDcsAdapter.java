@@ -124,6 +124,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                 );
                 break;
             case 1:
+            case 0: // Change 0 and 1 have the same data
                 changeSets.add(
                         new DatabaseChangeSet()
                                 .setInternalId("A")

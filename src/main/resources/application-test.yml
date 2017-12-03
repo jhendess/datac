@@ -14,7 +14,7 @@ spring:
         server-id: "datac-testing"
         journal: "null"
   jpa:
-    show-sql: true
+    show-sql: false
 
 datac:
   fileDirectory: "work-test"

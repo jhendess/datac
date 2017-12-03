@@ -33,6 +33,6 @@ public interface ChangeSetRepository extends PagingAndSortingRepository<Database
      *         Id of the project.
      */
     @Modifying
-    @Query(value = "DELETE FROM CHANGESET WHERE REVISION_ID IN (SELECT REVISION_ID FROM REVISION WHERE PROJECT_ID = ?1)", nativeQuery = true)
+    @Query(value = "DELETE FROM CHANGESET WHERE REVISION_ID IN (SELECT ID FROM REVISION WHERE PROJECT_ID = ?1)", nativeQuery = true)
     void deleteAllByProjectId(Long projectId);
 }

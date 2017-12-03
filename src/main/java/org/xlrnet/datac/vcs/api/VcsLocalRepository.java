@@ -79,4 +79,15 @@ public interface VcsLocalRepository {
      *         Will be thrown if the VCS repository encountered an internal error.
      */
     void cleanupIfNecessary() throws VcsRepositoryException;
+
+    /**
+     * Checks if the given path exists in the given revision.
+     *
+     * @param revision
+     *         The revision which should be checked for the given path.
+     * @param path
+     *         The path to check
+     * @return True if the path exists in the given revision.
+     */
+    boolean existsPathInRevision(@NotNull VcsRevision revision, @NotNull String path) throws VcsRepositoryException;
 }
