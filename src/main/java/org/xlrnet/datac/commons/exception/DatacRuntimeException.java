@@ -25,8 +25,8 @@
 package org.xlrnet.datac.commons.exception;
 
 /**
- * The class {@link DatacRuntimeException} represents any kind of exception that may be thrown during a metadict core
- * call.
+ * The class {@link DatacRuntimeException} represents any kind of exception that may be thrown during a datac
+ * call. It is not expected that the application handles the exception successfully.
  */
 public class DatacRuntimeException extends RuntimeException {
 

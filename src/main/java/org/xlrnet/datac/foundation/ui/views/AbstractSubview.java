@@ -13,7 +13,11 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xlrnet.datac.administration.ui.views.AdminSubview;
+import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Abstract subview which contains a title with subtitle and a main content panel. Override the abstract methods in this
@@ -34,24 +38,64 @@ public abstract class AbstractSubview extends VerticalLayout implements Subview 
      */
     protected abstract void initialize() throws DatacTechnicalException;
 
-    String[] parameters;
+    /**
+     * Map of named parameters. I.e. everything after "?" in /xxx/yyy?a=b
+     */
+    private Map<String, String> namedParameters;
+
+    /**
+     * Array of parameters after the current view's name except named parameters.
+     */
+    private String[] parameters;
 
     @Override
     public void enter(ViewChangeListener.ViewChangeEvent event) {
-        parameters = StringUtils.split(event.getParameters(), "/");
-        if (parameters.length == 0) {
-            LOGGER.debug("Entering subview {}", event.getViewName());
+        String namedParametersRaw = StringUtils.substringAfter(event.getParameters(), "?");
+        parameters = StringUtils.split(StringUtils.substringBefore(event.getParameters(), "?"), "/");
+        namedParameters = buildNamedParameterMap(namedParametersRaw);
+        if (parameters.length > 0 || !namedParameters.isEmpty()) {
+            LOGGER.debug("Entering subview {} with parameters {} {}", event.getViewName(), parameters, namedParameters);
         } else {
-            LOGGER.debug("Entering subview {} with parameters {}", event.getViewName(), event.getParameters());
+            LOGGER.debug("Entering subview {}", event.getViewName());
         }
 
         try {
             initialize();
             buildComponents();
-        } catch (DatacTechnicalException e) {
+        } catch (DatacTechnicalException | DatacRuntimeException e) {
             LOGGER.error("Initializing view {} failed", event.getViewName(), e);
             UI.getCurrent().getNavigator().navigateTo(HomeView.VIEW_NAME);
         }
+    }
+
+    private Map<String, String> buildNamedParameterMap(String namedParametersRaw) {
+        Map<String, String> namedParameterMap = new HashMap<>();
+        String[] kvPairs = StringUtils.split(namedParametersRaw, "&");
+        for (String kvPair : kvPairs) {
+            String[] split = StringUtils.split(kvPair, "=");
+            namedParameterMap.put(split[0], split[1]);
+        }
+        return namedParameterMap;
+    }
+
+    /**
+     * Returns the given named parameter or the given default value if it is null.
+     *
+     * @param parameterName
+     *         The name of the parameter look up.
+     * @param defaultValue
+     *         The default value to use if the value of the given parameter is null.
+     * @return
+     */
+    String getNamedParameter(String parameterName, String defaultValue) {
+        return namedParameters.getOrDefault(parameterName, defaultValue);
+    }
+
+    /**
+     * Returns the given named parameter or null if it doesn't exist.
+     */
+    String getNamedParameter(String branchParameter) {
+        return getNamedParameter(branchParameter, null);
     }
 
     private void buildComponents() {

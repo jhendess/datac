@@ -17,6 +17,7 @@ import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.services.ChangeSetService;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.ProjectService;
+import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
@@ -58,11 +59,17 @@ public class ProjectOverviewSubview extends AbstractSubview {
      */
     private final RevisionGraphService revisionGraphService;
 
+    /**
+     * Service for navigating across views.
+     */
+    private final NavigationService navigationService;
+
     @Autowired
-    public ProjectOverviewSubview(ProjectService projectService, ChangeSetService changeSetService, RevisionGraphService revisionGraphService) {
+    public ProjectOverviewSubview(ProjectService projectService, ChangeSetService changeSetService, RevisionGraphService revisionGraphService, NavigationService navigationService) {
         this.projectService = projectService;
         this.changeSetService = changeSetService;
         this.revisionGraphService = revisionGraphService;
+        this.navigationService = navigationService;
     }
 
     @NotNull
@@ -99,7 +106,7 @@ public class ProjectOverviewSubview extends AbstractSubview {
     private Component createPanelForProject(Project project) {
         Panel panel = new Panel(project.getName());
         panel.setWidth("75%");
-        panel.addClickListener((e) -> UI.getCurrent().getNavigator().navigateTo(ProjectChangeSubview.VIEW_NAME + "/" + project.getDevelopmentBranch().getId()));
+        panel.addClickListener((e) -> navigationService.openChangeView(project.getDevelopmentBranch()));
 
         GridLayout panelContent = new GridLayout(2, 5);
         panelContent.setStyleName("projectPanel");

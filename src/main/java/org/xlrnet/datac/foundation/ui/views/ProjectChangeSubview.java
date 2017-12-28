@@ -21,6 +21,7 @@ import org.xlrnet.datac.commons.exception.IllegalUIStateException;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.services.ChangeSetService;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
@@ -47,6 +48,8 @@ public class ProjectChangeSubview extends AbstractSubview {
 
     private static final int REVISION_LENGTH = 7;
 
+    private static final String BRANCH_PARAMETER = "branch";
+
     /**
      * Service for accessing branch data.
      */
@@ -61,6 +64,11 @@ public class ProjectChangeSubview extends AbstractSubview {
      * Service for accessing database changes.
      */
     private final ChangeSetService changeSetService;
+
+    /**
+     * Service for navigating to various view states.
+     */
+    private final NavigationService navigationService;
 
     /**
      * The current project.
@@ -83,28 +91,33 @@ public class ProjectChangeSubview extends AbstractSubview {
     private List<DatabaseChangeSet> changeSets;
 
     @Autowired
-    public ProjectChangeSubview(BranchService branchService, RevisionGraphService revisionGraphService, ChangeSetService changeSetService) {
+    public ProjectChangeSubview(BranchService branchService, RevisionGraphService revisionGraphService, ChangeSetService changeSetService, NavigationService navigationService) {
         this.branchService = branchService;
         this.revisionGraphService = revisionGraphService;
         this.changeSetService = changeSetService;
+        this.navigationService = navigationService;
     }
 
     @Override
     protected void initialize() throws DatacTechnicalException {
-        Long branchId = null;
+        Long revisionId = null;
         if (getParameters().length == 1 && NumberUtils.isDigits(getParameters()[0])) {
-            branchId = Long.valueOf(getParameters()[0]);
-            branch = branchService.findOne(branchId);
+            revisionId = Long.valueOf(getParameters()[0]);
+            revision = revisionGraphService.findOne(revisionId);
         }
-        if (branch == null) {
-            LOGGER.warn("Unable to find branch {}", branchId);
-            throw new IllegalUIStateException(VIEW_NAME, getParameters());
+        if (revision == null) {
+            LOGGER.warn("Unable to find revision {}", revisionId);
+            throw new IllegalUIStateException("Unable to find revision " + revisionId, VIEW_NAME, getParameters());
         } else {
-            project = branch.getProject();
+            project = revision.getProject();
         }
 
-        revision = revisionGraphService.findLastRevisionOnBranch(branch);
-        changeSets = changeSetService.findLastDatabaseChangeSetsOnBranch(branch, REVISIONS_TO_TRAVERSE);
+        String branchParameter = getNamedParameter(BRANCH_PARAMETER);
+        if (branchParameter != null) {
+            branch = branchService.findOne(Long.valueOf(branchParameter));
+        }
+
+        changeSets = changeSetService.findDatabaseChangeSetsInRevision(revision, REVISIONS_TO_TRAVERSE);
         Collections.reverse(changeSets);
     }
 
@@ -130,13 +143,17 @@ public class ProjectChangeSubview extends AbstractSubview {
         branchSelector.setItems(branchList);
         branchSelector.setSelectedItem(branch);
         branchSelector.setEmptySelectionAllowed(false);
-        branchSelector.addValueChangeListener(e -> UI.getCurrent().getNavigator().navigateTo(VIEW_NAME + "/" + e.getValue().getId()));
+        branchSelector.addValueChangeListener(e -> navigationService.openChangeView(e.getValue()));
         branchSelector.setItemCaptionGenerator(Branch::getName);
         branchSelector.setCaption("Change branch");
         branchSelector.setIcon(VaadinIcons.ROAD_BRANCH);
         navigationPanel.add(branchSelector);
 
-        return navigationPanel;
+        Button revisionBrowserButton = new Button("Open revision graph");
+        revisionBrowserButton.addClickListener(e -> navigationService.openRevisionView(revision, branch));
+        navigationPanel.add(revisionBrowserButton);
+
+        return navigationPanel.alignAll(Alignment.BOTTOM_LEFT);
     }
 
     @NotNull

@@ -25,7 +25,7 @@
 package org.xlrnet.datac.commons.exception;
 
 /**
- * A technical exception that may be thrown by Datac.
+ * A technical exception that may be thrown by Datac and is expected to be handled by a method's caller.
  */
 public class DatacTechnicalException extends Exception {
 

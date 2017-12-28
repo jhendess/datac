@@ -56,7 +56,8 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
-     *  @param crudRepository
+     *
+     * @param crudRepository
      *         The crud repository for providing basic crud operations.
      * @param projectRepository
      * @param validator
@@ -235,8 +236,11 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
 
     /**
      * Finds the last revisions on the given branch.
-     * @param branch The branch on which to search.
-     * @param amount  The amount of revisions to return.
+     *
+     * @param branch
+     *         The branch on which to search.
+     * @param amount
+     *         The amount of revisions to return.
      * @return The last x revisions on the given branch.
      * @throws DatacTechnicalException
      */
@@ -251,13 +255,14 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
 
     /**
      * Returns the latest revision on the given branch.
-     * @param branch The branch on which to get the revision.
+     *
+     * @param branch
+     *         The branch on which to get the revision.
      * @return the latest revision on the given branch.
-     * @throws DatacTechnicalException
      */
     @Nullable
     @Transactional(readOnly = true)
-    public Revision findLastRevisionOnBranch(@NotNull Branch branch) throws DatacTechnicalException {
+    public Revision findLastRevisionOnBranch(@NotNull Branch branch) {
         Project project = branch.getProject();
         return findByInternalIdAndProject(branch.getInternalId(), project);
     }

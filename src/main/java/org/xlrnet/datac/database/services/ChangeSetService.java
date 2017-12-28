@@ -130,6 +130,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
      * @throws DatacTechnicalException
      */
     // TODO: Write tests for this method
+    @Transactional(readOnly = true)
     public List<DatabaseChangeSet> findLastDatabaseChangeSetsOnBranch(Branch branch, int changeSetsToFind, int revisionsToVisit) throws DatacTechnicalException {
         Project project = branch.getProject();
         Revision lastDevRevision = revisionGraphService.findByInternalIdAndProject(branch.getInternalId(), project);
@@ -156,11 +157,29 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
      * @param revisionsToVisit
      *         The amount of revisions that should be visited until the search is given up.
      */
-    public List<DatabaseChangeSet> findLastDatabaseChangeSetsOnBranch(Branch branch, int revisionsToVisit) throws DatacTechnicalException {
+    @Transactional(readOnly = true)
+    public List<DatabaseChangeSet> findLastDatabaseChangeSetsOnBranch(@NotNull Branch branch, int revisionsToVisit) throws DatacTechnicalException {
         Revision lastDevRevision = revisionGraphService.findByInternalIdAndProject(branch.getInternalId(), branch.getProject());
+        return findDatabaseChangeSetsInRevision(lastDevRevision, revisionsToVisit);
+    }
+
+    /**
+     * Returns the last database change sets in the given revision. Traverses only the given amount of revisions before an
+     * empty list will be returned. The resulting list begins with the oldest change set and ends with the newest. The
+     * changes inside the change sets will be completely initialized.
+     *
+     * @param revision
+     *         The revision in which should be searched.
+     * @param revisionsToVisit
+     *         The amount of revisions that should be visited until the search is given up.
+     */
+    @NotNull
+    @Transactional(readOnly = true)
+    public List<DatabaseChangeSet> findDatabaseChangeSetsInRevision(@NotNull Revision revision, int revisionsToVisit) throws DatacTechnicalException {
+        Revision reloadedRevision = revisionGraphService.findOne(revision.getId());
         final List<DatabaseChangeSet> changeSetsInRevision = new ArrayList<>();
         AtomicInteger visitedRevisions = new AtomicInteger(0);
-        breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, (r) -> {
+        breadthFirstTraverser.traverseParentsCutOnMatch(reloadedRevision, (r) -> {
             if (changeSetsInRevision.isEmpty() && countByRevision(r) > 0) {
                 for (DatabaseChangeSet databaseChangeSet : findAllInRevision(r)) {
                     changeSetsInRevision.add(databaseChangeSet);
@@ -251,6 +270,12 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
         return introducingChangeSet;
     }
 
+    /**
+     * Deletes all changes and change sets associated with the given project. The project may not be locked for this to operate correctly.
+     *
+     * @param project
+     * @throws DatacTechnicalException
+     */
     @Transactional
     public void resetChanges(Project project) throws DatacTechnicalException {
         if (!lockingService.tryLock(project)) {

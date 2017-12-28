@@ -13,8 +13,8 @@ public class IllegalUIStateException extends DatacRuntimeException {
 
     private final String[] parameters;
 
-    public IllegalUIStateException(@NotNull String viewName, @NotNull String... parameters) {
-        super("Illegal state while trying to render view " + viewName + " with parameters " + Arrays.toString(parameters));
+    public IllegalUIStateException(@NotNull String message, @NotNull String viewName, @NotNull String... parameters) {
+        super(String.format("Illegal state while trying to render view %s with parameters %s: %s", viewName, Arrays.toString(parameters), message));
         this.viewName = viewName;
         this.parameters = parameters;
     }
