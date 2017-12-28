@@ -1,9 +1,6 @@
 package org.xlrnet.datac.vcs.services;
 
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.stream.StreamSupport;
-
+import com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +18,9 @@ import org.xlrnet.datac.foundation.services.FileService;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 
-import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.stream.StreamSupport;
 
 /**
  * Lifecycle service which performs cleanups on application start and shutdown.

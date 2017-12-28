@@ -19,6 +19,16 @@ public interface ChangeSetRepository extends PagingAndSortingRepository<Database
     long countAllByRevision(Revision revision);
 
     /**
+     * Counts all change sets which were modified the given change set.
+     *
+     * @param changeSet
+     *         The change set to change for overwrites.
+     * @return The number of change sets conflicting with the given changeset.
+     */
+    @Query("SELECT count(d) FROM DatabaseChangeSet d WHERE d.introducingChangeSet = ?1 AND d.modifying = true")
+    long countModifyingChangeSets(DatabaseChangeSet changeSet);
+
+    /**
      * Finds the change set which introduced this change set. This requires that change sets are always written
      * beginning by the oldest. The change set for the introducing changeset will be determined, may not yet be written
      * to database.

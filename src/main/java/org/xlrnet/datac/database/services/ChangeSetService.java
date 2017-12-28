@@ -3,6 +3,7 @@ package org.xlrnet.datac.database.services;
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
+import org.hibernate.engine.jdbc.internal.BasicFormatterImpl;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +70,8 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
      */
     private Map<MultiKey, Optional<Long>> introducingChangeSetIdCache = new HashMap<>();
 
+    private BasicFormatterImpl changeSetFormatter = new BasicFormatterImpl();
+
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
      *
@@ -87,6 +90,17 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     }
 
     /**
+     * Counts all change sets which were modified the given change set.
+     *
+     * @param changeSet
+     *         The change set to change for overwrites.
+     * @return The number of change sets conflicting with the given changeset.
+     */
+    public long countModifyingChangeSets(DatabaseChangeSet changeSet) {
+        return getRepository().countModifyingChangeSets(changeSet);
+    }
+
+    /**
      * Returns a list of change sets in the given revision. The list is ordered ascending by the sort order defined in
      * {@link DatabaseChangeSet#getSort()}
      *
@@ -98,6 +112,11 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
         List<DatabaseChangeSet> allByRevision = getRepository().findAllByRevision(revision);
         allByRevision.sort(new SortableComparator());
         return allByRevision;
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public String formatPreviewSql(DatabaseChangeSet changeSet) {
+        return changeSetFormatter.format(changeSet.getChanges().get(0).getPreviewSql());
     }
 
     public <S extends DatabaseChangeSet> Collection<S> save(Collection<S> entities) {
@@ -243,9 +262,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
             }
         }
 
-        if (message == null) {
-            message = "";
-        }
+        message = StringUtils.trimToEmpty(message);
 
         return message;
     }

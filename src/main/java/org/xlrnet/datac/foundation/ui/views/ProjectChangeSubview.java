@@ -7,21 +7,19 @@ import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
-import org.hibernate.engine.jdbc.internal.BasicFormatterImpl;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.addons.stackpanel.StackPanel;
+import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
-import org.xlrnet.datac.commons.exception.IllegalUIStateException;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.services.ChangeSetService;
-import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.ui.services.NavigationService;
+import org.xlrnet.datac.foundation.ui.util.FormatUtils;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
@@ -38,27 +36,11 @@ import java.util.Objects;
  */
 @SpringComponent
 @SpringView(name = ProjectChangeSubview.VIEW_NAME)
-public class ProjectChangeSubview extends AbstractSubview {
+public class ProjectChangeSubview extends AbstractProjectSubview {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectChangeSubview.class);
 
     public static final String VIEW_NAME = "project/changes";
-
-    private static final int REVISIONS_TO_TRAVERSE = 200;
-
-    private static final int REVISION_LENGTH = 7;
-
-    private static final String BRANCH_PARAMETER = "branch";
-
-    /**
-     * Service for accessing branch data.
-     */
-    private final BranchService branchService;
-
-    /**
-     * Service for accessing revision graph.
-     */
-    private final RevisionGraphService revisionGraphService;
 
     /**
      * Service for accessing database changes.
@@ -71,54 +53,28 @@ public class ProjectChangeSubview extends AbstractSubview {
     private final NavigationService navigationService;
 
     /**
-     * The current project.
-     */
-    private Project project;
-
-    /**
-     * The current branch.
-     */
-    private Branch branch;
-
-    /**
-     * The revision which is effectively displayed.
-     */
-    private Revision revision;
-
-    /**
      * The change sets which will be displayed.
      */
     private List<DatabaseChangeSet> changeSets;
 
     @Autowired
     public ProjectChangeSubview(BranchService branchService, RevisionGraphService revisionGraphService, ChangeSetService changeSetService, NavigationService navigationService) {
-        this.branchService = branchService;
-        this.revisionGraphService = revisionGraphService;
+        super(revisionGraphService, branchService);
         this.changeSetService = changeSetService;
         this.navigationService = navigationService;
     }
 
     @Override
     protected void initialize() throws DatacTechnicalException {
-        Long revisionId = null;
-        if (getParameters().length == 1 && NumberUtils.isDigits(getParameters()[0])) {
-            revisionId = Long.valueOf(getParameters()[0]);
-            revision = revisionGraphService.findOne(revisionId);
-        }
-        if (revision == null) {
-            LOGGER.warn("Unable to find revision {}", revisionId);
-            throw new IllegalUIStateException("Unable to find revision " + revisionId, VIEW_NAME, getParameters());
-        } else {
-            project = revision.getProject();
-        }
-
-        String branchParameter = getNamedParameter(BRANCH_PARAMETER);
-        if (branchParameter != null) {
-            branch = branchService.findOne(Long.valueOf(branchParameter));
-        }
+        super.initialize();
 
         changeSets = changeSetService.findDatabaseChangeSetsInRevision(revision, REVISIONS_TO_TRAVERSE);
         Collections.reverse(changeSets);
+    }
+
+    @Override
+    protected String getViewName() {
+        return VIEW_NAME;
     }
 
     @NotNull
@@ -194,7 +150,9 @@ public class ProjectChangeSubview extends AbstractSubview {
         DatabaseChangeSet firstChangeSet = changeSet.getIntroducingChangeSet() != null ? changeSet.getIntroducingChangeSet() : changeSet;
         Revision firstRevision = firstChangeSet.getRevision();
         grid.addComponent(new Label("Created revision: "));
-        grid.addComponent(new Label(formatRevision(firstRevision)));
+        grid.addComponent(new MButton(FormatUtils.formatRevisionWithMessage(firstRevision))
+                .withStyleName(ValoTheme.BUTTON_LINK)
+                .withListener(e -> navigationService.openRevisionView(firstRevision)));
         grid.addComponent(new Label("Created by: "));
         grid.addComponent(new Label(firstRevision.getAuthor()));    // TODO: Map the authors to actual users
         if (StringUtils.isNotBlank(firstRevision.getReviewer())) {
@@ -207,7 +165,9 @@ public class ProjectChangeSubview extends AbstractSubview {
         if (changeSet.isModifying()) {
             Revision conflictingRevision = changeSet.getRevision();
             grid.addComponent(new Label("Modified revision: "));
-            grid.addComponent(new Label(formatRevision(conflictingRevision)));
+            grid.addComponent(new MButton(FormatUtils.formatRevisionWithMessage(conflictingRevision))
+                    .withStyleName(ValoTheme.BUTTON_LINK)
+                    .withListener(e -> navigationService.openRevisionView(conflictingRevision)));
             grid.addComponent(new Label("Modified by: "));
             grid.addComponent(new Label(conflictingRevision.getAuthor()));   // TODO: Map the authors to actual users
             if (StringUtils.isNotBlank(conflictingRevision.getReviewer())) {
@@ -220,7 +180,7 @@ public class ProjectChangeSubview extends AbstractSubview {
 
         if (!changeSet.getChanges().isEmpty() && StringUtils.isNotBlank(changeSet.getChanges().get(0).getPreviewSql())) {
             grid.addComponent(new Label("SQL Preview:"));
-            String previewSql = new BasicFormatterImpl().format(changeSet.getChanges().get(0).getPreviewSql());
+            String previewSql = changeSetService.formatPreviewSql(changeSet);
             Label sqlPreview = new Label(previewSql, ContentMode.PREFORMATTED);
             sqlPreview.setWidth("80%");
             grid.addComponent(sqlPreview);
@@ -228,16 +188,13 @@ public class ProjectChangeSubview extends AbstractSubview {
             grid.addComponent(new Label("No SQL preview available"));
         }
 
-        /*if (changeSet.getConflictingChangeSet() != null) {
-            panelContent.addComponent(new Label("Warning: this change set is modified in a later revision."));
-        }*/
+        if (changeSetService.countModifyingChangeSets(changeSet) > 0) {
+            Label conflictLabel = new Label("Warning: this change set is modified in a later revision.");
+            conflictLabel.addStyleName(ValoTheme.NOTIFICATION_WARNING);
+            panelContent.addComponent(conflictLabel);
+        }
 
         return panelContent;
-    }
-
-    @NotNull
-    private String formatRevision(Revision firstRevision) {
-        return StringUtils.substring(firstRevision.getInternalId(), 0, REVISION_LENGTH) + " - " + StringUtils.substringBefore(firstRevision.getMessage(), "\n");
     }
 
     @NotNull
@@ -250,7 +207,7 @@ public class ProjectChangeSubview extends AbstractSubview {
         } else if (revision == null) {
             subtitle = "There is no revision on this branch. Make sure that you ran a project update first.";
         } else {
-            String revisionNumber = StringUtils.substring(this.revision.getInternalId(), 0, REVISION_LENGTH);
+            String revisionNumber = FormatUtils.abbreviateRevisionId(revision);
             String revisionMessage = StringUtils.substringBefore(this.revision.getMessage(), "\n");
             subtitle = String.format("There are currently %d database changes in revision %s (%s).", changeSets.size(), revisionNumber, revisionMessage);
         }
@@ -260,6 +217,10 @@ public class ProjectChangeSubview extends AbstractSubview {
     @NotNull
     @Override
     protected String getTitle() {
-        return "Change sets in project " + project.getName() + " on branch " + branch.getName();
+        if (branch != null) {
+            return String.format("Change sets in %s on branch %s", project.getName(), branch.getName());
+        } else {
+            return String.format("Change sets in %s in revision %s", project.getName(), FormatUtils.abbreviateRevisionId(revision));
+        }
     }
 }
