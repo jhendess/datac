@@ -195,7 +195,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     @NotNull
     @Transactional(readOnly = true)
     public List<DatabaseChangeSet> findDatabaseChangeSetsInRevision(@NotNull Revision revision, int revisionsToVisit) throws DatacTechnicalException {
-        Revision reloadedRevision = revisionGraphService.findOne(revision.getId());
+        Revision reloadedRevision = revisionGraphService.refresh(revision);
         final List<DatabaseChangeSet> changeSetsInRevision = new ArrayList<>();
         AtomicInteger visitedRevisions = new AtomicInteger(0);
         breadthFirstTraverser.traverseParentsCutOnMatch(reloadedRevision, (r) -> {

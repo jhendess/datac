@@ -13,8 +13,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.domain.LimitOffsetPageable;
+import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
+import org.xlrnet.datac.commons.graph.DepthFirstTraverser;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
@@ -23,6 +25,7 @@ import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
+import org.xlrnet.datac.vcs.util.RevisionTimestampComparator;
 
 import java.math.BigInteger;
 import java.util.*;
@@ -53,6 +56,11 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
      * Helper class for performing breadth first traversals on revision graphs.
      */
     private final BreadthFirstTraverser<Revision> breadthFirstTraverser = new BreadthFirstTraverser<>();
+
+    /**
+     * Helper class for performing depth first traversals on revision graphs.
+     */
+    private final DepthFirstTraverser<Revision> depthFirstTraverser = new DepthFirstTraverser<>();
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
@@ -308,6 +316,59 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         return ImmutablePair.of(revisionMap.get(rootRevision.getInternalId()), newRevisions);
     }
 
+    /**
+     * Traverses the child graph of a given revision and creates a flattened list of it. Note, that it is not guaranteed
+     * that calling this method again on the last revision in the flattened list yields the same result as calling this method on the source object with a higher
+     *
+     * @param rev
+     *         The origin revision from which to start.
+     * @param maximumDepth
+     *         The maximum amount of revisions to include in the flattened list.
+     */
+    @Transactional(readOnly = true)
+    public List<Revision> flattenRevisionGraph(Revision rev, int maximumDepth) {
+        Map<Revision, Boolean> visitedRevs = new HashMap<>();
+        Map<Revision, Boolean> printedRevs = new HashMap<>();
+        Queue<Revision> continueCandidates = new LinkedList<>();        // Revisions which might be processed in a second run
+        continueCandidates.offer(refresh(rev));
+        List<Revision> resultList = new ArrayList<>(maximumDepth);
+        LOGGER.trace("Flattening revision graph for revision {}", rev.getInternalId());
+
+        try {
+            while (continueCandidates.peek() != null) {
+                Revision next = continueCandidates.poll();
+                LOGGER.trace("Begin traversing with revision {}", next.getInternalId());
+                depthFirstTraverser.genericCutOnMatch(Revision::getParents, next,
+                        new RevisionTimestampComparator(), true,
+                        (r) -> {
+                            if (!printedRevs.containsKey(r)) {
+                                LOGGER.trace("Visiting revision {}", r.getInternalId());
+                                resultList.add(r);
+                                printedRevs.put(r, Boolean.TRUE);
+                                if (resultList.size() == maximumDepth) {
+                                    throw new ProcessingFinishedException();    // FIXME: It is not good style to throw an exception to handle this
+                                }
+                            }
+                            continueCandidates.remove(r);
+                        },
+                        (r) -> {
+                            if (r.getChildren().size() > 1 && !visitedRevs.containsKey(r)) {
+                                visitedRevs.put(r, Boolean.TRUE);
+                                LOGGER.trace("Encountered split revision - stopping traversal on current branch");
+                                continueCandidates.offer(r);    // Save this revision for later if it isn't encountered again
+                                return false;
+                            }
+                            return true;
+                        });
+            }
+        } catch (ProcessingFinishedException e) {
+            // Everything went fine - not good style to handle this case via Exception
+        } catch (DatacTechnicalException e) {
+            throw new DatacRuntimeException(e);
+        }
+        return resultList;
+    }
+
     private long collectParents(@NotNull VcsRevision rootRevision, Map<String, Revision> revisionMap) {
         Set<String> importedRevisions = new HashSet<>(revisionMap.size());
         Queue<VcsRevision> revisionsToImport = new LinkedList<>();
@@ -380,5 +441,9 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         for (Revision child : revisionChildMap.get(revisionToPersist)) {
             child.replaceParent(revisionToPersist, persistedRevision);
         }
+    }
+
+    private class ProcessingFinishedException extends RuntimeException {
+
     }
 }

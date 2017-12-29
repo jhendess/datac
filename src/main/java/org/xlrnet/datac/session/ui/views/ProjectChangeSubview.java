@@ -1,5 +1,6 @@
-package org.xlrnet.datac.foundation.ui.views;
+package org.xlrnet.datac.session.ui.views;
 
+import com.vaadin.data.HasValue;
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.spring.annotation.SpringComponent;
@@ -19,7 +20,7 @@ import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.services.ChangeSetService;
 import org.xlrnet.datac.foundation.ui.services.NavigationService;
-import org.xlrnet.datac.foundation.ui.util.FormatUtils;
+import org.xlrnet.datac.foundation.ui.util.RevisionFormatService;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
@@ -48,20 +49,14 @@ public class ProjectChangeSubview extends AbstractProjectSubview {
     private final ChangeSetService changeSetService;
 
     /**
-     * Service for navigating to various view states.
-     */
-    private final NavigationService navigationService;
-
-    /**
      * The change sets which will be displayed.
      */
     private List<DatabaseChangeSet> changeSets;
 
     @Autowired
-    public ProjectChangeSubview(BranchService branchService, RevisionGraphService revisionGraphService, ChangeSetService changeSetService, NavigationService navigationService) {
-        super(revisionGraphService, branchService);
+    public ProjectChangeSubview(BranchService branchService, RevisionGraphService revisionGraphService, ChangeSetService changeSetService, NavigationService navigationService, RevisionFormatService revisionFormatService) {
+        super(revisionGraphService, branchService, revisionFormatService, navigationService);
         this.changeSetService = changeSetService;
-        this.navigationService = navigationService;
     }
 
     @Override
@@ -77,39 +72,21 @@ public class ProjectChangeSubview extends AbstractProjectSubview {
         return VIEW_NAME;
     }
 
-    @NotNull
     @Override
-    protected Component buildMainPanel() {
-        MVerticalLayout mainPanel = new MVerticalLayout();
-        mainPanel.add(buildNavigationPanel());
-        mainPanel.add(buildChangeSetList());
-
-        return mainPanel;
+    protected void buildContent(Layout mainPanel) {
+        mainPanel.addComponent(buildChangeSetList());
     }
 
-    private Component buildNavigationPanel() {
-        MHorizontalLayout navigationPanel = new MHorizontalLayout();
-
-        NativeSelect<Branch> branchSelector = new NativeSelect<>();
-        List<Branch> branchList = branchService.findAllWatchedByProject(project);
-        if (!branchList.contains(branch)) {
-            branchList.add(branch);
-        }
-        Collections.sort(branchList);
-        branchSelector.setItems(branchList);
-        branchSelector.setSelectedItem(branch);
-        branchSelector.setEmptySelectionAllowed(false);
-        branchSelector.addValueChangeListener(e -> navigationService.openChangeView(e.getValue()));
-        branchSelector.setItemCaptionGenerator(Branch::getName);
-        branchSelector.setCaption("Change branch");
-        branchSelector.setIcon(VaadinIcons.ROAD_BRANCH);
-        navigationPanel.add(branchSelector);
-
-        Button revisionBrowserButton = new Button("Open revision graph");
+    @Override
+    void extendNavigationPanel(MHorizontalLayout navigationPanel) {
+        Button revisionBrowserButton = new Button("Show revisions");
         revisionBrowserButton.addClickListener(e -> navigationService.openRevisionView(revision, branch));
         navigationPanel.add(revisionBrowserButton);
+    }
 
-        return navigationPanel.alignAll(Alignment.BOTTOM_LEFT);
+    @Override
+    protected void handleBranchSelectionChange(HasValue.ValueChangeEvent<Branch> e) {
+        navigationService.openChangeView(e.getValue());
     }
 
     @NotNull
@@ -150,7 +127,7 @@ public class ProjectChangeSubview extends AbstractProjectSubview {
         DatabaseChangeSet firstChangeSet = changeSet.getIntroducingChangeSet() != null ? changeSet.getIntroducingChangeSet() : changeSet;
         Revision firstRevision = firstChangeSet.getRevision();
         grid.addComponent(new Label("Created revision: "));
-        grid.addComponent(new MButton(FormatUtils.formatRevisionWithMessage(firstRevision))
+        grid.addComponent(new MButton(revisionFormatService.formatRevisionWithMessage(firstRevision))
                 .withStyleName(ValoTheme.BUTTON_LINK)
                 .withListener(e -> navigationService.openRevisionView(firstRevision)));
         grid.addComponent(new Label("Created by: "));
@@ -165,7 +142,7 @@ public class ProjectChangeSubview extends AbstractProjectSubview {
         if (changeSet.isModifying()) {
             Revision conflictingRevision = changeSet.getRevision();
             grid.addComponent(new Label("Modified revision: "));
-            grid.addComponent(new MButton(FormatUtils.formatRevisionWithMessage(conflictingRevision))
+            grid.addComponent(new MButton(revisionFormatService.formatRevisionWithMessage(conflictingRevision))
                     .withStyleName(ValoTheme.BUTTON_LINK)
                     .withListener(e -> navigationService.openRevisionView(conflictingRevision)));
             grid.addComponent(new Label("Modified by: "));
@@ -207,7 +184,7 @@ public class ProjectChangeSubview extends AbstractProjectSubview {
         } else if (revision == null) {
             subtitle = "There is no revision on this branch. Make sure that you ran a project update first.";
         } else {
-            String revisionNumber = FormatUtils.abbreviateRevisionId(revision);
+            String revisionNumber = revisionFormatService.abbreviateRevisionId(revision);
             String revisionMessage = StringUtils.substringBefore(this.revision.getMessage(), "\n");
             subtitle = String.format("There are currently %d database changes in revision %s (%s).", changeSets.size(), revisionNumber, revisionMessage);
         }
@@ -220,7 +197,7 @@ public class ProjectChangeSubview extends AbstractProjectSubview {
         if (branch != null) {
             return String.format("Change sets in %s on branch %s", project.getName(), branch.getName());
         } else {
-            return String.format("Change sets in %s in revision %s", project.getName(), FormatUtils.abbreviateRevisionId(revision));
+            return String.format("Change sets in %s in revision %s", project.getName(), revisionFormatService.abbreviateRevisionId(revision));
         }
     }
 }

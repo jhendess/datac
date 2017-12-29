@@ -1,9 +1,8 @@
-package org.xlrnet.datac.foundation.ui.views;
-
-import org.jetbrains.annotations.NotNull;
+package org.xlrnet.datac.session.ui.views;
 
 import com.vaadin.navigator.View;
 import com.vaadin.ui.Component;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Interface which must be implemented by all

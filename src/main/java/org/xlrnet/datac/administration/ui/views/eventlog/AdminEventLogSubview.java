@@ -5,7 +5,7 @@ import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Component;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
+import org.xlrnet.datac.session.ui.views.AbstractSubview;
 
 /**
  * Admin view for viewing event logs.

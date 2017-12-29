@@ -35,7 +35,9 @@ public class ChangeIndexingService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChangeIndexingService.class);
 
-    /** Transaction timeout for indexing is increased to avoid errors. */
+    /**
+     * Transaction timeout for indexing is increased to avoid errors.
+     */
     private static final int INDEX_TRANSACTION_TIMEOUT = 600;
 
     /**
@@ -175,7 +177,11 @@ public class ChangeIndexingService {
         Revision rootRevision = revisionGraphService.findProjectRootRevision(project);
         Set<Revision> orderedRevisionsToIndex = new LinkedHashSet<Revision>();
         HashMap<String, AtomicInteger> mergeMap = new HashMap<>();
-        breadthFirstTraverser.traverseChildrenCutOnMatch(rootRevision, (Revision r) -> {
+        breadthFirstTraverser.traverseChildrenCutOnMatch(rootRevision, r -> {
+            if (revisionsToIndex.contains(r) && !orderedRevisionsToIndex.contains(r)) {
+                orderedRevisionsToIndex.add(r);
+            }
+        }, (Revision r) -> {
             if (r.getChildren().size() == 1) {
                 Revision child = r.getChildren().get(0);
                 if (child.getParents().size() >= 2) {
@@ -186,10 +192,6 @@ public class ChangeIndexingService {
                 }
             }
             return false;
-        }, r -> {
-            if (revisionsToIndex.contains(r) && !orderedRevisionsToIndex.contains(r)) {
-                orderedRevisionsToIndex.add(r);
-            }
         });
         return orderedRevisionsToIndex;
     }

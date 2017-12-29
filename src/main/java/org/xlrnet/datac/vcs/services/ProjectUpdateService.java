@@ -116,7 +116,7 @@ public class ProjectUpdateService {
             try {
                 LOGGER.info("Begin update of project {}", project.getName());
                 eventLog.setDelegate(eventLogService.newEventLog().setType(EventType.PROJECT_UPDATE));
-                Project reloaded = projectService.findOne(project.getId());
+                Project reloaded = projectService.refresh(project);
                 eventLog.setProject(reloaded);
                 reloaded = updateProject(reloaded);
                 if (reloaded.getState() != ProjectState.MISSING_LOG) {

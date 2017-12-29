@@ -1,18 +1,19 @@
 package org.xlrnet.datac.foundation.services;
 
-import java.util.List;
-
 import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.domain.LimitOffsetPageable;
+import org.xlrnet.datac.foundation.domain.AbstractEntity;
+
+import java.util.List;
 
 /**
  * Abstract base class for all services which perform transactional operations.
  */
 @Transactional
-public class AbstractTransactionalService<T, R extends PagingAndSortingRepository<T, Long>> {
+public class AbstractTransactionalService<T extends AbstractEntity, R extends PagingAndSortingRepository<T, Long>> {
 
     // TODO: Discuss if it makes in most cases sense to have a separate layer above CrudRepository (Spring Data API seems to be a viable alternative for custom queries)
 
@@ -92,7 +93,6 @@ public class AbstractTransactionalService<T, R extends PagingAndSortingRepositor
     }
 
     /**
-     *
      * @param limit
      * @param offset
      * @param <S>
@@ -105,10 +105,15 @@ public class AbstractTransactionalService<T, R extends PagingAndSortingRepositor
 
     /**
      * Finds all entities using a paging mechanism.
-     * @param limit     Maximum amount of entities to retrieve.
-     * @param offset    The offset where the query should begin.
-     * @param sort The sort order to use.
-     * @param <S> The entity that will be returned.
+     *
+     * @param limit
+     *         Maximum amount of entities to retrieve.
+     * @param offset
+     *         The offset where the query should begin.
+     * @param sort
+     *         The sort order to use.
+     * @param <S>
+     *         The entity that will be returned.
      * @return All entities using a paging mechanism.
      */
     @Transactional(readOnly = true)
@@ -119,6 +124,7 @@ public class AbstractTransactionalService<T, R extends PagingAndSortingRepositor
 
     /**
      * Counts all entities.
+     *
      * @return number of entities.
      */
     @Transactional(readOnly = true)
@@ -133,5 +139,16 @@ public class AbstractTransactionalService<T, R extends PagingAndSortingRepositor
      */
     protected R getRepository() {
         return crudRepository;
+    }
+
+    /**
+     * Refreshes the given entity from the database.
+     *
+     * @param entity
+     *         The entity to refresh.
+     * @return The refreshed entity.
+     */
+    public T refresh(T entity) {
+        return getRepository().findOne(entity.getId());
     }
 }

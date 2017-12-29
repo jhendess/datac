@@ -146,7 +146,7 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Project markProjectAsFailedUpdate(Project project) {
         checkArgument(project.isPersisted(), "Entity is not persisted");
-        Project reloaded = super.findOne(project.getId());
+        Project reloaded = refresh(project);
         reloaded.setState(ProjectState.ERROR);
         return saveAndPublishStateChange(reloaded, 0.0f);
     }

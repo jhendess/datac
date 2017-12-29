@@ -12,10 +12,10 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.UI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.Application;
-import org.xlrnet.datac.foundation.ui.views.HomeView;
-import org.xlrnet.datac.foundation.ui.views.MainViewContainer;
-import org.xlrnet.datac.foundation.ui.views.Subview;
 import org.xlrnet.datac.session.ui.listener.SessionCheckViewChangeListener;
+import org.xlrnet.datac.session.ui.views.HomeView;
+import org.xlrnet.datac.session.ui.views.MainViewContainer;
+import org.xlrnet.datac.session.ui.views.Subview;
 
 @Push
 @SpringUI
@@ -41,7 +41,9 @@ public class VaadinUI extends UI implements ViewDisplay {
 
     /**
      * This is the central dispatcher for displaying views. If the view is a {@link Subview}, it will be displayed as part of the main view container.
-     * @param view The view to display
+     *
+     * @param view
+     *         The view to display
      */
     @Override
     public void showView(View view) {

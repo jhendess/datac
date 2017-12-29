@@ -32,15 +32,15 @@ public class BreadthFirstTraverser<T extends TraversableNode> {
      *
      * @param nodeToBegin
      *         The node where the traversal should begin.
+     * @param action
+     *         The action that will be executed when the matcher matches.
      * @param matcher
      *         The matcher function. If this function returns true, the branch will be cut and traversal resumes on
      *         another.
-     * @param action
-     *         The action that will be executed when the matcher matches.
      * @throws DatacTechnicalException
      *         May be thrown by the action.
      */
-    public void traverseChildrenCutOnMatch(T nodeToBegin, Function<T, Boolean> matcher, ThrowingConsumer<T> action) throws DatacTechnicalException {
+    public void traverseChildrenCutOnMatch(T nodeToBegin, ThrowingConsumer<T> action, Function<T, Boolean> matcher) throws DatacTechnicalException {
         genericTraverseCutOnMatch(TraversableNode::getChildren, nodeToBegin, matcher, action);
     }
 

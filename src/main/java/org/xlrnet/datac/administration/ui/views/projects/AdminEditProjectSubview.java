@@ -34,7 +34,7 @@ import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.foundation.ui.components.BooleanStatusChangeHandler;
 import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
-import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
+import org.xlrnet.datac.session.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.api.VcsAdapter;
 import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;

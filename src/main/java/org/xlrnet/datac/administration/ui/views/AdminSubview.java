@@ -13,8 +13,8 @@ import org.xlrnet.datac.administration.ui.views.eventlog.AdminEventLogSubview;
 import org.xlrnet.datac.administration.ui.views.projects.AdminProjectSubview;
 import org.xlrnet.datac.administration.ui.views.user.AdminUserSubview;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
-import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
-import org.xlrnet.datac.foundation.ui.views.Subview;
+import org.xlrnet.datac.session.ui.views.AbstractSubview;
+import org.xlrnet.datac.session.ui.views.Subview;
 
 /**
  * Administration view.

@@ -27,7 +27,7 @@ import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.foundation.services.ProjectUpdateEvent;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
-import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
+import org.xlrnet.datac.session.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 import org.xlrnet.datac.vcs.services.ProjectUpdateStarter;

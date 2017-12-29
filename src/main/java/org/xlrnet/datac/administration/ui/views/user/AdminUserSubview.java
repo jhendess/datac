@@ -6,18 +6,17 @@ import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.*;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.commons.util.WindowUtils;
 import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
 import org.xlrnet.datac.foundation.ui.components.GenericHandler;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
-import org.xlrnet.datac.foundation.ui.views.AbstractSubview;
-import org.xlrnet.datac.foundation.ui.views.Subview;
 import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.CryptoService;
 import org.xlrnet.datac.session.services.UserService;
+import org.xlrnet.datac.session.ui.views.AbstractSubview;
+import org.xlrnet.datac.session.ui.views.Subview;
 
 import java.util.Objects;
 
@@ -109,7 +108,7 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
         grid.addColumn(User::getEmail).setCaption("Email");
 
         // Select the user in the editor when clicked
-        grid.asSingleSelect().addValueChangeListener(e -> editor.setEntity(reloadEntity(e.getValue())));
+        grid.asSingleSelect().addValueChangeListener(e -> editor.setEntity(userService.refresh(e.getValue())));
 
         // Prepare confirmation window
         confirmationWindow = new SimpleOkCancelWindow();
@@ -190,16 +189,6 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
             updateUsers();
             Notification.show("User saved successfully", Notification.Type.TRAY_NOTIFICATION);
         };
-    }
-
-    @Nullable
-    private User reloadEntity(@Nullable User value) {
-        // Find fresh entity for editing
-        if (value != null) {
-            return userService.findOne(value.getId());
-        } else {
-            return null;
-        }
     }
 
     private void updateUsers() {

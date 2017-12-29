@@ -1,4 +1,4 @@
-package org.xlrnet.datac.foundation.ui.views;
+package org.xlrnet.datac.session.ui.views;
 
 import com.vaadin.server.ExternalResource;
 import com.vaadin.spring.annotation.SpringComponent;
