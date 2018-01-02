@@ -583,6 +583,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
         VcsAdapter vcsAdapter = vcsRegistry.findAdapterByMetaInfo(vcsSelect.getValue()).get();
         projectBean.setVcsAdapterClass(vcsAdapter.getClass().getName());
         projectBean.setVcsType(vcsAdapter.getMetaInfo().getVcsName());
+        projectBean.setAutomaticPollingEnabled(automaticPollingEnabledField.getValue());    // Why does binding not work?!
         Optional<DatabaseChangeSystemAdapter> dcsAdapterByMetaInfo = dcsRegistry.findAdapterByMetaInfo(dcsSelect.getValue());
         if (dcsAdapterByMetaInfo.isPresent()) {
             DatabaseChangeSystemAdapter dcsAdapter = dcsAdapterByMetaInfo.get();
