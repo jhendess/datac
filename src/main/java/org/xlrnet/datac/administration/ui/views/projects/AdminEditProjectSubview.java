@@ -1,16 +1,13 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.Lists;
-import com.vaadin.annotations.PropertyId;
-import com.vaadin.data.BeanValidationBinder;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.shared.ui.MarginInfo;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.validation.ConstraintViolationException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.vaadin.viritin.fields.IntegerField;
+import org.vaadin.viritin.fields.MCheckBox;
+import org.vaadin.viritin.fields.MTextField;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.tasks.RunnableTask;
 import org.xlrnet.datac.commons.ui.DatacTheme;
@@ -44,12 +43,30 @@ import org.xlrnet.datac.vcs.services.VersionControlSystemRegistry;
 import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
 import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
 
-import javax.validation.ConstraintViolationException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.google.common.base.Objects;
+import com.google.common.collect.Lists;
+import com.vaadin.annotations.PropertyId;
+import com.vaadin.data.BeanValidationBinder;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.shared.ui.MarginInfo;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.CheckBoxGroup;
+import com.vaadin.ui.ComboBox;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Layout;
+import com.vaadin.ui.PasswordField;
+import com.vaadin.ui.ProgressBar;
+import com.vaadin.ui.TextArea;
+import com.vaadin.ui.TextField;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Assistant for creating new projects.
@@ -58,7 +75,7 @@ import java.util.stream.Collectors;
 @SpringView(name = AdminEditProjectSubview.VIEW_NAME)
 public class AdminEditProjectSubview extends AbstractSubview {
 
-    static final String VIEW_NAME = "admin/projects/edit";
+    public static final String VIEW_NAME = "admin/projects/edit";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AdminEditProjectSubview.class);
 
@@ -158,13 +175,19 @@ public class AdminEditProjectSubview extends AbstractSubview {
      * Checkbox to enable automatic import of new branches.
      */
     @PropertyId("newBranchPattern")
-    private final TextField newBranchesPattern = new TextField("Pattern for new branches");
+    private final MTextField newBranchesPattern = new MTextField("Pattern for new branches");
 
     /**
      * Text field for changelog master file.
      */
     @PropertyId("changelogLocation")
-    private final TextField changeLogLocationField = new TextField("Changelog master file");
+    private final MTextField changeLogLocationField = new MTextField("Changelog master file");
+
+    /**
+     * Enable automatic scheduled polling for new changes.
+     */
+    @PropertyId("automaticPollingEnabled")
+    private MCheckBox automaticPollingEnabledField = new MCheckBox("Enable automatic polling");
 
     /**
      * Progress bar for VCS setup.
@@ -213,6 +236,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
     private Button continueButton;
 
     private Button resetButton;
+
 
     @Autowired
     public AdminEditProjectSubview(VersionControlSystemRegistry vcsRegistry, DatabaseChangeSystemAdapterRegistry dcsRegistry, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService, ChangeSetService changeSetService) {
@@ -270,7 +294,11 @@ public class AdminEditProjectSubview extends AbstractSubview {
         dcsSelect.addStyleName(DatacTheme.FIELD_WIDE);
         dcsSelect.setEmptySelectionAllowed(false);
         changeLogLocationField.addStyleName(DatacTheme.FIELD_WIDE);
-        pollIntervalField.addStyleName(DatacTheme.FIELD_WIDE);
+        automaticPollingEnabledField.withStyleName(DatacTheme.FIELD_WIDE)
+            .withValue(projectBean.isAutomaticPollingEnabled())
+            .withValueChangeListener(e -> pollIntervalField.setEnabled(e.getValue()));
+        pollIntervalField.withStyleName(DatacTheme.FIELD_WIDE)
+        .withEnabled(projectBean.isAutomaticPollingEnabled());
         vcsDevBranchSelect.addStyleName(DatacTheme.FIELD_WIDE);
         newBranchesPattern.addStyleName(DatacTheme.FIELD_WIDE);
 
@@ -313,6 +341,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
             projectBean.setChangelogLocation("CHANGEME");
             projectBean.setNewBranchPattern(".+");
             projectBean.setState(ProjectState.NEW);
+            projectBean.setAutomaticPollingEnabled(false);
         }
         oldVcsUrl = projectBean.getUrl();
         projectBinder.bindInstanceFields(this);
@@ -516,6 +545,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
 
         vcsSettingsLayout.addComponent(dcsSelect);
         vcsSettingsLayout.addComponent(changeLogLocationField);
+        vcsSettingsLayout.addComponent(automaticPollingEnabledField);
         vcsSettingsLayout.addComponent(pollIntervalField);
         vcsSettingsLayout.addComponent(vcsDevBranchSelect);
         vcsSettingsLayout.addComponent(releaseBranchesCheckboxGroup);

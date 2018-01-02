@@ -1,16 +1,9 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import com.vaadin.data.ValueProvider;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.server.VaadinSession;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.spring.annotation.ViewScope;
-import com.vaadin.ui.*;
-import com.vaadin.ui.renderers.ButtonRenderer;
-import com.vaadin.ui.renderers.TextRenderer;
-import elemental.json.JsonValue;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,14 +20,29 @@ import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.foundation.services.ProjectUpdateEvent;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
+import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 import org.xlrnet.datac.vcs.services.ProjectUpdateStarter;
 
-import java.util.Collection;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import com.vaadin.data.ValueProvider;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.server.VaadinSession;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.spring.annotation.ViewScope;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.Grid;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.renderers.ButtonRenderer;
+import com.vaadin.ui.renderers.TextRenderer;
+
+import elemental.json.JsonValue;
 
 /**
  * Admin view for managing projects responsible for managing the available users.
@@ -93,15 +101,19 @@ public class AdminProjectSubview extends AbstractSubview {
      */
     private VaadinSession vaadinSession;
 
+    /** Service for navigation to other views. */
+    private final NavigationService navigationService;
+
     private static ConcurrentMap<Long, Double> PROGRESS_MAP = new ConcurrentHashMap<>();
 
     @Autowired
-    public AdminProjectSubview(EventBus.ApplicationEventBus viewEventBus, ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, ProjectSchedulingService projectSchedulingService, LockingService lockingService) {
+    public AdminProjectSubview(EventBus.ApplicationEventBus viewEventBus, ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, ProjectSchedulingService projectSchedulingService, LockingService lockingService, NavigationService navigationService) {
         this.applicationEventBus = viewEventBus;
         this.projectService = projectService;
         this.projectUpdateStarter = projectUpdateStarter;
         this.projectSchedulingService = projectSchedulingService;
         this.lockingService = lockingService;
+        this.navigationService = navigationService;
     }
 
     @Override
@@ -133,7 +145,7 @@ public class AdminProjectSubview extends AbstractSubview {
         grid.addColumn(Project::getLastChangeCheck, new TemporalRenderer()).setCaption("Last check for changes");
 
         grid.addColumn(project -> "Update", new ButtonRenderer<>(clickEvent -> forceUpdate(clickEvent.getItem())));
-        grid.addColumn(project -> "Edit", new ButtonRenderer<>(clickEvent -> UI.getCurrent().getNavigator().navigateTo(AdminEditProjectSubview.VIEW_NAME + "/" + clickEvent.getItem().getId())));
+        grid.addColumn(project -> "Edit", new ButtonRenderer<>(clickEvent -> navigationService.openEditProjectView(clickEvent.getItem())));
         grid.addColumn(project -> "Delete", new ButtonRenderer<>(clickEvent -> deleteProject(clickEvent.getItem())));
 
         grid.setWidth("80%");

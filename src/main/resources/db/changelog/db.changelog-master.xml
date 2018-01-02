@@ -424,4 +424,11 @@
                     remarks="Flag to indicate if this change set is modifying its introducing changeset."/>
         </addColumn>
     </changeSet>
+    <changeSet id="26" author="jhendess">
+        <comment>Add column to enable or disable automatic polling for projects</comment>
+        <addColumn tableName="project">
+            <column type="BOOLEAN" name="polling_enabled"
+                    remarks="Flag which indicates whether automatic polling for new changes is enabled or not."/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

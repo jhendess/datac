@@ -1,8 +1,8 @@
 package org.xlrnet.datac.session.ui.views;
 
-import com.vaadin.data.HasValue;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.ui.*;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
@@ -20,8 +20,15 @@ import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.Collections;
-import java.util.List;
+import com.vaadin.data.HasValue;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.GridLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Layout;
+import com.vaadin.ui.NativeSelect;
 
 public abstract class AbstractProjectSubview extends AbstractSubview {
 
@@ -98,6 +105,10 @@ public abstract class AbstractProjectSubview extends AbstractSubview {
         navigationPanel.add(branchSelector);
 
         extendNavigationPanel(navigationPanel);
+
+        Button editProjectButton = new Button("Edit project");
+        editProjectButton.addClickListener(e -> navigationService.openEditProjectView(project));
+        navigationPanel.add(editProjectButton);
 
         return navigationPanel.alignAll(Alignment.BOTTOM_LEFT);
     }

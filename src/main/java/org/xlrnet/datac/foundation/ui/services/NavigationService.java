@@ -1,18 +1,21 @@
 package org.xlrnet.datac.foundation.ui.services;
 
-import com.vaadin.ui.UI;
+import static com.google.common.base.Preconditions.checkState;
+
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.xlrnet.datac.administration.ui.views.projects.AdminEditProjectSubview;
+import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.session.ui.views.ProjectChangeSubview;
 import org.xlrnet.datac.session.ui.views.ProjectRevisionSubview;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import static com.google.common.base.Preconditions.checkState;
+import com.vaadin.ui.UI;
 
 /**
  * Service which provides convenience methods for navigation.
@@ -92,5 +95,13 @@ public class NavigationService {
 
     private void navigateTo(String target) {
         UI.getCurrent().getNavigator().navigateTo(target);
+    }
+
+    /**
+     * Open the project edit view.
+     * @param project The project to edit.
+     */
+    public void openEditProjectView(Project project) {
+        navigateTo(AdminEditProjectSubview.VIEW_NAME + "/" + project.getId());
     }
 }

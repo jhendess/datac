@@ -169,6 +169,12 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
     private ProjectState state;
 
     /**
+     * Flag whether automatic polling should be enabled or not.
+     */
+    @Column(name = "polling_enabled")
+    private Boolean automaticPollingEnabled;
+
+    /**
      * Collection of branches in the VCS. Contains both watched and unwatched changes.
      */
     @OneToMany(cascade = CascadeType.ALL, targetEntity = Branch.class, fetch = FetchType.EAGER)
@@ -340,9 +346,16 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
         return changeSystemAdapterClass;
     }
 
-    public Project setChangeSystemAdapterClass(String changeSystemAdapterClass) {
+    public void setChangeSystemAdapterClass(String changeSystemAdapterClass) {
         this.changeSystemAdapterClass = changeSystemAdapterClass;
-        return this;
+    }
+
+    public boolean isAutomaticPollingEnabled() {
+        return automaticPollingEnabled == null ? false : automaticPollingEnabled;
+    }
+
+    public void setAutomaticPollingEnabled(Boolean automaticPollingEnabled) {
+        this.automaticPollingEnabled = automaticPollingEnabled;
     }
 
     @Override

@@ -95,34 +95,40 @@ public class ProjectSchedulingService implements SmartLifecycle {
      *
      * @param project
      *         The project to schedule.
+     *         @return Flag whether the project was scheduled for an update.
      */
     public boolean scheduleProjectUpdate(@NotNull Project project) {
-        LOGGER.info("Scheduling update of project {} [id={}] in {} minute interval", project.getName(), project.getId(), project.getPollInterval());
-        ProjectUpdateTask task = beanFactory.createBean(ProjectUpdateTask.class);
-        task.setProjectToUpdate(project);
-        PeriodicTrigger trigger = new PeriodicTrigger(project.getPollInterval(), TimeUnit.MINUTES);
-        trigger.setInitialDelay(project.getPollInterval());
-        ScheduledFuture<?> schedule = taskScheduler.schedule(task, trigger);
-        if (schedule != null) {
-            projectScheduleMap.put(project.getId(), schedule);
-            LOGGER.debug("Successfully scheduled automatic project update for {} [id={}]", project.getName(), project.getId());
-            return true;
+        boolean scheduled = false;
+        if (project.isAutomaticPollingEnabled()) {
+            LOGGER.info("Scheduling update of project {} [id={}] in {} minute interval", project.getName(), project.getId(), project.getPollInterval());
+            ProjectUpdateTask task = beanFactory.createBean(ProjectUpdateTask.class);
+            task.setProjectToUpdate(project);
+            PeriodicTrigger trigger = new PeriodicTrigger(project.getPollInterval(), TimeUnit.MINUTES);
+            trigger.setInitialDelay(project.getPollInterval());
+            ScheduledFuture<?> schedule = taskScheduler.schedule(task, trigger);
+            if (schedule != null) {
+                projectScheduleMap.put(project.getId(), schedule);
+                LOGGER.debug("Successfully scheduled automatic project update for {} [id={}]", project.getName(), project.getId());
+                scheduled = true;
+            } else {
+                LOGGER.error("Scheduling project update for {} [id={}] failed", project.getName(), project.getId());
+            }
         } else {
-            LOGGER.error("Scheduling project update for {} [id={}] failed", project.getName(), project.getId());
-            return false;
+            LOGGER.info("Project {} [id={}] will not be not scheduled for automatic polling", project.getName(), project.getId());
         }
+        return scheduled;
     }
 
     public boolean unscheduleProjectUpdate(@NotNull Project project) {
         LOGGER.info("Unscheduling automatic update of project {} [id={}]", project.getName(), project.getId());
         ScheduledFuture scheduledFuture = projectScheduleMap.get(project.getId());
         if (scheduledFuture == null) {
-            LOGGER.warn("No automatic update scheduled for project {} [id={}]", project.getName(), project.getId());
+            LOGGER.info("No automatic update scheduled for project {} [id={}]", project.getName(), project.getId());
             return false;
         }
         boolean cancelled = scheduledFuture.cancel(true);
         if (cancelled) {
-            LOGGER.debug("Unscheduling automatic update of project {} [id={}] successfully", project.getName(), project.getId());
+            LOGGER.debug("Unscheduled automatic update of project {} [id={}] successfully", project.getName(), project.getId());
         } else {
             LOGGER.error("Unscheduling automatic update of project {} [id={}] failed for unknown reason", project.getName(), project.getId());
         }
