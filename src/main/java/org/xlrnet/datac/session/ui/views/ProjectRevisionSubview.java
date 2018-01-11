@@ -1,17 +1,14 @@
 package org.xlrnet.datac.session.ui.views;
 
-import com.vaadin.data.HasValue;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Layout;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.label.MLabel;
-import org.vaadin.viritin.layouts.MGridLayout;
+import org.vaadin.viritin.layouts.MCssLayout;
 import org.vaadin.viritin.layouts.MHorizontalLayout;
+import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.foundation.ui.util.RevisionFormatService;
 import org.xlrnet.datac.vcs.domain.Branch;
@@ -19,7 +16,13 @@ import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.List;
+import com.vaadin.data.HasValue;
+import com.vaadin.server.ThemeResource;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Image;
+import com.vaadin.ui.Layout;
 
 /**
  * Renders the history graph of revisions before the revision to display.
@@ -57,22 +60,44 @@ public class ProjectRevisionSubview extends AbstractProjectSubview {
     @Override
     void buildContent(Layout mainPanel) {
         List<Revision> revisions = revisionGraphService.flattenRevisionGraph(revision, MAX_REVISIONS_TO_DISPLAY);
-        MGridLayout gridLayout = new MGridLayout(4, revisions.size() + 1);
-        gridLayout.addStyleName("revision-list-table");
-
-        gridLayout.add(new MLabel("Author").withStyleName(ValoTheme.LABEL_BOLD));
-        gridLayout.add(new MLabel("ID").withStyleName(ValoTheme.LABEL_BOLD));
-        gridLayout.add(new MLabel("Message").withStyleName(ValoTheme.LABEL_BOLD));
-        gridLayout.add(new MLabel("Timestamp").withStyleName(ValoTheme.LABEL_BOLD));
+        MVerticalLayout layout = new MVerticalLayout();
+        layout.addStyleName("revision-list");
 
         for (Revision rev : revisions) {
-            gridLayout.add(new MLabel(revisionFormatService.formatAuthor(rev)).withDescription(revision.getAuthor()));
-            gridLayout.add(new MLabel(revisionFormatService.abbreviateRevisionId(rev)));
-            gridLayout.add(new MLabel(revisionFormatService.formatMessage(rev)));
-            gridLayout.add(new MLabel(revisionFormatService.formatTimestamp(rev)));
+            MCssLayout singleRevision = buildLayoutForRevision(rev);
+            layout.add(singleRevision);
         }
 
-        mainPanel.addComponent(gridLayout);
+        mainPanel.addComponent(layout);
+    }
+
+    @NotNull
+    private MCssLayout buildLayoutForRevision(Revision rev) {
+        MCssLayout singleRevision = new MCssLayout().withStyleName("revision");
+
+        MCssLayout avatarLayout = new MCssLayout().withStyleName("author-avatar");
+        Image profilePic = new Image(null, new ThemeResource(
+                "img/profile-pic-300px.jpg"));  // TODO: Use actual profile image
+        profilePic.setStyleName("author-avatar");
+        avatarLayout.add(profilePic);
+
+        MVerticalLayout revisionInfo = new MVerticalLayout()
+                .withMargin(false).withSpacing(false).withUndefinedWidth()
+                .withStyleName("revision-info-container");
+        revisionInfo.add(new MLabel(revisionFormatService.formatMessage(rev)).withStyleName("revision-message"));
+
+        MCssLayout authorAndDate = new MCssLayout().withStyleName("revision-author-time-container");
+        authorAndDate.add(new MLabel("Committed by "));
+        authorAndDate.add(new MLabel(revisionFormatService.formatAuthor(rev)).withDescription(revision.getAuthor()).withStyleName("revision-author"));
+        authorAndDate.add(new MLabel(" on "));
+        authorAndDate.add(new MLabel(revisionFormatService.formatTimestamp(rev)).withStyleName("revision-timestamp"));
+        revisionInfo.add(authorAndDate);
+
+        MCssLayout rightContainer = new MCssLayout().withStyleName("revision-right-container")
+                .withComponent(new MLabel(revisionFormatService.abbreviateRevisionId(rev)).withStyleName("revision-id"));
+
+        singleRevision.withComponent(avatarLayout).withComponent(revisionInfo).withComponent(rightContainer);
+        return singleRevision;
     }
 
     @NotNull

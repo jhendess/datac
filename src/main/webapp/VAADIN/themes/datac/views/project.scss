@@ -3,9 +3,48 @@
     padding: 16px;
   }
 
-  .revision-list-table {
-    border: 1px solid grey;
-    padding: 5px;
-    border-radius: 10px;
+  .revision-list {
+
+    .revision {
+      border: 1px lightgrey solid;
+      padding: 5px;
+      width: 900px;
+
+      > div {
+        vertical-align: middle;
+      }
+    }
+
+    .revision-info-container {
+      padding-left: 15px;
+      width: 500px;
+    }
+
+    .revision:hover {
+      background: $background-hover-color;
+    }
+
+    .revision-right-container {
+      width: 260px;
+      text-align: right;
+    }
+
+    .revision-author-time-container {
+      font-weight: lighter;
+    }
+
+    .revision-author, .revision-timestamp {
+      font-weight: normal;
+    }
+
+    .revision-message {
+      font-weight: bold;
+      white-space: pre-wrap;
+    }
+
+    .author-avatar {
+      max-width: 75px;
+      max-height: 75px;
+    }
   }
 }

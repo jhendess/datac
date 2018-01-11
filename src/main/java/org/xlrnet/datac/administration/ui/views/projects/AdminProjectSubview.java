@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.spring.events.EventBus;
 import org.vaadin.spring.events.annotation.EventBusListenerMethod;
 import org.vaadin.spring.events.annotation.EventBusListenerTopic;
+import org.vaadin.viritin.grid.MGrid;
+import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.commons.ui.TemporalRenderer;
@@ -35,10 +37,8 @@ import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.spring.annotation.ViewScope;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Component;
-import com.vaadin.ui.Grid;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.UI;
-import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.renderers.ButtonRenderer;
 import com.vaadin.ui.renderers.TextRenderer;
 
@@ -72,11 +72,6 @@ public class AdminProjectSubview extends AbstractSubview {
     private final ProjectUpdateStarter projectUpdateStarter;
 
     /**
-     * Service for scheduling automatic project updates.
-     */
-    private final ProjectSchedulingService projectSchedulingService;
-
-    /**
      * Button for new projects.
      */
     private Button newButton;
@@ -84,12 +79,12 @@ public class AdminProjectSubview extends AbstractSubview {
     /**
      * Main layout.
      */
-    private VerticalLayout layout;
+    private MVerticalLayout layout;
 
     /**
      * The grid component containing the projects.
      */
-    private Grid<Project> grid = new Grid<>();
+    private MGrid<Project> grid = new MGrid<>();
 
     /**
      * Central locking service.
@@ -111,7 +106,6 @@ public class AdminProjectSubview extends AbstractSubview {
         this.applicationEventBus = viewEventBus;
         this.projectService = projectService;
         this.projectUpdateStarter = projectUpdateStarter;
-        this.projectSchedulingService = projectSchedulingService;
         this.lockingService = lockingService;
         this.navigationService = navigationService;
     }
@@ -120,12 +114,13 @@ public class AdminProjectSubview extends AbstractSubview {
     protected void initialize() {
         vaadinSession = VaadinSession.getCurrent();
         applicationEventBus.subscribe(this);
+        grid.withFullSize();
     }
 
     @NotNull
     @Override
     protected Component buildMainPanel() {
-        layout = new VerticalLayout();
+        layout = new MVerticalLayout().withFullSize();
 
         newButton = new Button("New project");
         newButton.setIcon(VaadinIcons.PLUS);
@@ -147,8 +142,6 @@ public class AdminProjectSubview extends AbstractSubview {
         grid.addColumn(project -> "Update", new ButtonRenderer<>(clickEvent -> forceUpdate(clickEvent.getItem())));
         grid.addColumn(project -> "Edit", new ButtonRenderer<>(clickEvent -> navigationService.openEditProjectView(clickEvent.getItem())));
         grid.addColumn(project -> "Delete", new ButtonRenderer<>(clickEvent -> deleteProject(clickEvent.getItem())));
-
-        grid.setWidth("80%");
 
         reloadProjects();
         return grid;

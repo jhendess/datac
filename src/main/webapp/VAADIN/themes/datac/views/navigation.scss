@@ -1,12 +1,12 @@
 @mixin navigation-menu {
 
   #dashboard-menu {
-    width: 201px !important;
+    width: $side-menu-width !important;
   }
 
   .navigation-menu {
-    position: fixed;
-    width: 201px;
+    float: left;
+    width: $side-menu-width;
   }
 
   .version-numbers {
@@ -15,5 +15,6 @@
     /* Move this to the bottom. */
     bottom: 0;
     position: absolute;
+    width: $side-menu-width;
   }
 }

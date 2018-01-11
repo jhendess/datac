@@ -1,14 +1,14 @@
 package org.xlrnet.datac.foundation.ui.util;
 
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.stereotype.Service;
-import org.xlrnet.datac.vcs.domain.Revision;
-
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Locale;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Service;
+import org.xlrnet.datac.vcs.domain.Revision;
 
 /**
  * Utility class with helper methods for formatting stuff.
@@ -22,6 +22,11 @@ public class RevisionFormatService {
     private static final int REVISION_ABBREVIATION_LENGTH = 7;
 
     /**
+     * The amount of characters to display in a revision's message.
+     */
+    private static final int MESSAGE_ABBREVIATION_LENGTH = 80;
+
+    /**
      * Default date time formatter.
      */
     private DateTimeFormatter defaultDateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
@@ -30,7 +35,7 @@ public class RevisionFormatService {
 
     @NotNull
     public String formatMessage(@NotNull Revision rev) {
-        return StringUtils.substringBefore(rev.getMessage(), "\n");
+        return StringUtils.abbreviate(StringUtils.substringBefore(rev.getMessage(), "\n"), MESSAGE_ABBREVIATION_LENGTH);
     }
 
     @NotNull
@@ -40,7 +45,7 @@ public class RevisionFormatService {
 
     @NotNull
     public String formatAuthor(@NotNull Revision revision) {
-        return StringUtils.substringBefore(revision.getAuthor(), "<");  // TODO: Refine logic
+        return StringUtils.substringBefore(revision.getAuthor(), "<");  // TODO: Refine logic to extract the author
     }
 
     @NotNull

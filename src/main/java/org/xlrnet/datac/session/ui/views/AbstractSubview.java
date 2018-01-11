@@ -1,23 +1,24 @@
 package org.xlrnet.datac.session.ui.views;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.vaadin.viritin.layouts.MVerticalLayout;
+import org.xlrnet.datac.administration.ui.views.AdminSubview;
+import org.xlrnet.datac.commons.exception.DatacRuntimeException;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+
 import com.vaadin.navigator.ViewChangeListener;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.UI;
-import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.ValoTheme;
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xlrnet.datac.administration.ui.views.AdminSubview;
-import org.xlrnet.datac.commons.exception.DatacRuntimeException;
-import org.xlrnet.datac.commons.exception.DatacTechnicalException;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Abstract subview which contains a title with subtitle and a main content panel. Override the abstract methods in this
@@ -25,7 +26,7 @@ import java.util.Map;
  */
 @UIScope
 @SpringView(name = AdminSubview.VIEW_NAME)
-public abstract class AbstractSubview extends VerticalLayout implements Subview {
+public abstract class AbstractSubview extends MVerticalLayout implements Subview {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractSubview.class);
 
@@ -54,7 +55,7 @@ public abstract class AbstractSubview extends VerticalLayout implements Subview 
         parameters = StringUtils.split(StringUtils.substringBefore(event.getParameters(), "?"), "/");
         namedParameters = buildNamedParameterMap(namedParametersRaw);
         if (parameters.length > 0 || !namedParameters.isEmpty()) {
-            LOGGER.debug("Entering subview {} with parameters {} {}", event.getViewName(), parameters, namedParameters);
+            LOGGER.debug("Entering subview {} with parameters {} and {}", event.getViewName(), parameters, namedParameters);
         } else {
             LOGGER.debug("Entering subview {}", event.getViewName());
         }
@@ -105,14 +106,14 @@ public abstract class AbstractSubview extends VerticalLayout implements Subview 
         removeAllComponents();
         addComponent(topPanel);
         addComponent(editPanel);
-        setWidth("90%");
     }
 
     @NotNull
     protected Component buildTitlePanel() {
-        VerticalLayout topPanel = new VerticalLayout();
-        topPanel.setSpacing(false);
-        topPanel.setMargin(false);
+        MVerticalLayout topPanel = new MVerticalLayout()
+                .withFullSize()
+                .withMargin(false)
+                .withSpacing(false);
 
         Label title = new Label(getTitle());
         title.setStyleName(ValoTheme.LABEL_H1);

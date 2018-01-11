@@ -1,22 +1,31 @@
 package org.xlrnet.datac.foundation.ui.components;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.server.ThemeResource;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.UIScope;
-import com.vaadin.ui.*;
-import com.vaadin.ui.Button.ClickListener;
-import com.vaadin.ui.MenuBar.MenuItem;
-import com.vaadin.ui.themes.ValoTheme;
+import javax.annotation.PostConstruct;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.Application;
 import org.xlrnet.datac.foundation.configuration.BuildInformation;
 import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.UserService;
 import org.xlrnet.datac.session.ui.components.UserProfileWindow;
 
-import javax.annotation.PostConstruct;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.server.ThemeResource;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.UIScope;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Button.ClickListener;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.CssLayout;
+import com.vaadin.ui.CustomComponent;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.MenuBar;
+import com.vaadin.ui.MenuBar.MenuItem;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * A responsive menu component providing user information and the controls for
@@ -82,7 +91,7 @@ public final class NavigationMenu extends CustomComponent {
     }
 
     private Component buildVersionInformation() {
-        VerticalLayout layout = new VerticalLayout();
+        MVerticalLayout layout = new MVerticalLayout().withUndefinedWidth();
         layout.setDefaultComponentAlignment(Alignment.BOTTOM_CENTER);
         Label versionLabel = new Label(buildInformation.getVersion());
         Label revisionLabel = new Label(buildInformation.getRevision());

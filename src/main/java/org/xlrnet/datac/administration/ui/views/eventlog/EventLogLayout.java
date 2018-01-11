@@ -1,32 +1,35 @@
 package org.xlrnet.datac.administration.ui.views.eventlog;
 
-import com.vaadin.data.provider.QuerySortOrder;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.spring.annotation.UIScope;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Grid;
-import com.vaadin.ui.UI;
-import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.renderers.ButtonRenderer;
+import java.util.List;
+import java.util.stream.Stream;
+
+import javax.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
+import org.vaadin.viritin.grid.MGrid;
+import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.ui.TemporalRenderer;
 import org.xlrnet.datac.commons.util.DisplayUtils;
 import org.xlrnet.datac.commons.util.QueryUtils;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
 import org.xlrnet.datac.foundation.services.EventLogService;
 
-import javax.annotation.PostConstruct;
-import java.util.List;
-import java.util.stream.Stream;
+import com.vaadin.data.provider.QuerySortOrder;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.spring.annotation.UIScope;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Grid;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.renderers.ButtonRenderer;
 
 /**
  * Re-usable layout which displays events.
  */
 @Component
 @UIScope
-public class EventLogLayout extends VerticalLayout {
+public class EventLogLayout extends MVerticalLayout {
 
     private final EventLogService eventLogService;
 
@@ -37,11 +40,10 @@ public class EventLogLayout extends VerticalLayout {
 
     @PostConstruct
     public void init() {
-        setWidth("100%");
+        withFullSize();
 
-        Grid<EventLogMessage> logMessageGrid = new Grid<>();
-        logMessageGrid.setWidth("80%");
-        logMessageGrid.setResponsive(true);
+        MGrid<EventLogMessage> logMessageGrid = new MGrid<>();
+        logMessageGrid.withFullSize().withResponsive(true);
 
         logMessageGrid.addColumn(msg -> "Details", new ButtonRenderer<>(e -> openDetails(e.getItem())))
                 .setCaption("Details")

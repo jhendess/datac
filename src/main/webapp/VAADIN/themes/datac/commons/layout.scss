@@ -4,15 +4,24 @@
     width: 300px;
   }
 
+  /** The main container including nav menu + content. */
   .main-container {
-    width: 100%;
-    /*height: 100%;*/
+    min-width: 1201px;
+    overflow-y: auto;
+    height: 100%;
   }
 
+  /** The container around the view content. */
+  .view-container {
+    width: calc(100% - $side-menu-width);
+  }
+
+  /** The actual content container. */
   .view-content {
-    margin-left: 201px;
-    min-width: 1000px;
-    width: 100%;
+    width: $view-content-width;
+    display: block;
+    margin-left: auto !important;
+    margin-right: auto !important;
   }
 
   .severity-error {

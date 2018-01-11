@@ -1,20 +1,21 @@
 package org.xlrnet.datac.administration.ui.views;
 
-import com.vaadin.server.ThemeResource;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.spring.annotation.UIScope;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.HorizontalLayout;
-import com.vaadin.ui.UI;
-import com.vaadin.ui.themes.ValoTheme;
 import org.jetbrains.annotations.NotNull;
+import org.vaadin.viritin.layouts.MGridLayout;
 import org.xlrnet.datac.administration.ui.views.eventlog.AdminEventLogSubview;
 import org.xlrnet.datac.administration.ui.views.projects.AdminProjectSubview;
 import org.xlrnet.datac.administration.ui.views.user.AdminUserSubview;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
 import org.xlrnet.datac.session.ui.views.Subview;
+
+import com.vaadin.server.ThemeResource;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.spring.annotation.UIScope;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Administration view.
@@ -50,7 +51,7 @@ public class AdminSubview extends AbstractSubview implements Subview {
     @NotNull
     @Override
     protected Component buildMainPanel() {
-        HorizontalLayout layout = new HorizontalLayout();
+        MGridLayout layout = new MGridLayout(4, 2);
 
         Button userButton = new Button("Users", new ThemeResource("img/users-128.png"));
         userButton.addStyleName(ADMIN_CATEGORY_BUTTON_CLASS);

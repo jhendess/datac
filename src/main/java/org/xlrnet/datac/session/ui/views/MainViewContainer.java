@@ -1,16 +1,17 @@
 package org.xlrnet.datac.session.ui.views;
 
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.UIScope;
-import com.vaadin.ui.ComponentContainer;
-import com.vaadin.ui.CssLayout;
+import javax.annotation.PostConstruct;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.viritin.layouts.MCssLayout;
 import org.xlrnet.datac.foundation.ui.components.NavigationMenu;
 
-import javax.annotation.PostConstruct;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.UIScope;
+import com.vaadin.ui.ComponentContainer;
 
 /**
  * Main view for the application. Represents a container with static navigation menu and main-content subview
@@ -18,11 +19,11 @@ import javax.annotation.PostConstruct;
  */
 @UIScope
 @SpringComponent
-public class MainViewContainer extends CssLayout {
+public class MainViewContainer extends MCssLayout {
 
     private final NavigationMenu navigationMenu;
 
-    private ComponentContainer contentContainer;
+    private ComponentContainer contentView;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MainViewContainer.class);
 
@@ -33,12 +34,15 @@ public class MainViewContainer extends CssLayout {
 
     @PostConstruct
     private void init() {
+        withFullWidth();
+
         addStyleName("main-container");
         addComponent(navigationMenu);
 
-        contentContainer = new CssLayout();
-        contentContainer.addStyleName("view-content");
+        MCssLayout contentContainer = new MCssLayout().withStyleName("view-container");
         addComponent(contentContainer);
+        contentView = new MCssLayout().withStyleName("view-content");
+        contentContainer.add(contentView);
     }
 
     /**
@@ -49,7 +53,7 @@ public class MainViewContainer extends CssLayout {
      */
     public void displaySubview(@NotNull Subview view) {
         LOGGER.debug("Opening subview for {}", view.getClass());
-        contentContainer.removeAllComponents();
-        contentContainer.addComponent(view.getContent());
+        contentView.removeAllComponents();
+        contentView.addComponent(view.getContent());
     }
 }
