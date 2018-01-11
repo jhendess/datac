@@ -1,20 +1,66 @@
 @mixin navigation-menu {
 
-  #dashboard-menu {
-    width: $side-menu-width !important;
+  .navigation-menu-wrapper {
+    position: fixed;
+    width: 100%;
+    background-color: $valo-menu-background-color;
+    z-index: 10000;
   }
 
   .navigation-menu {
-    float: left;
-    width: $side-menu-width;
+    width: 1300px;
+    display: block;
+    height: $navigation-menu-height;
+    color: lightgrey;
+    margin-left: auto;
+    margin-right: auto;
+
+    .valo-menu-item {
+      padding-top: 10px;
+      padding-bottom: 10px;
+
+      .v-icon {
+        margin-right: 10px;
+      }
+
+      :hover {
+        color: #4396ea;
+      }
+    }
+
+    .user-menu {
+      margin: 1px;
+    }
+
+    .v-slot-user-avatar {
+      margin-top: 4px;
+      margin-bottom: 4px;
+      max-height: 42px;
+
+      .user-avatar {
+        max-width: 42px;
+        max-height: 42px;
+      }
+    }
+
+    .v-slot-valo-menuitems {
+      // margin-right: 400px;
+    }
+
+    .v-menubar-user-menu > .v-menubar-menuitem {
+      padding-right: 0;
+    }
+  }
+
+  .v-slot-version-numbers {
+    float: right;
   }
 
   .version-numbers {
     font-size: 12px;
     line-height: 1em;
-    /* Move this to the bottom. */
-    bottom: 0;
-    position: absolute;
-    width: $side-menu-width;
+    padding: 7px;
+    text-align: center;
+    display: block;
   }
 }

@@ -1,7 +1,13 @@
 package org.xlrnet.datac.session.ui.views;
 
-import java.util.List;
-
+import com.vaadin.data.HasValue;
+import com.vaadin.server.ThemeResource;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Image;
+import com.vaadin.ui.Layout;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,13 +22,7 @@ import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import com.vaadin.data.HasValue;
-import com.vaadin.server.ThemeResource;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Image;
-import com.vaadin.ui.Layout;
+import java.util.List;
 
 /**
  * Renders the history graph of revisions before the revision to display.
@@ -76,10 +76,11 @@ public class ProjectRevisionSubview extends AbstractProjectSubview {
         MCssLayout singleRevision = new MCssLayout().withStyleName("revision");
 
         MCssLayout avatarLayout = new MCssLayout().withStyleName("author-avatar");
-        Image profilePic = new Image(null, new ThemeResource(
+        Image avatarImage = new Image(null, new ThemeResource(
                 "img/profile-pic-300px.jpg"));  // TODO: Use actual profile image
-        profilePic.setStyleName("author-avatar");
-        avatarLayout.add(profilePic);
+        avatarImage.addStyleName("author-avatar");
+        avatarImage.addStyleName("round-image");
+        avatarLayout.add(avatarImage);
 
         MVerticalLayout revisionInfo = new MVerticalLayout()
                 .withMargin(false).withSpacing(false).withUndefinedWidth()
@@ -87,9 +88,9 @@ public class ProjectRevisionSubview extends AbstractProjectSubview {
         revisionInfo.add(new MLabel(revisionFormatService.formatMessage(rev)).withStyleName("revision-message"));
 
         MCssLayout authorAndDate = new MCssLayout().withStyleName("revision-author-time-container");
-        authorAndDate.add(new MLabel("Committed by "));
+        authorAndDate.add(new MLabel("Committed by&nbsp;").withContentMode(ContentMode.HTML));
         authorAndDate.add(new MLabel(revisionFormatService.formatAuthor(rev)).withDescription(revision.getAuthor()).withStyleName("revision-author"));
-        authorAndDate.add(new MLabel(" on "));
+        authorAndDate.add(new MLabel("&nbsp;on&nbsp;").withContentMode(ContentMode.HTML));
         authorAndDate.add(new MLabel(revisionFormatService.formatTimestamp(rev)).withStyleName("revision-timestamp"));
         revisionInfo.add(authorAndDate);
 

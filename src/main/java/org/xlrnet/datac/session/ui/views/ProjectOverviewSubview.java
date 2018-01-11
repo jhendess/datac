@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.viritin.layouts.MPanel;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.commons.util.DateTimeUtils;
@@ -104,8 +105,7 @@ public class ProjectOverviewSubview extends AbstractSubview {
     }
 
     private Component createPanelForProject(Project project) {
-        Panel panel = new Panel(project.getName());
-        panel.setWidth("75%");
+        MPanel panel = new MPanel(project.getName()).withFullWidth();
         panel.addClickListener((e) -> navigationService.openChangeView(project.getDevelopmentBranch()));
 
         GridLayout panelContent = new GridLayout(2, 5);

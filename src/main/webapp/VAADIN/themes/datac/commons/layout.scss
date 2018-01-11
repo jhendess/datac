@@ -13,7 +13,8 @@
 
   /** The container around the view content. */
   .view-container {
-    width: calc(100% - $side-menu-width);
+    width: 100%;
+    margin-top: $navigation-menu-height;
   }
 
   /** The actual content container. */
@@ -49,5 +50,10 @@
   .v-slot-caption-padding-right .v-caption {
     display: inline;
     padding-right: 12px;
+  }
+
+  /** Common styles. */
+  .round-image {
+    border-radius: 50%
   }
 }
