@@ -7,6 +7,10 @@
     z-index: 10000;
   }
 
+  .valo-menu-title {
+    height: $navigation-menu-height !important;
+  }
+
   .navigation-menu {
     width: 1300px;
     display: block;

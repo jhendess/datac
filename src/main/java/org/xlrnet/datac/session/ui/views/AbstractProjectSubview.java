@@ -86,7 +86,7 @@ public abstract class AbstractProjectSubview extends AbstractSubview {
         this.navigationService = navigationService;
     }
 
-    Component buildNavigationPanel() {
+    private Component buildNavigationPanel() {
         MHorizontalLayout navigationPanel = new MHorizontalLayout();
 
         NativeSelect<Branch> branchSelector = new NativeSelect<>();

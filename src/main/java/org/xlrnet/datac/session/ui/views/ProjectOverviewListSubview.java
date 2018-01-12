@@ -1,10 +1,7 @@
 package org.xlrnet.datac.session.ui.views;
 
-import com.vaadin.server.ExternalResource;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -22,18 +19,27 @@ import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.List;
+import com.vaadin.server.ExternalResource;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.GridLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Layout;
+import com.vaadin.ui.Link;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Overview for projects.
  */
 @SpringComponent
-@SpringView(name = ProjectOverviewSubview.VIEW_NAME)
-public class ProjectOverviewSubview extends AbstractSubview {
+@SpringView(name = ProjectOverviewListSubview.VIEW_NAME)
+public class ProjectOverviewListSubview extends AbstractSubview {
 
     public static final String VIEW_NAME = "projects";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProjectOverviewSubview.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProjectOverviewListSubview.class);
 
     private static final int MAX_BEFORE_TRUNCATE = 80;
 
@@ -66,7 +72,7 @@ public class ProjectOverviewSubview extends AbstractSubview {
     private final NavigationService navigationService;
 
     @Autowired
-    public ProjectOverviewSubview(ProjectService projectService, ChangeSetService changeSetService, RevisionGraphService revisionGraphService, NavigationService navigationService) {
+    public ProjectOverviewListSubview(ProjectService projectService, ChangeSetService changeSetService, RevisionGraphService revisionGraphService, NavigationService navigationService) {
         this.projectService = projectService;
         this.changeSetService = changeSetService;
         this.revisionGraphService = revisionGraphService;

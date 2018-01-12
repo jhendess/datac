@@ -177,6 +177,7 @@ public class JGitLocalRepository implements VcsLocalRepository {
 
         try (Git git = openRepository()) {
             git.checkout()
+                    .setForce(true)
                     .setName(internalId)
                     .call();
             LOGGER.debug("Checkout done.");

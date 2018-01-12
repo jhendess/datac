@@ -1,5 +1,15 @@
 package org.xlrnet.datac.database.services;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,11 +32,6 @@ import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
  * Service responsible for indexing database changes in a project.
  */
@@ -38,7 +43,7 @@ public class ChangeIndexingService {
     /**
      * Transaction timeout for indexing is increased to avoid errors.
      */
-    private static final int INDEX_TRANSACTION_TIMEOUT = 600;
+    private static final int INDEX_TRANSACTION_TIMEOUT = 900;
 
     /**
      * Thread-scoped event log proxy.

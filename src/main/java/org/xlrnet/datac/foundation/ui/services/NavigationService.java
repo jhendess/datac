@@ -9,8 +9,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.administration.ui.views.projects.AdminEditProjectSubview;
 import org.xlrnet.datac.foundation.domain.Project;
-import org.xlrnet.datac.session.ui.views.ProjectChangeSubview;
-import org.xlrnet.datac.session.ui.views.ProjectRevisionSubview;
+import org.xlrnet.datac.session.ui.views.ProjectSubview;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
@@ -40,7 +39,7 @@ public class NavigationService {
     public void openChangeView(@NotNull Branch branch) {
         Revision revision = revisionGraphService.findLastRevisionOnBranch(branch);
         checkState(revision != null, "No last revision on branch - this should never happen");
-        navigateTo(String.format("%s/%d?branch=%d", ProjectChangeSubview.VIEW_NAME, revision.getId(), branch.getId()));
+        navigateTo(String.format("%s/%d?branch=%d", ProjectSubview.VIEW_NAME, revision.getId(), branch.getId()));
     }
 
     /**
@@ -54,7 +53,7 @@ public class NavigationService {
     public void openChangeView(Revision revision, Branch branch) {
         Revision revision2 = revisionGraphService.findLastRevisionOnBranch(branch);
         checkState(revision2 != null && revision2.getId().equals(revision.getId()), "Revision on branch is either null or doesn't match requested revision");
-        navigateTo(String.format("%s/%d?branch=%d", ProjectChangeSubview.VIEW_NAME, revision.getId(), branch.getId()));
+        navigateTo(String.format("%s/%d?branch=%d", ProjectSubview.VIEW_NAME, revision.getId(), branch.getId()));
     }
 
     /**
@@ -64,7 +63,7 @@ public class NavigationService {
      *         The revision to display.
      */
     public void openRevisionView(@NotNull Revision revision) {
-        navigateTo(String.format("%s/%d", ProjectRevisionSubview.VIEW_NAME, revision.getId()));
+        navigateTo(String.format("%s/%d", ProjectSubview.VIEW_NAME, revision.getId()));
     }
 
     /**
@@ -76,7 +75,7 @@ public class NavigationService {
     public void openRevisionView(@NotNull Branch branch) {
         Revision revision = revisionGraphService.findLastRevisionOnBranch(branch);
         checkState(revision != null, "No last revision on branch - this should never happen");
-        navigateTo(String.format("%s/%d?branch=%d", ProjectRevisionSubview.VIEW_NAME, revision.getId(), branch.getId()));
+        navigateTo(String.format("%s/%d?branch=%d", ProjectSubview.VIEW_NAME, revision.getId(), branch.getId()));
     }
 
     /**
@@ -90,7 +89,7 @@ public class NavigationService {
     public void openRevisionView(@NotNull Revision revision, @NotNull Branch branch) {
         Revision revision2 = revisionGraphService.findLastRevisionOnBranch(branch);
         checkState(revision2 != null && revision2.getId().equals(revision.getId()), "Revision on branch is either null or doesn't match requested revision");
-        navigateTo(String.format("%s/%d?branch=%d", ProjectRevisionSubview.VIEW_NAME, revision.getId(), branch.getId()));
+        navigateTo(String.format("%s/%d?branch=%d", ProjectSubview.VIEW_NAME, revision.getId(), branch.getId()));
     }
 
     private void navigateTo(String target) {

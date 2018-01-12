@@ -6,7 +6,7 @@
 
   /** The main container including nav menu + content. */
   .main-container {
-    min-width: 1201px;
+    min-width: $view-content-width;
     overflow-y: auto;
     height: 100%;
   }

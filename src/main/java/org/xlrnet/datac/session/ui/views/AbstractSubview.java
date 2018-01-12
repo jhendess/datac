@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Scope;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.administration.ui.views.AdminSubview;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
@@ -14,21 +15,27 @@ import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 
 import com.vaadin.navigator.ViewChangeListener;
 import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.spring.annotation.UIScope;
+import com.vaadin.spring.internal.UIScopeImpl;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.themes.ValoTheme;
 
 /**
- * Abstract subview which contains a title with subtitle and a main content panel. Override the abstract methods in this
+ * Abstract subview which contains a titleLabel with subtitleLabel and a main content panel. Override the abstract methods in this
  * class to build a the user interface.
  */
-@UIScope
+@Scope(UIScopeImpl.VAADIN_UI_SCOPE_NAME)
 @SpringView(name = AdminSubview.VIEW_NAME)
 public abstract class AbstractSubview extends MVerticalLayout implements Subview {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractSubview.class);
+
+    /** Label of the title. */
+    private Label titleLabel;
+
+    /** Label of the subtitle. */
+    private Label subtitleLabel;
 
     @NotNull
     protected abstract Component buildMainPanel();
@@ -115,12 +122,12 @@ public abstract class AbstractSubview extends MVerticalLayout implements Subview
                 .withMargin(false)
                 .withSpacing(false);
 
-        Label title = new Label(getTitle());
-        title.setStyleName(ValoTheme.LABEL_H1);
-        Label infoText = new Label(getSubtitle());
+        titleLabel = new Label(getTitle());
+        titleLabel.setStyleName(ValoTheme.LABEL_H1);
+        subtitleLabel = new Label(getSubtitle());
 
-        topPanel.addComponent(title);
-        topPanel.addComponent(infoText);
+        topPanel.addComponent(titleLabel);
+        topPanel.addComponent(subtitleLabel);
         return topPanel;
     }
 
@@ -136,17 +143,17 @@ public abstract class AbstractSubview extends MVerticalLayout implements Subview
     }
 
     /**
-     * Returns the subtitle of this subview which will be displayed below the title.
+     * Returns the subtitleLabel of this subview which will be displayed below the titleLabel.
      *
-     * @return the subtitle of this subview which will be displayed below the title.
+     * @return the subtitleLabel of this subview which will be displayed below the titleLabel.
      */
     @NotNull
     protected abstract String getSubtitle();
 
     /**
-     * Returns the title of this subview.
+     * Returns the titleLabel of this subview.
      *
-     * @return the title of this subview.
+     * @return the titleLabel of this subview.
      */
     @NotNull
     protected abstract String getTitle();
@@ -159,5 +166,21 @@ public abstract class AbstractSubview extends MVerticalLayout implements Subview
     @NotNull
     protected String[] getParameters() {
         return parameters;
+    }
+
+    /**
+     * Replace the current title with a new one.
+     * @param newTitle The new title for this sub view.
+     */
+    public void updateTitle(@NotNull  String newTitle) {
+        this.titleLabel.setValue(newTitle);
+    }
+
+    /**
+     * Replace the current subtitle with a new one.
+     * @param newSubtitle The new subtitle for this sub view.
+     */
+    public void updateSubtitle(@NotNull String newSubtitle) {
+        this.subtitleLabel.setValue(newSubtitle);
     }
 }

@@ -1,105 +1,84 @@
-package org.xlrnet.datac.session.ui.views;
+package org.xlrnet.datac.session.ui.components.project;
 
-import com.vaadin.data.HasValue;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 import org.vaadin.addons.stackpanel.StackPanel;
 import org.vaadin.viritin.button.MButton;
-import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.services.ChangeSetService;
 import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.foundation.ui.util.RevisionFormatService;
-import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
-import org.xlrnet.datac.vcs.services.BranchService;
-import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.ui.GridLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
- * Renders a list of {@link org.xlrnet.datac.database.domain.DatabaseChangeSet} in a given branch/revision. The view
- * does not display the actual change sets in the given revision, but the change sets which are present in the closest
- * revision
+ * Layout component which is used for displaying the changes of a project revision.
  */
 @SpringComponent
-@SpringView(name = ProjectChangeSubview.VIEW_NAME)
-public class ProjectChangeSubview extends AbstractProjectSubview {
+@Scope("prototype")
+public class ProjectChangeLayout extends AbstractProjectLayout {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProjectChangeSubview.class);
+    private static final int REVISIONS_TO_TRAVERSE = 200;   // TODO: Move this to config
 
-    public static final String VIEW_NAME = "project/changes";
+    private VerticalLayout changeListLayout;
 
-    /**
-     * Service for accessing database changes.
-     */
+    /** Service for accessing change sets. */
     private final ChangeSetService changeSetService;
 
-    /**
-     * The change sets which will be displayed.
-     */
-    private List<DatabaseChangeSet> changeSets;
+    /** Service for formatting revisions. */
+    private final RevisionFormatService revisionFormatService;
+
+    /** Service for navigation. */
+    private final NavigationService navigationService;
+
+    private int changeSetSize;
 
     @Autowired
-    public ProjectChangeSubview(BranchService branchService, RevisionGraphService revisionGraphService, ChangeSetService changeSetService, NavigationService navigationService, RevisionFormatService revisionFormatService) {
-        super(revisionGraphService, branchService, revisionFormatService, navigationService);
+    public ProjectChangeLayout(ChangeSetService changeSetService, RevisionFormatService revisionFormatService, NavigationService navigationService) {
         this.changeSetService = changeSetService;
+        this.revisionFormatService = revisionFormatService;
+        this.navigationService = navigationService;
     }
 
     @Override
-    protected void initialize() throws DatacTechnicalException {
-        super.initialize();
+    void initialize() {
+        changeListLayout = new MVerticalLayout();
+        add(changeListLayout);
+    }
 
-        changeSets = changeSetService.findDatabaseChangeSetsInRevision(revision, REVISIONS_TO_TRAVERSE);
+    @Override
+    protected void refreshContent() throws DatacTechnicalException {
+        List<DatabaseChangeSet> changeSets = changeSetService.findDatabaseChangeSetsInRevision(getRevision(), REVISIONS_TO_TRAVERSE);
+        changeSetSize = changeSets.size();
         Collections.reverse(changeSets);
+        refreshChangeSetList(changeSets);
     }
 
-    @Override
-    protected String getViewName() {
-        return VIEW_NAME;
-    }
-
-    @Override
-    protected void buildContent(Layout mainPanel) {
-        mainPanel.addComponent(buildChangeSetList());
-    }
-
-    @Override
-    void extendNavigationPanel(MHorizontalLayout navigationPanel) {
-        Button revisionBrowserButton = new Button("Show revisions");
-        revisionBrowserButton.addClickListener(e -> navigationService.openRevisionView(revision, branch));
-        navigationPanel.add(revisionBrowserButton);
-    }
-
-    @Override
-    protected void handleBranchSelectionChange(HasValue.ValueChangeEvent<Branch> e) {
-        navigationService.openChangeView(e.getValue());
-    }
-
-    @NotNull
-    private Component buildChangeSetList() {
-        VerticalLayout changeListLayout = new MVerticalLayout();
-
+    private void refreshChangeSetList(List<DatabaseChangeSet> changeSets) {
+        changeListLayout.removeAllComponents();
         for (DatabaseChangeSet changeSet : changeSets) {
             String title = changeSetService.formatDatabaseChangeSetTitle(changeSet);
             Panel panel = new Panel(title);
             if (changeSet.isModifying()) {
                 panel.setDescription("This change set was modified after check-in.");
                 panel.setIcon(VaadinIcons.BOLT);
-            } else if (changeSet.getIntroducingChangeSet() == null && Objects.equals(changeSet.getRevision().getId(), revision.getId())) {
+            } else if (changeSet.getIntroducingChangeSet() == null && Objects.equals(changeSet.getRevision().getId(), getRevision().getId())) {
                 panel.setDescription("This change set was introduced in the current revision.");
                 panel.setIcon(VaadinIcons.PLUS);
                 panel.addStyleName(ValoTheme.LABEL_SUCCESS);
@@ -114,8 +93,6 @@ public class ProjectChangeSubview extends AbstractProjectSubview {
             stackPanel.close();
             changeListLayout.addComponent(panel);
         }
-
-        return changeListLayout;
     }
 
     @NotNull
@@ -176,28 +153,26 @@ public class ProjectChangeSubview extends AbstractProjectSubview {
 
     @NotNull
     @Override
-    protected String getSubtitle() {
+    public String getSubtitle() {
         String subtitle;
-        if (changeSets.isEmpty()) {
+        if (changeSetSize == 0) {
             subtitle = "There are no database changes in this revision. Make sure " +
                     "that the project is configured correctly so that database changes can be found.";
-        } else if (revision == null) {
-            subtitle = "There is no revision on this branch. Make sure that you ran a project update first.";
         } else {
-            String revisionNumber = revisionFormatService.abbreviateRevisionId(revision);
-            String revisionMessage = StringUtils.substringBefore(this.revision.getMessage(), "\n");
-            subtitle = String.format("There are currently %d database changes in revision %s (%s).", changeSets.size(), revisionNumber, revisionMessage);
+            String revisionNumber = revisionFormatService.abbreviateRevisionId(getRevision());
+            String revisionMessage = StringUtils.substringBefore(this.getRevision().getMessage(), "\n");
+            subtitle = String.format("There are currently %d database changes in revision %s (%s).", changeSetSize, revisionNumber, revisionMessage);
         }
         return subtitle;
     }
 
     @NotNull
     @Override
-    protected String getTitle() {
-        if (branch != null) {
-            return String.format("Change sets in %s on branch %s", project.getName(), branch.getName());
+    public String getTitle() {
+        if (getBranch() != null) {
+            return String.format("Change sets in %s on branch %s", getProject().getName(), getBranch().getName());
         } else {
-            return String.format("Change sets in %s in revision %s", project.getName(), revisionFormatService.abbreviateRevisionId(revision));
+            return String.format("Change sets in %s in revision %s", getProject().getName(), revisionFormatService.abbreviateRevisionId(getRevision()));
         }
     }
 }

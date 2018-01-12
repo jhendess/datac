@@ -1,15 +1,16 @@
 package org.xlrnet.datac.foundation.ui.components;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.server.Resource;
 import org.xlrnet.datac.administration.ui.views.AdminSubview;
 import org.xlrnet.datac.session.ui.views.HomeView;
-import org.xlrnet.datac.session.ui.views.ProjectOverviewSubview;
+import org.xlrnet.datac.session.ui.views.ProjectOverviewListSubview;
+
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.server.Resource;
 
 public enum MainMenuEntry {
     HOME(HomeView.VIEW_NAME, "Home", VaadinIcons.HOME),
 
-    PROJECTS(ProjectOverviewSubview.VIEW_NAME, "Projects", VaadinIcons.CUBE),
+    PROJECTS(ProjectOverviewListSubview.VIEW_NAME, "Projects", VaadinIcons.CUBE),
 
     ADMINSTRATION(AdminSubview.VIEW_NAME, "Adminstration", VaadinIcons.COGS);
 

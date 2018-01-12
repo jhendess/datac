@@ -3,12 +3,20 @@
     padding: 16px;
   }
 
+  $revision-list-width: 900px;
+
+  .v-slot-revision-list {
+    width: $revision-list-width;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   .revision-list {
 
     .revision {
       border: 1px lightgrey solid;
       padding: 5px;
-      width: 900px;
+      width: $revision-list-width;
 
       > div {
         vertical-align: middle;
