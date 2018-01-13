@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -94,6 +95,14 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
         return getRepository().findAllByStateIn(states);
     }
 
+    /**
+     * Returns all projects sorted alphabetically by their name.
+     *
+     * @return all projects sorted alphabetically by their name.
+     */
+    public Collection<Project> findAllAlphabetically() {
+        return (Collection<Project>) getRepository().findAll(new Sort("name"));
+    }
 
     @Transactional
     public Project updateAvailableBranches(@NotNull Project project, @NotNull VcsLocalRepository localRepository) throws VcsConnectionException {

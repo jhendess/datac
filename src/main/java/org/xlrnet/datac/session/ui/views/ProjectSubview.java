@@ -1,10 +1,11 @@
 package org.xlrnet.datac.session.ui.views;
 
-import static org.xlrnet.datac.session.ui.views.ProjectSubview.VIEW_NAME;
-
-import java.util.Collections;
-import java.util.List;
-
+import com.vaadin.data.HasValue;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
+import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -26,16 +27,10 @@ import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import com.vaadin.data.HasValue;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Alignment;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.NativeSelect;
-import com.vaadin.ui.TabSheet;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.Collections;
+import java.util.List;
+
+import static org.xlrnet.datac.session.ui.views.ProjectSubview.VIEW_NAME;
 
 /**
  * Main project view which provides a tabbed view on a single proejct.
@@ -105,6 +100,7 @@ public class ProjectSubview extends AbstractSubview {
      * The tab for displaying revisions in a project.
      */
     private final ProjectRevisionLayout revisionTab;
+
     private TabSheet tabSheet;
 
 
@@ -120,10 +116,7 @@ public class ProjectSubview extends AbstractSubview {
 
     @Override
     protected void initialize() throws DatacTechnicalException {
-        String[] parameters = getParameters();
-        String projectId = parameters[0];
-        String defaultTab = parameters.length > 1 ? parameters[1] : DEFAULT_TAB;
-
+        // TODO: both project, revision, branch as Tab as view parameters - e.g.: /<projectId>/VIEW_TYPE/<revisionId>?branch=<branchId>
         Long revisionId = null;
         if (getParameters().length == 1 && NumberUtils.isDigits(getParameters()[0])) {
             revisionId = Long.valueOf(getParameters()[0]);
@@ -153,9 +146,10 @@ public class ProjectSubview extends AbstractSubview {
         /* Install tab change listener. */
         tabSheet.addSelectedTabChangeListener(e -> {
             AbstractProjectLayout selectedTab = (AbstractProjectLayout) e.getTabSheet().getSelectedTab();
-                selectedTab.setActiveRevisionAndRefreshContent(revision, branch);
-                updateTitle(selectedTab.getTitle());
-                updateSubtitle(selectedTab.getSubtitle());
+            selectedTab.beforeContentRefresh();
+            selectedTab.setActiveRevisionAndRefreshContent(revision, branch);
+            updateTitle(selectedTab.getTitle());
+            updateSubtitle(selectedTab.getSubtitle());
         });
         if (revision != null) {
             /* TODO: Switch to the initial tab. */

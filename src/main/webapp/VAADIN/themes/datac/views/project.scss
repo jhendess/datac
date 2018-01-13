@@ -1,7 +1,17 @@
 @mixin project-view {
-  .projectPanel {
+
+  /** Project overview list page */
+
+  .project-overview-panel > .v-panel-content {
     padding: 16px;
   }
+
+  /** Add some spacing between the grid cells.  */
+  .project-overview-panel .v-gridlayout-slot > div {
+    margin-right: 12px;
+  }
+
+  /** Project revision tab */
 
   $revision-list-width: 900px;
 
@@ -25,7 +35,7 @@
 
     .revision-info-container {
       padding-left: 15px;
-      width: 500px;
+      width: 600px;
     }
 
     .revision:hover {
@@ -33,7 +43,7 @@
     }
 
     .revision-right-container {
-      width: 260px;
+      width: 160px;
       text-align: right;
     }
 
@@ -53,6 +63,43 @@
     .author-avatar {
       max-width: 75px;
       max-height: 75px;
+    }
+  }
+
+  /** Project change tab */
+
+  .change-list {
+    .change {
+      border: 1px lightgrey solid;
+      padding: 5px;
+      width: 100%;
+
+      > .v-caption {
+        margin-right: 14px;
+        margin-left: 10px;
+      }
+
+      .change-detail-container {
+        padding-top: 20px;
+        padding-bottom: 12px;
+
+        /** Add some spacing between the detail label cells.  */
+        .change-detail-grid > .v-gridlayout-slot > div {
+          margin-right: 12px;
+        }
+      }
+
+      .v-label-sql-preview > pre {
+        background-color: inherit !important;
+        padding: 0;
+        margin: 0;
+        width: 1100px;
+        white-space: pre-wrap;
+      }
+    }
+
+    .change:hover {
+      background: $background-hover-color;
     }
   }
 }

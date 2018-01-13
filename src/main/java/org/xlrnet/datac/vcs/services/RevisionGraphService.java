@@ -361,7 +361,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
                             return true;
                         });
             }
-        } catch (ProcessingFinishedException e) {
+        } catch (ProcessingFinishedException e) {   // NOSONAR: I know this is wrong, but let's keep it that way
             // Everything went fine - not good style to handle this case via Exception
         } catch (DatacTechnicalException e) {
             throw new DatacRuntimeException(e);

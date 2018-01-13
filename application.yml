@@ -16,6 +16,6 @@ datac:
 
 
 # Embedded database
-#spring:
-  #datasource:
-    #url: jdbc:h2:./database
+spring:
+  datasource:
+   url: jdbc:h2:./database

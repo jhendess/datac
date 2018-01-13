@@ -56,4 +56,11 @@
   .round-image {
     border-radius: 50%
   }
+
+  /** Override the default stlye of Vaadin's link buttons which add unnecessary padding. */
+  .v-button-link.v-button {
+    padding-left: 0;
+    padding-right: 0;
+    height: auto;
+  }
 }

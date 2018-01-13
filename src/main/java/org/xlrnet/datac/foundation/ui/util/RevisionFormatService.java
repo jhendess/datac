@@ -1,14 +1,14 @@
 package org.xlrnet.datac.foundation.ui.util;
 
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.util.Locale;
-
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.xlrnet.datac.vcs.domain.Revision;
+
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.Locale;
 
 /**
  * Utility class with helper methods for formatting stuff.
@@ -56,5 +56,10 @@ public class RevisionFormatService {
     @NotNull
     public String abbreviateRevisionId(@NotNull Revision revision) {
         return StringUtils.substring(revision.getInternalId(), 0, REVISION_ABBREVIATION_LENGTH);
+    }
+
+    @NotNull
+    public String formatReviewer(@NotNull Revision revision) {
+        return StringUtils.substringBefore(revision.getReviewer(), "<");  // TODO: Refine logic to extract the author
     }
 }

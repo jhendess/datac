@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.domain.LimitOffsetPageable;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -121,6 +122,19 @@ public class AbstractTransactionalService<T extends AbstractEntity, R extends Pa
         return (List<S>) getRepository().findAll(new LimitOffsetPageable(limit, offset, sort)).getContent();
     }
 
+    /**
+     * Finds all all entities sorted by the given {@link Sort} parameter.
+     *
+     * @param sort
+     *         The sort order to use.
+     * @param <S>
+     *         The entity that will be returned.
+     * @return All entities sorted by the given parameter.
+     */
+    @Transactional(readOnly = true)
+    public <S extends T> Collection<S> findAll(Sort sort) {
+        return (Collection<S>) getRepository().findAll(sort);
+    }
 
     /**
      * Counts all entities.

@@ -1,13 +1,18 @@
 package org.xlrnet.datac.session.ui.views;
 
-import java.util.List;
-
+import com.vaadin.server.ExternalResource;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.*;
+import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MPanel;
+import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.commons.util.DateTimeUtils;
@@ -19,16 +24,7 @@ import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import com.vaadin.server.ExternalResource;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.GridLayout;
-import com.vaadin.ui.Label;
-import com.vaadin.ui.Layout;
-import com.vaadin.ui.Link;
-import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.List;
 
 /**
  * Overview for projects.
@@ -95,7 +91,7 @@ public class ProjectOverviewListSubview extends AbstractSubview {
     @Override
     protected Component buildMainPanel() {
         Layout layout = new VerticalLayout();
-        Iterable<Project> projects = projectService.findAll();
+        Iterable<Project> projects = projectService.findAllAlphabetically();
 
         for (Project project : projects) {
             Component projectPanel = createPanelForProject(project);
@@ -112,33 +108,43 @@ public class ProjectOverviewListSubview extends AbstractSubview {
 
     private Component createPanelForProject(Project project) {
         MPanel panel = new MPanel(project.getName()).withFullWidth();
+        panel.addStyleName("project-overview-panel");
         panel.addClickListener((e) -> navigationService.openChangeView(project.getDevelopmentBranch()));
 
-        GridLayout panelContent = new GridLayout(2, 5);
-        panelContent.setStyleName("projectPanel");
+        MVerticalLayout panelContent = new MVerticalLayout().withMargin(false);
+
+        GridLayout gridLayout = new GridLayout(2, 2);
+        panelContent.add(gridLayout);
 
         if (StringUtils.isNotBlank(project.getDescription())) {
-            panelContent.addComponent(new Label("Description: "));
+            gridLayout.addComponent(new Label("Description: "));
             Label descriptionLabel = new Label(project.getDescription());
-            panelContent.addComponent(descriptionLabel);
+            gridLayout.addComponent(descriptionLabel);
         }
         if (StringUtils.isNotBlank(project.getWebsite())) {
-            panelContent.addComponent(new Label("Website: "));
+            gridLayout.addComponent(new Label("Website: "));
             Link websiteLink = new Link(project.getWebsite(), new ExternalResource(project.getWebsite()));
-            panelContent.addComponent(websiteLink);
+            gridLayout.addComponent(websiteLink);
         }
 
-        panelContent.addComponent(new Label("Update status: "));
-        panelContent.addComponent(new Label(project.getState().toString()));        // TODO: Auto-update the state using the event bus
+        gridLayout.addComponent(new Label("Update status: "));
+        gridLayout.addComponent(new Label(project.getState().toString()));        // TODO: Auto-update the state using the event bus
 
-        panelContent.addComponent(new Label("Last update: "));
-        panelContent.addComponent(new Label(project.getLastChangeCheck() != null ? DateTimeUtils.format(project.getLastChangeCheck()) : "Never"));
+        gridLayout.addComponent(new Label("Last update: "));
+        gridLayout.addComponent(new Label(project.getLastChangeCheck() != null ? DateTimeUtils.format(project.getLastChangeCheck()) : "Never"));
 
-        panelContent.addComponent(new Label("Latest dev revisions: "));
-        panelContent.addComponent(buildLastRevisionsLayout(project));
+        MHorizontalLayout latestDataLayout = new MHorizontalLayout().withFullWidth();
+        latestDataLayout.add(
+                new MVerticalLayout().withMargin(false)
+                        .with(new Label("Latest dev revisions: "))
+                        .with(buildLastRevisionsLayout(project)));
 
-        panelContent.addComponent(new Label("Latest dev change sets: "));
-        panelContent.addComponent(buildLastChangesLayout(project));
+        latestDataLayout.addComponent(
+                new MVerticalLayout().withMargin(false)
+                        .with(new Label("Latest dev change sets: "))
+                        .with(buildLastChangesLayout(project)));
+
+        panelContent.with(latestDataLayout);
 
         panel.setContent(panelContent);
         return panel;
