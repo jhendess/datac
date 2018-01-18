@@ -1,9 +1,7 @@
 package org.xlrnet.datac.session.ui.components.project;
 
-import com.vaadin.server.ThemeResource;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.ui.Image;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +13,10 @@ import org.xlrnet.datac.foundation.ui.util.RevisionFormatService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.List;
+import com.vaadin.server.ThemeResource;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.ui.Image;
 
 /**
  * Layout component which is used for displaying the history of a project' revisions.
@@ -66,7 +67,7 @@ public class ProjectRevisionLayout extends AbstractProjectLayout {
 
     @NotNull
     private MCssLayout buildLayoutForRevision(Revision rev) {
-        MCssLayout singleRevision = new MCssLayout().withStyleName("revision");
+        MCssLayout singleRevision = new MCssLayout().withStyleName("revision", "card", "card-2");
 
         MCssLayout avatarLayout = new MCssLayout().withStyleName("author-avatar");
         Image avatarImage = new Image(null, new ThemeResource(

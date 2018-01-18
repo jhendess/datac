@@ -1,10 +1,7 @@
 package org.xlrnet.datac.session.ui.views;
 
-import com.vaadin.server.ExternalResource;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -24,7 +21,16 @@ import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.List;
+import com.vaadin.server.ExternalResource;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.GridLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Layout;
+import com.vaadin.ui.Link;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Overview for projects.
@@ -107,7 +113,7 @@ public class ProjectOverviewListSubview extends AbstractSubview {
     }
 
     private Component createPanelForProject(Project project) {
-        MPanel panel = new MPanel(project.getName()).withFullWidth();
+        MPanel panel = new MPanel(project.getName()).withFullWidth().withStyleName("card", "card-2");
         panel.addStyleName("project-overview-panel");
         panel.addClickListener((e) -> navigationService.openChangeView(project.getDevelopmentBranch()));
 

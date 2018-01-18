@@ -1,6 +1,7 @@
 package org.xlrnet.datac.administration.ui.views.user;
 
 import org.jetbrains.annotations.NotNull;
+import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.foundation.ui.components.AbstractForm;
 import org.xlrnet.datac.session.domain.User;
 
@@ -8,15 +9,11 @@ import com.vaadin.data.BeanValidationBinder;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Component;
-import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.TextField;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Simple editor component for users.
- * <p>
- * In a real world application you'll most likely using a common super class for all your
- * forms - less code, better UX. See e.g. AbstractForm in Viritin
- * (https://vaadin.com/addon/viritin).
  */
 @UIScope
 @SpringComponent
@@ -53,6 +50,7 @@ public class AdminUserForm extends AbstractForm<User> {
     protected Component getContent() {
         // Select all text in firstName field automatically
         loginName.selectAll();
-        return new HorizontalLayout(loginName, firstName, lastName, email);
+        return new MVerticalLayout(loginName, firstName, lastName, email).withMargin(false)
+                .withStyleName(ValoTheme.FORMLAYOUT_LIGHT);
     }
 }

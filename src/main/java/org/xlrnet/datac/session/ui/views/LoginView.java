@@ -3,6 +3,7 @@ package org.xlrnet.datac.session.ui.views;
 import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.xlrnet.datac.Application;
 import org.xlrnet.datac.foundation.configuration.BuildInformation;
 import org.xlrnet.datac.session.ui.components.CustomLoginForm;
@@ -13,7 +14,14 @@ import com.vaadin.navigator.ViewChangeListener;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.spring.annotation.UIScope;
-import com.vaadin.ui.*;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.CssLayout;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Image;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.LoginForm;
+import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.ValoTheme;
 
 /**
@@ -45,10 +53,10 @@ public class LoginView extends HorizontalLayout implements View {
     }
 
     private Component buildLoginPanel() {
-        final HorizontalLayout loginPanel = new HorizontalLayout();
+        final MHorizontalLayout loginPanel = new MHorizontalLayout();
         loginPanel.setSizeUndefined();
         loginPanel.setSpacing(true);
-        loginPanel.addStyleName("login-panel");
+        loginPanel.withStyleName("login-panel", "card", "card-1");
 
         VerticalLayout loginInputPanel = new VerticalLayout();
         loginInputPanel.addComponent(buildLabels());

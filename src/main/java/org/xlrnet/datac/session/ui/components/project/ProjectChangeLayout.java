@@ -1,14 +1,12 @@
 package org.xlrnet.datac.session.ui.components.project;
 
-import com.vaadin.annotations.JavaScript;
-import com.vaadin.annotations.StyleSheet;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.GridLayout;
-import com.vaadin.ui.Label;
-import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +23,15 @@ import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.foundation.ui.util.RevisionFormatService;
 import org.xlrnet.datac.vcs.domain.Revision;
 
-import java.util.*;
+import com.vaadin.annotations.JavaScript;
+import com.vaadin.annotations.StyleSheet;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.GridLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Layout component which is used for displaying the changes of a project revision.
@@ -92,7 +98,7 @@ public class ProjectChangeLayout extends AbstractProjectLayout {
         changeListLayout.removeAllComponents();
         for (DatabaseChangeSet changeSet : changeSets) {
             String title = changeSetService.formatDatabaseChangeSetTitle(changeSet);
-            MCssLayout changeLayout = new MCssLayout().withStyleName("change");
+            MCssLayout changeLayout = new MCssLayout().withStyleName("change", "card", "card-2");
             MLabel changeSetLabel = new MLabel(title).withStyleName(ValoTheme.LABEL_BOLD);
             changeLayout.add(changeSetLabel);
             if (changeSet.isModifying()) {

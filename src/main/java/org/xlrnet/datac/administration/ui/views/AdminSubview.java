@@ -1,6 +1,7 @@
 package org.xlrnet.datac.administration.ui.views;
 
 import org.jetbrains.annotations.NotNull;
+import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.layouts.MGridLayout;
 import org.xlrnet.datac.administration.ui.views.eventlog.AdminEventLogSubview;
 import org.xlrnet.datac.administration.ui.views.projects.AdminProjectSubview;
@@ -12,7 +13,6 @@ import org.xlrnet.datac.session.ui.views.Subview;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.spring.annotation.UIScope;
-import com.vaadin.ui.Button;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.themes.ValoTheme;
@@ -53,24 +53,24 @@ public class AdminSubview extends AbstractSubview implements Subview {
     protected Component buildMainPanel() {
         MGridLayout layout = new MGridLayout(4, 2);
 
-        Button userButton = new Button("Users", new ThemeResource("img/users-128.png"));
-        userButton.addStyleName(ADMIN_CATEGORY_BUTTON_CLASS);
-        userButton.addStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
+        MButton userButton = new MButton("Users").withIcon(new ThemeResource("img/users-128.png"));
+        userButton.withStyleName(ADMIN_CATEGORY_BUTTON_CLASS, "card", "card-2");
+        userButton.withStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
         userButton.addClickListener(event -> UI.getCurrent().getNavigator().navigateTo(AdminUserSubview.VIEW_NAME));
 
-        Button projectButton = new Button("Projects", new ThemeResource("img/project-128.png"));
-        projectButton.addStyleName(ADMIN_CATEGORY_BUTTON_CLASS);
-        projectButton.addStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
+        MButton projectButton = new MButton("Projects").withIcon(new ThemeResource("img/project-128.png"));
+        projectButton.withStyleName(ADMIN_CATEGORY_BUTTON_CLASS, "card", "card-2");
+        projectButton.withStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
         projectButton.addClickListener(event -> UI.getCurrent().getNavigator().navigateTo(AdminProjectSubview.VIEW_NAME));
 
-        Button databaseButton = new Button("Databases", new ThemeResource("img/database-configuration-128.png"));
-        databaseButton.addStyleName(ADMIN_CATEGORY_BUTTON_CLASS);
-        databaseButton.addStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
+        MButton databaseButton = new MButton("Databases").withIcon(new ThemeResource("img/database-configuration-128.png"));
+        databaseButton.withStyleName(ADMIN_CATEGORY_BUTTON_CLASS, "card", "card-2");
+        databaseButton.withStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
         databaseButton.addClickListener(event -> NotificationUtils.showNotImplemented());
 
-        Button eventlogButton = new Button("Event Log", new ThemeResource("img/eventlog-128.png"));
-        eventlogButton.addStyleName(ADMIN_CATEGORY_BUTTON_CLASS);
-        eventlogButton.addStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
+        MButton eventlogButton = new MButton("Event Log").withIcon(new ThemeResource("img/eventlog-128.png"));
+        eventlogButton.withStyleName(ADMIN_CATEGORY_BUTTON_CLASS, "card", "card-2");
+        eventlogButton.withStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
         eventlogButton.addClickListener(event -> UI.getCurrent().getNavigator().navigateTo(AdminEventLogSubview.VIEW_NAME));
 
         layout.addComponent(userButton);

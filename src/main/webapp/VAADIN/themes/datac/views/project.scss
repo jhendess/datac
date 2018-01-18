@@ -2,6 +2,10 @@
 
   /** Project overview list page */
 
+  .v-slot-project-overview-panel {
+    padding-bottom: 20px;
+  }
+
   .project-overview-panel > .v-panel-content {
     padding: 16px;
   }

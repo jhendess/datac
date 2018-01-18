@@ -41,7 +41,7 @@ public class MainViewContainer extends MCssLayout {
 
         MCssLayout contentContainer = new MCssLayout().withStyleName("view-container");
         addComponent(contentContainer);
-        contentView = new MCssLayout().withStyleName("view-content");
+        contentView = new MCssLayout().withStyleName("view-content", "card", "card-1");
         contentContainer.add(contentView);
     }
 
