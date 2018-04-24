@@ -8,7 +8,7 @@ import org.vaadin.spring.events.EventBus;
 import org.xlrnet.datac.AbstractSpringBootTest;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.Project;
-import org.xlrnet.datac.foundation.domain.ProjectCredentialsEncryptionListener;
+import org.xlrnet.datac.foundation.domain.PasswordEncryptionListener;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.session.services.CryptoService;
 import org.xlrnet.datac.test.domain.EntityCreatorUtil;
@@ -66,7 +66,7 @@ public class ProjectServiceTest extends AbstractSpringBootTest {
         repository = mock(ProjectRepository.class);
         when(repository.save(any(Project.class))).thenAnswer(new ReturnFirstArgumentAnswer());
         fileService = mock(FileService.class);
-        projectServiceMocked = new ProjectService(repository, mock(EventBus.ApplicationEventBus.class), fileService, new EventLogProxy(), mock(BranchService.class), mock(ProjectSchedulingService.class), new ProjectCredentialsEncryptionListener(new CryptoService()));
+        projectServiceMocked = new ProjectService(repository, mock(EventBus.ApplicationEventBus.class), fileService, new EventLogProxy(), mock(BranchService.class), mock(ProjectSchedulingService.class), new PasswordEncryptionListener(new CryptoService()));
 
         // Configure branch dummies
         existingBranch = new Branch();

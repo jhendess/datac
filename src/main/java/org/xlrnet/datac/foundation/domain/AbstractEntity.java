@@ -4,10 +4,13 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 
+import lombok.Data;
+
 /**
  * Abstract class for all entities stored in a database. All entities must inherit from this class to make sure that an
  * id field exists.
  */
+@Data
 @MappedSuperclass
 public abstract class AbstractEntity {
 
@@ -18,15 +21,7 @@ public abstract class AbstractEntity {
     @GeneratedValue
     protected Long id;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public boolean isPersisted() {
-        return id != null;
+        return getId() != null;
     }
 }

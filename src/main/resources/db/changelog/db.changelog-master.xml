@@ -431,4 +431,30 @@
                     remarks="Flag which indicates whether automatic polling for new changes is enabled or not."/>
         </addColumn>
     </changeSet>
+    <changeSet id="27" author="jhendess">
+        <comment>Add table to store database connections</comment>
+        <createTable tableName="db_connection" remarks="Configuration data for database connections.">
+            <column name="id" type="BIGINT" autoIncrement="true" remarks="Primary key.">
+                <constraints primaryKey="true" primaryKeyName="pk_connection"/>
+            </column>
+            <column name="name" type="VARCHAR(50)" remarks="Name of the database connection configuration">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="VARCHAR(20)" remarks="Type of connected database.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="host" type="VARCHAR(50)" remarks="Database host to which should be connected."/>
+            <column name="port" type="INT" remarks="Database port to which should be connected."/>
+            <column name="schema" type="VARCHAR(20)" remarks="Database schema to which should be connected."/>
+            <column name="url" type="VARCHAR(200)"
+                    remarks="Full JDBC url to connect to - may either be automatically generated or manually entered.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user" type="VARCHAR(20)" remarks="Login user which should be used for connecting.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="salt" type="BLOB" remarks="Salt used for encrypting the login credentials."/>
+            <column name="password" type="VARCHAR(80)" remarks="Encrypted password for the database connection."/>
+        </createTable>
+    </changeSet>
 </databaseChangeLog>

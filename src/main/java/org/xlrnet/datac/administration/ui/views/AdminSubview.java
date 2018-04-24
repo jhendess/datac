@@ -3,10 +3,10 @@ package org.xlrnet.datac.administration.ui.views;
 import org.jetbrains.annotations.NotNull;
 import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.layouts.MGridLayout;
+import org.xlrnet.datac.administration.ui.views.database.AdminDatabaseSubview;
 import org.xlrnet.datac.administration.ui.views.eventlog.AdminEventLogSubview;
 import org.xlrnet.datac.administration.ui.views.projects.AdminProjectSubview;
 import org.xlrnet.datac.administration.ui.views.user.AdminUserSubview;
-import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
 import org.xlrnet.datac.session.ui.views.Subview;
 
@@ -66,7 +66,7 @@ public class AdminSubview extends AbstractSubview implements Subview {
         MButton databaseButton = new MButton("Databases").withIcon(new ThemeResource("img/database-configuration-128.png"));
         databaseButton.withStyleName(ADMIN_CATEGORY_BUTTON_CLASS, "card", "card-2");
         databaseButton.withStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
-        databaseButton.addClickListener(event -> NotificationUtils.showNotImplemented());
+        databaseButton.addClickListener(event -> UI.getCurrent().getNavigator().navigateTo(AdminDatabaseSubview.VIEW_NAME));
 
         MButton eventlogButton = new MButton("Event Log").withIcon(new ThemeResource("img/eventlog-128.png"));
         eventlogButton.withStyleName(ADMIN_CATEGORY_BUTTON_CLASS, "card", "card-2");

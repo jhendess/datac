@@ -36,8 +36,8 @@ import org.xlrnet.datac.vcs.domain.Branch;
 @Entity
 @ValidBranches
 @Table(name = "project")
-@EntityListeners(ProjectCredentialsEncryptionListener.class)
-public class Project extends AbstractEntity implements VcsRemoteCredentials, Lockable {
+@EntityListeners(PasswordEncryptionListener.class)
+public class Project extends AbstractEntity implements VcsRemoteCredentials, Lockable, PasswordEncryptedEntity {
 
     /**
      * Name of the project.
@@ -338,7 +338,7 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
         return salt;
     }
 
-    void setSalt(byte[] salt) {
+    public void setSalt(byte[] salt) {
         this.salt = salt;
     }
 

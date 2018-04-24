@@ -1,20 +1,25 @@
 package org.xlrnet.datac.foundation.ui.components;
 
+import javax.annotation.PostConstruct;
+
+import org.jetbrains.annotations.NotNull;
+import org.xlrnet.datac.foundation.domain.AbstractEntity;
+
 import com.vaadin.data.BeanValidationBinder;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.ui.*;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.themes.ValoTheme;
-import org.jetbrains.annotations.NotNull;
-import org.xlrnet.datac.foundation.domain.AbstractEntity;
-
-import javax.annotation.PostConstruct;
 
 /**
  * Abstract implementation of a form with a save, cancel and delete button. Inherit from this class to build specific
  * forms.
  */
+// TODO: Replace with Viritin's AbstractForm
 @SpringComponent
 public abstract class AbstractForm<T extends AbstractEntity> extends FormLayout {
 

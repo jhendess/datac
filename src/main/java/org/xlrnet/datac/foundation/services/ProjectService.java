@@ -1,9 +1,12 @@
 package org.xlrnet.datac.foundation.services;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Collection;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -14,8 +17,8 @@ import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.foundation.EventTopics;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
+import org.xlrnet.datac.foundation.domain.PasswordEncryptionListener;
 import org.xlrnet.datac.foundation.domain.Project;
-import org.xlrnet.datac.foundation.domain.ProjectCredentialsEncryptionListener;
 import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.vcs.api.VcsConnectionException;
@@ -25,18 +28,14 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 
-import java.util.Collection;
-import java.util.regex.Pattern;
-
-import static com.google.common.base.Preconditions.checkArgument;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Transactional service for accessing project data.
  */
+@Slf4j
 @Service
 public class ProjectService extends AbstractTransactionalService<Project, ProjectRepository> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProjectService.class);
 
     /**
      * The application event bus.
@@ -67,20 +66,20 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
      * Since hibernate only calls entity listeners when a non-transient field has changed, we have to call the listener
      * manually on save operations which is pretty ugly imho...
      */
-    private final ProjectCredentialsEncryptionListener projectCredentialsEncryptionListener;
+    private final PasswordEncryptionListener passwordEncryptionListener;
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
      */
     @Autowired
-    public ProjectService(ProjectRepository crudRepository, EventBus.ApplicationEventBus applicationEventBus, FileService fileService, EventLogProxy eventLog, BranchService branchService, ProjectSchedulingService projectSchedulingService, ProjectCredentialsEncryptionListener projectCredentialsEncryptionListener) {
+    public ProjectService(ProjectRepository crudRepository, EventBus.ApplicationEventBus applicationEventBus, FileService fileService, EventLogProxy eventLog, BranchService branchService, ProjectSchedulingService projectSchedulingService, PasswordEncryptionListener passwordEncryptionListener) {
         super(crudRepository);
         this.applicationEventBus = applicationEventBus;
         this.fileService = fileService;
         this.eventLog = eventLog;
         this.branchService = branchService;
         this.projectSchedulingService = projectSchedulingService;
-        this.projectCredentialsEncryptionListener = projectCredentialsEncryptionListener;
+        this.passwordEncryptionListener = passwordEncryptionListener;
     }
 
     /**
@@ -192,7 +191,7 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
 
     @Override
     public <S extends Project> S save(S entity) {
-        projectCredentialsEncryptionListener.encrypt(entity);
+        passwordEncryptionListener.encrypt(entity);
         return super.save(entity);
     }
 }

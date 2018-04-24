@@ -1,13 +1,14 @@
 package org.xlrnet.datac.commons.ui;
 
+import java.util.Iterator;
+import java.util.Set;
+
+import javax.validation.ConstraintViolation;
+
 import com.vaadin.server.Page;
 import com.vaadin.shared.Position;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.themes.ValoTheme;
-
-import javax.validation.ConstraintViolation;
-import java.util.Iterator;
-import java.util.Set;
 
 /**
  * Utilities for showing prestyled notifications.
@@ -24,6 +25,9 @@ public class NotificationUtils {
      */
     private static final String NOT_IMPLEMENTED = "Not implemented.";
 
+    /** Message shown on successful saving. */
+    private static final String SAVE_SUCCESS_MESSAGE = "Data was successfully saved.";
+
     /**
      * Default delay for notifications.
      */
@@ -31,6 +35,10 @@ public class NotificationUtils {
 
     private NotificationUtils() {
         // No instantiation possible
+    }
+
+    public static void showSaveSuccess() {
+        showSuccess(SAVE_SUCCESS_MESSAGE);
     }
 
     public static void showSuccess(String message) {
