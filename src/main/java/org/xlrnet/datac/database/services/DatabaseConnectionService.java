@@ -1,7 +1,11 @@
 package org.xlrnet.datac.database.services;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,5 +54,21 @@ public class DatabaseConnectionService extends AbstractTransactionalService<Data
     @Transactional(readOnly = true)
     public List<DatabaseConnection> findAllOrderByNameAsc() {
         return getRepository().findAllByOrderByName();
+    }
+
+    public boolean isConnectionAvailable(DatabaseConnection config) {
+        // TODO: Return a status object including error message (if any)
+        try {
+            LOGGER.info("Testing connection to {}", config.getJdbcUrl());
+            Connection connection = DriverManager.getConnection(config.getJdbcUrl(), config.getUser(), config.getPassword());
+            if (StringUtils.isNotBlank(config.getSchema())) {
+                connection.setSchema(config.getSchema());
+            }
+            connection.close();
+            return true;
+        } catch (SQLException e) {
+            LOGGER.error("Connection test to {} failed", config.getJdbcUrl(), e);
+            return false;
+        }
     }
 }

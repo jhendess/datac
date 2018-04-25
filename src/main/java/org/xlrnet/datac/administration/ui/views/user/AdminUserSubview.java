@@ -131,9 +131,8 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
         userForm.setDeleteHandler(buildDeleteHandler());
         userForm.setCancelHandler(this::hideEditor);
 
-
-        mainLayout.with(editorLayout).withExpand(editorLayout, 0.25f);
         mainLayout.with(grid).withExpand(grid, 0.75f);
+        mainLayout.with(editorLayout).withExpand(editorLayout, 0.25f);
 
         updateUsers();
 

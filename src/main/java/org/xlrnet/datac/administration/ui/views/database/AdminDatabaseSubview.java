@@ -102,9 +102,8 @@ public class AdminDatabaseSubview extends AbstractSubview {
         dbForm.setSavedHandler(buildSavedHandler());
         /*dbForm.setCancelHandler(this::hideEditor);*/
 
-
-        mainLayout.with(editorLayout).withExpand(editorLayout, 0.25f);
         mainLayout.with(grid).withExpand(grid, 0.75f);
+        mainLayout.with(editorLayout).withExpand(editorLayout, 0.25f);
 
         updateConnections();
 
@@ -124,10 +123,15 @@ public class AdminDatabaseSubview extends AbstractSubview {
 
     private AbstractForm.SavedHandler<DatabaseConnection> buildSavedHandler() {
         return (databaseConnection -> {
-            connectionService.save(databaseConnection);
-            hideEditor();
-            updateConnections();
-            NotificationUtils.showSaveSuccess();
+            boolean connectionAvailable = connectionService.isConnectionAvailable(databaseConnection);
+            if (connectionAvailable) {
+                connectionService.save(databaseConnection);
+                hideEditor();
+                updateConnections();
+                NotificationUtils.showSaveSuccess();
+            } else {
+                NotificationUtils.showError("Connection failed", false);
+            }
         });
     }
 
@@ -137,6 +141,5 @@ public class AdminDatabaseSubview extends AbstractSubview {
 
     private void updateConnections() {
         grid.setItems(connectionService.findAllOrderByNameAsc());
-        System.out.println("bla");
     }
 }

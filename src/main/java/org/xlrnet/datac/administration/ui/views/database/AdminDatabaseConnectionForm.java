@@ -25,32 +25,32 @@ public class AdminDatabaseConnectionForm extends AbstractForm<DatabaseConnection
     /**
      * Login name of the entity.
      */
-    private MTextField name = new MTextField("Connection name");
+    private MTextField name = new MTextField("Connection name").withFullWidth();
 
     /**
      * First name of the entity.
      */
-    private EnumSelect<DatabaseType> type = new EnumSelect<>("Database type", DatabaseType.class);
+    private EnumSelect<DatabaseType> type = new EnumSelect<>("Database type", DatabaseType.class).withFullWidth();
 
     /**
      * Last name of the entity.
      */
-    private MTextField host = new MTextField("Host");
+    private MTextField host = new MTextField("Host").withFullWidth();
 
     /**
      * Port to connect to.
      */
-    private IntegerField port = new IntegerField("Port");
+    private IntegerField port = new IntegerField("Port").withFullWidth();
 
     /**
      * Database schema.
      */
-    private MTextField schema = new MTextField("Schema");
+    private MTextField schema = new MTextField("Schema").withFullWidth();
 
     /**
      * User for connecting to the database.
      */
-    private MTextField user = new MTextField("Login user");
+    private MTextField user = new MTextField("Login user").withFullWidth();
 
     /**
      * Password of the login user.
@@ -60,7 +60,7 @@ public class AdminDatabaseConnectionForm extends AbstractForm<DatabaseConnection
     /**
      * JDBC URL of the connection.
      */
-    private MTextField jdbcUrl = new MTextField("JDBC URL");
+    private MTextField jdbcUrl = new MTextField("JDBC URL").withFullWidth();
 
     @Autowired
     public AdminDatabaseConnectionForm() {
@@ -69,6 +69,7 @@ public class AdminDatabaseConnectionForm extends AbstractForm<DatabaseConnection
 
     @Override
     protected Component createContent() {
+        password.setWidth("100%");
         // Select all text in firstName field automatically
         name.selectAll();
         return new MVerticalLayout(name, type, host, port, schema, user, password, jdbcUrl, getToolbar()).withMargin(false)

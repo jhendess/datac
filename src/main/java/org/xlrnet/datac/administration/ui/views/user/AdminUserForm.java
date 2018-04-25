@@ -1,6 +1,7 @@
 package org.xlrnet.datac.administration.ui.views.user;
 
 import org.jetbrains.annotations.NotNull;
+import org.vaadin.viritin.fields.MTextField;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.foundation.ui.components.AbstractForm;
 import org.xlrnet.datac.session.domain.User;
@@ -9,7 +10,6 @@ import com.vaadin.data.BeanValidationBinder;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Component;
-import com.vaadin.ui.TextField;
 import com.vaadin.ui.themes.ValoTheme;
 
 /**
@@ -22,22 +22,22 @@ public class AdminUserForm extends AbstractForm<User> {
     /**
      * Login name of the entity.
      */
-    private TextField loginName = new TextField("Login");
+    private MTextField loginName = new MTextField("Login").withFullWidth();
 
     /**
      * First name of the entity.
      */
-    private TextField firstName = new TextField("First name");
+    private MTextField firstName = new MTextField("First name").withFullWidth();
 
     /**
      * Last name of the entity.
      */
-    private TextField lastName = new TextField("Last name");
+    private MTextField lastName = new MTextField("Last name").withFullWidth();
 
     /**
      * Email of the entity.
      */
-    private TextField email = new TextField("E-Mail address");
+    private MTextField email = new MTextField("E-Mail address").withFullWidth();
 
     @Override
     @NotNull
