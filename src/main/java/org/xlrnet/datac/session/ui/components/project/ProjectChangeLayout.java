@@ -32,8 +32,8 @@ import java.util.*;
  */
 @SpringComponent
 @Scope("prototype")
-@JavaScript("vaadin://vendor/prism.js")
-@StyleSheet("vaadin://vendor/prism.css")
+@JavaScript("vaadin://vendor/prism/prism.js")
+@StyleSheet("vaadin://vendor/prism/prism.css")
 public class ProjectChangeLayout extends AbstractProjectLayout {
 
     private static final int REVISIONS_TO_TRAVERSE = 200;   // TODO: Move this to config

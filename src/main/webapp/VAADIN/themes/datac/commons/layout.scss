@@ -73,6 +73,12 @@
     height: auto;
   }
 
+  /** Style for password boxes which contain not user passwords (e.g. for databases). */
+  .input-password {
+    -webkit-text-security: disc;
+    font-family: "text-security-disc"; /** Fallback for non-Webkit browsers. */
+  }
+
   /** Material card styles from https://codepen.io/sdthornton/pen/wBZdXq - TODO: maybe use something else? */
   .card {
     background: #fff;

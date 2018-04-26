@@ -7,7 +7,9 @@
 @import "views/navigation";
 @import "views/admin";
 @import "views/project";
+
 /* Third-party libraries. */
+@import "../../vendor/text-security/text-security-disc";
 
 /* Color when hovering over containers. */
 $background-hover-color: #f3f5f8;

@@ -19,4 +19,10 @@ public class DatacTheme {
      * Adds a small padding to the right.
      */
     public static final String CAPTION_PADDING_RIGHT = "caption-padding-right";
+
+    /**
+     * Styles the text input like a password box. This is used to avoid autocompletion by browsers and should never be
+     * used for actual user passwords!
+     */
+    public static final String INPUT_PASSWORD = "input-password";
 }

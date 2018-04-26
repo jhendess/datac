@@ -1,8 +1,14 @@
 package org.xlrnet.datac.session.ui.views;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import com.vaadin.navigator.ViewChangeListener;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.spring.internal.UIScopeImpl;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.themes.ValoTheme;
+import lombok.AccessLevel;
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -13,16 +19,8 @@ import org.xlrnet.datac.administration.ui.views.AdminSubview;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 
-import com.vaadin.navigator.ViewChangeListener;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.spring.internal.UIScopeImpl;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.Label;
-import com.vaadin.ui.UI;
-import com.vaadin.ui.themes.ValoTheme;
-
-import lombok.AccessLevel;
-import lombok.Getter;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Abstract subview which contains a titleLabel with subtitleLabel and a main content panel. Override the abstract methods in this

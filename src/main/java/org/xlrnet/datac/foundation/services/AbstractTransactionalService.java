@@ -1,5 +1,6 @@
 package org.xlrnet.datac.foundation.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.PagingAndSortingRepository;
@@ -13,6 +14,7 @@ import java.util.List;
 /**
  * Abstract base class for all services which perform transactional operations.
  */
+@Slf4j
 @Transactional
 public class AbstractTransactionalService<T extends AbstractEntity, R extends PagingAndSortingRepository<T, Long>> {
 
@@ -163,6 +165,10 @@ public class AbstractTransactionalService<T extends AbstractEntity, R extends Pa
      * @return The refreshed entity.
      */
     public T refresh(T entity) {
-        return getRepository().findOne(entity.getId());
+        if (entity != null) {
+            return getRepository().findOne(entity.getId());
+        } else {
+            return null;
+        }
     }
 }

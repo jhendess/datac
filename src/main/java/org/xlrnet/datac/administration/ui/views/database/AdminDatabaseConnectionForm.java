@@ -1,5 +1,12 @@
 package org.xlrnet.datac.administration.ui.views.database;
 
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.UIScope;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.ProgressBar;
+import com.vaadin.ui.themes.ValoTheme;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.fields.EnumSelect;
@@ -7,18 +14,9 @@ import org.vaadin.viritin.fields.IntegerField;
 import org.vaadin.viritin.fields.MTextField;
 import org.vaadin.viritin.form.AbstractForm;
 import org.vaadin.viritin.layouts.MVerticalLayout;
+import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.database.domain.DatabaseConnection;
 import org.xlrnet.datac.database.domain.DatabaseType;
-
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.UIScope;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.HorizontalLayout;
-import com.vaadin.ui.PasswordField;
-import com.vaadin.ui.ProgressBar;
-import com.vaadin.ui.themes.ValoTheme;
-
-import lombok.Getter;
 
 /**
  * Simple editor component for users.
@@ -60,7 +58,7 @@ public class AdminDatabaseConnectionForm extends AbstractForm<DatabaseConnection
     /**
      * Password of the login user.
      */
-    private PasswordField password = new PasswordField("Password");
+    private MTextField password = new MTextField("Password").withStyleName(DatacTheme.INPUT_PASSWORD);
 
     /**
      * JDBC URL of the connection.
