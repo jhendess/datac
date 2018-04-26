@@ -21,6 +21,9 @@ import com.vaadin.ui.Label;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.themes.ValoTheme;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+
 /**
  * Abstract subview which contains a titleLabel with subtitleLabel and a main content panel. Override the abstract methods in this
  * class to build a the user interface.
@@ -56,6 +59,32 @@ public abstract class AbstractSubview extends MVerticalLayout implements Subview
      */
     private String[] parameters;
 
+    /**
+     * Current UI instance.
+     */
+    @Getter(value = AccessLevel.PROTECTED)
+    private UI currentUI;
+
+    /**
+     * Run the given {@link Runnable} on the UI thread. Use this method to perform UI actions on non-UI threads. This is
+     * a shortcut to {@link UI#access(Runnable)} and is automatically managed by this component.
+     */
+    protected void runOnUiThread(Runnable runnable) {
+        getCurrentUI().access(runnable);
+    }
+
+    @Override
+    public void attach() {
+        super.attach();
+        this.currentUI = UI.getCurrent();      // Make the current UI reference available to all components.
+    }
+
+    @Override
+    public void detach() {
+        this.currentUI = null;
+        super.detach();
+    }
+
     @Override
     public void enter(ViewChangeListener.ViewChangeEvent event) {
         String namedParametersRaw = StringUtils.substringAfter(event.getParameters(), "?");
@@ -72,7 +101,7 @@ public abstract class AbstractSubview extends MVerticalLayout implements Subview
             buildComponents();
         } catch (DatacTechnicalException | DatacRuntimeException e) {
             LOGGER.error("Initializing view {} failed", event.getViewName(), e);
-            UI.getCurrent().getNavigator().navigateTo(HomeView.VIEW_NAME);
+            getCurrentUI().getNavigator().navigateTo(HomeView.VIEW_NAME);
         }
     }
 

@@ -41,8 +41,20 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
         <guava.version>21.0</guava.version>
-        <vaadin.version>8.3.0</vaadin.version>
+        <vaadin.version>8.3.1</vaadin.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.vaadin</groupId>
+                <artifactId>vaadin-bom</artifactId>
+                <version>${vaadin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- Lombok -->
@@ -113,12 +125,6 @@
             <artifactId>viritin</artifactId>
             <version>2.4</version>
         </dependency>
-        <!-- Confirmation dialog for Vaadin -->
-        <dependency>
-            <groupId>org.vaadin.addon</groupId>
-            <artifactId>confirmdialog</artifactId>
-            <version>3.2.0</version>
-        </dependency>
         <!-- Messageboxes for Vaadin -->
         <dependency>
             <groupId>de.steinwedel.vaadin.addon</groupId>
@@ -155,12 +161,6 @@
             <artifactId>org.eclipse.jgit</artifactId>
             <version>4.6.1.201703071140-r</version>
         </dependency>
-        <!-- StackPanel extension for Vaadin -->
-        <dependency>
-            <groupId>org.vaadin.addons</groupId>
-            <artifactId>stackpanel</artifactId>
-            <version>2.0.0</version>
-        </dependency>
         <!-- Redirect liquibase logging to slf4j -->
         <dependency>
             <groupId>com.mattbertolini</groupId>
@@ -168,18 +168,6 @@
             <version>2.0.0</version>
         </dependency>
     </dependencies>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.vaadin</groupId>
-                <artifactId>vaadin-bom</artifactId>
-                <version>8.0.0</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <build>
         <resources>
@@ -207,8 +195,8 @@
                 <executions>
                     <execution>
                         <goals>
-                            <goal>resources</goal>
                             <goal>update-widgetset</goal>
+                            <goal>resources</goal>
                             <goal>compile</goal>
                         </goals>
                     </execution>

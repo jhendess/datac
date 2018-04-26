@@ -30,7 +30,6 @@ import org.xlrnet.datac.database.services.DatabaseChangeSystemAdapterRegistry;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.services.ProjectService;
-import org.xlrnet.datac.foundation.ui.components.BooleanStatusChangeHandler;
 import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
 import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
@@ -397,7 +396,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
         checkConnectionButton.addClickListener(e -> {
             projectBinder.validate();
             if (projectBinder.isValid()) {
-                this.checkConnection((s) -> ui.access(() -> showConnectionNotification(s)));
+                this.checkConnection(this::showConnectionNotification);
             }
         });
         cancelButton = new Button("Cancel");
@@ -425,14 +424,14 @@ public class AdminEditProjectSubview extends AbstractSubview {
                 if (isNewProject) {
                     changeLogLocationField.setValue("CHANGEME");
                 }
-                ui.access(() -> showConnectionNotification(s));
+                showConnectionNotification(s);
                 return;
             }
             Optional<VcsAdapter> adapter = vcsRegistry.findAdapterByMetaInfo(vcsSelect.getValue());
 
             FetchRemoteVcsBranchesTask fetchBranches = new FetchRemoteVcsBranchesTask(adapter.get(), projectBean);
-            fetchBranches.setRunningStatusHandler(buildRunningStatusHandler(ui));
-            fetchBranches.setEntityChangeHandler(branches -> ui.access(() -> handleFetchedBranches(branches)));
+            fetchBranches.setRunningStatusHandler(this::handleRunningStatusChange);
+            fetchBranches.setEntityChangeHandler(branches -> runOnUiThread(() -> handleFetchedBranches(branches)));
             taskExecutor.execute(fetchBranches);
         };
     }
@@ -440,17 +439,15 @@ public class AdminEditProjectSubview extends AbstractSubview {
     private void checkConnection(@NotNull EntityChangeHandler<VcsConnectionStatus> entityChangeHandler) {
         Optional<VcsAdapter> adapter = vcsRegistry.findAdapterByMetaInfo(vcsSelect.getValue());
 
-        UI ui = UI.getCurrent();
         RunnableTask<VcsConnectionStatus> checkConnection = new CheckRemoteVcsConnectionTask(adapter.get(), projectBean);
-        checkConnection.setRunningStatusHandler(buildRunningStatusHandler(ui));
+        checkConnection.setRunningStatusHandler(this::handleRunningStatusChange);
         checkConnection.setEntityChangeHandler(entityChangeHandler);
 
         taskExecutor.execute(checkConnection);
     }
 
-    @NotNull
-    private BooleanStatusChangeHandler buildRunningStatusHandler(UI ui) {
-        return (running) -> ui.access(() -> setCheckingMode(running));
+    private void handleRunningStatusChange(boolean running) {
+        runOnUiThread(() -> setCheckingMode(running));
     }
 
     private void handleFetchedBranches(Collection<Branch> branches) {
@@ -612,11 +609,13 @@ public class AdminEditProjectSubview extends AbstractSubview {
     }
 
     private void showConnectionNotification(@NotNull VcsConnectionStatus e) {
-        if (VcsConnectionStatus.ESTABLISHED.equals(e)) {
-            NotificationUtils.showSuccess("Connection established");
-        } else {
-            NotificationUtils.showWarning(e.name());
-        }
+        runOnUiThread(() -> {
+            if (VcsConnectionStatus.ESTABLISHED.equals(e)) {
+                NotificationUtils.showSuccess("Connection established");
+            } else {
+                NotificationUtils.showWarning(e.name());
+            }
+        });
     }
 
     private void setCheckingMode(boolean checking) {

@@ -2,14 +2,19 @@ package org.xlrnet.datac.administration.ui.views.database;
 
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
 import org.vaadin.viritin.form.AbstractForm;
 import org.vaadin.viritin.grid.MGrid;
 import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
+import org.xlrnet.datac.database.domain.ConnectionPingResult;
 import org.xlrnet.datac.database.domain.DatabaseConnection;
+import org.xlrnet.datac.database.services.ConnectionManagerService;
 import org.xlrnet.datac.database.services.DatabaseConnectionService;
+import org.xlrnet.datac.database.tasks.CheckDatabaseConnectionTask;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
 
 import com.vaadin.icons.VaadinIcons;
@@ -35,14 +40,26 @@ public class AdminDatabaseSubview extends AbstractSubview {
     private final DatabaseConnectionService connectionService;
 
     /**
+     * Service for connecting to databases.
+     */
+    private final ConnectionManagerService connectionManagerService;
+
+    /**
      * Form for editing database connections.
      */
     private final AdminDatabaseConnectionForm dbForm;
 
+    /**
+     * Task executor.
+     */
+    private final TaskExecutor taskExecutor;
+
     @Autowired
-    public AdminDatabaseSubview(DatabaseConnectionService connectionService, AdminDatabaseConnectionForm dbForm) {
+    public AdminDatabaseSubview(DatabaseConnectionService connectionService, ConnectionManagerService connectionManagerService, AdminDatabaseConnectionForm dbForm, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor) {
         this.connectionService = connectionService;
+        this.connectionManagerService = connectionManagerService;
         this.dbForm = dbForm;
+        this.taskExecutor = taskExecutor;
     }
 
     @Override
@@ -99,8 +116,9 @@ public class AdminDatabaseSubview extends AbstractSubview {
         });
 
         // Setup all handlers
-        dbForm.setSavedHandler(buildSavedHandler());
+        dbForm.setSavedHandler(this::saveConnection);
         /*dbForm.setCancelHandler(this::hideEditor);*/
+        dbForm.getTestConnectionButton().addClickListener(this::checkConnectionForUser);
 
         mainLayout.with(grid).withExpand(grid, 0.75f);
         mainLayout.with(editorLayout).withExpand(editorLayout, 0.25f);
@@ -121,18 +139,42 @@ public class AdminDatabaseSubview extends AbstractSubview {
         });
     }
 
-    private AbstractForm.SavedHandler<DatabaseConnection> buildSavedHandler() {
-        return (databaseConnection -> {
-            boolean connectionAvailable = connectionService.isConnectionAvailable(databaseConnection);
-            if (connectionAvailable) {
+    private void saveConnection(DatabaseConnection databaseConnection) {
+        CheckDatabaseConnectionTask task = new CheckDatabaseConnectionTask(dbForm.getEntity(), connectionManagerService);
+        task.setEntityChangeHandler((pingResult) -> {
+            if (pingResult.isConnected()) {
                 connectionService.save(databaseConnection);
-                hideEditor();
-                updateConnections();
-                NotificationUtils.showSaveSuccess();
+                runOnUiThread(() -> {
+                    hideEditor();
+                    updateConnections();
+                    NotificationUtils.showSaveSuccess();
+                });
             } else {
-                NotificationUtils.showError("Connection failed", false);
+                showConnectionError(pingResult);
             }
         });
+        task.setRunningStatusHandler(this::setCheckingMode);
+        taskExecutor.execute(task);
+    }
+
+    private void setCheckingMode(boolean checking) {
+        runOnUiThread(() -> {
+            dbForm.getProgressBar().setVisible(checking);
+            dbForm.setEnabled(!checking);
+        });
+    }
+
+    private void checkConnectionForUser() {
+        CheckDatabaseConnectionTask task = new CheckDatabaseConnectionTask(dbForm.getEntity(), connectionManagerService);
+        task.setEntityChangeHandler((pingResult) -> {
+            if (pingResult.isConnected()) {
+                runOnUiThread(() -> NotificationUtils.showSuccess("Connection established"));
+            } else {
+                showConnectionError(pingResult);
+            }
+        });
+        task.setRunningStatusHandler(this::setCheckingMode);
+        taskExecutor.execute(task);
     }
 
     private void hideEditor() {
@@ -141,5 +183,9 @@ public class AdminDatabaseSubview extends AbstractSubview {
 
     private void updateConnections() {
         grid.setItems(connectionService.findAllOrderByNameAsc());
+    }
+
+    private void showConnectionError(ConnectionPingResult pingResult) {
+        runOnUiThread(() -> NotificationUtils.showError("Connection failed", pingResult.getException().getMessage(), false));
     }
 }

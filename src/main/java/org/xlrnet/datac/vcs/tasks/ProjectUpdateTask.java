@@ -1,19 +1,19 @@
 package org.xlrnet.datac.vcs.tasks;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.commons.tasks.AbstractRunnableTask;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.services.ProjectUpdateService;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Task which performs an update on a given project.
  */
+@Slf4j
 public class ProjectUpdateTask extends AbstractRunnableTask<Project> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProjectUpdateTask.class);
 
     /**
      * Service for performing the project update.
@@ -25,7 +25,7 @@ public class ProjectUpdateTask extends AbstractRunnableTask<Project> {
      */
     private Project projectToUpdate;
 
-    public ProjectUpdateTask(ProjectUpdateService updateService) {
+    public ProjectUpdateTask(@NotNull ProjectUpdateService updateService) {
         this.updateService = updateService;
     }
 

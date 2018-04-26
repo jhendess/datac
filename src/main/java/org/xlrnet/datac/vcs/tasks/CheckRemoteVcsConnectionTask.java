@@ -1,20 +1,19 @@
 package org.xlrnet.datac.vcs.tasks;
 
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xlrnet.datac.commons.tasks.AbstractRunnableTask;
 import org.xlrnet.datac.vcs.api.VcsAdapter;
 import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
 import org.xlrnet.datac.vcs.api.VcsRemoteCredentials;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Task for checking if the connection to an external remote VCS can be established.
  */
+@Slf4j
 public class CheckRemoteVcsConnectionTask extends AbstractRunnableTask<VcsConnectionStatus> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(CheckRemoteVcsConnectionTask.class);
 
     /** The VCS adapter that should be used for checking the connection. */
     private final VcsAdapter vcsAdapter;

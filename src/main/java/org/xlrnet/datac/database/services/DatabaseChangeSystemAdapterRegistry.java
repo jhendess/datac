@@ -76,7 +76,6 @@ public class DatabaseChangeSystemAdapterRegistry implements SmartLifecycle {
 
     @Override
     public void stop() {
-
         running = false;
     }
 

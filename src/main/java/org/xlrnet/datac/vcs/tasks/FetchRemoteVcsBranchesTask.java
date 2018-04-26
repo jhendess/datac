@@ -1,22 +1,21 @@
 package org.xlrnet.datac.vcs.tasks;
 
+import java.util.Collection;
+
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xlrnet.datac.commons.tasks.AbstractRunnableTask;
 import org.xlrnet.datac.vcs.api.VcsAdapter;
 import org.xlrnet.datac.vcs.api.VcsRemoteCredentials;
 import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
 import org.xlrnet.datac.vcs.domain.Branch;
 
-import java.util.Collection;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Task for fetching all available branches in a given remote VCS.
  */
+@Slf4j
 public class FetchRemoteVcsBranchesTask extends AbstractRunnableTask<Collection<Branch>> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(FetchRemoteVcsBranchesTask.class);
 
     /**
      * The VCS adapter that should be used for checking the connection.
