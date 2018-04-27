@@ -3,17 +3,17 @@ package org.xlrnet.datac.administration.ui.views.projects;
 import com.vaadin.data.ValueProvider;
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.server.VaadinSession;
-import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.spring.annotation.ViewScope;
-import com.vaadin.ui.Button;
 import com.vaadin.ui.Component;
-import com.vaadin.ui.Label;
+import com.vaadin.ui.MenuBar;
 import com.vaadin.ui.UI;
-import com.vaadin.ui.renderers.ButtonRenderer;
 import com.vaadin.ui.renderers.TextRenderer;
+import com.vaadin.ui.themes.ValoTheme;
+import de.steinwedel.messagebox.MessageBox;
 import elemental.json.JsonValue;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +21,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.spring.events.EventBus;
 import org.vaadin.spring.events.annotation.EventBusListenerMethod;
 import org.vaadin.spring.events.annotation.EventBusListenerTopic;
+import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.grid.MGrid;
+import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
@@ -31,7 +33,6 @@ import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.foundation.services.ProjectUpdateEvent;
-import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.services.LockingService;
@@ -69,16 +70,6 @@ public class AdminProjectSubview extends AbstractSubview {
     private final ProjectUpdateStarter projectUpdateStarter;
 
     /**
-     * Button for new projects.
-     */
-    private Button newButton;
-
-    /**
-     * Main layout.
-     */
-    private MVerticalLayout layout;
-
-    /**
      * The grid component containing the projects.
      */
     private MGrid<Project> grid = new MGrid<>();
@@ -93,17 +84,27 @@ public class AdminProjectSubview extends AbstractSubview {
      */
     private VaadinSession vaadinSession;
 
+    /**
+     * Read-only form of the project.
+     */
+    private final ReadOnlyProjectInfoForm readOnlyProjectInfoForm;
+
     /** Service for navigation to other views. */
     private final NavigationService navigationService;
 
     private static ConcurrentMap<Long, Double> PROGRESS_MAP = new ConcurrentHashMap<>();
 
+    private MButton newButton = new MButton("New project").withIcon(VaadinIcons.PLUS);
+
+    private MButton editButton = new MButton("Edit").withIcon(VaadinIcons.PENCIL).withVisible(false);
+
     @Autowired
-    public AdminProjectSubview(EventBus.ApplicationEventBus viewEventBus, ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, ProjectSchedulingService projectSchedulingService, LockingService lockingService, NavigationService navigationService) {
+    public AdminProjectSubview(EventBus.ApplicationEventBus viewEventBus, ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, ProjectSchedulingService projectSchedulingService, LockingService lockingService, ReadOnlyProjectInfoForm readOnlyProjectInfoForm, NavigationService navigationService) {
         this.applicationEventBus = viewEventBus;
         this.projectService = projectService;
         this.projectUpdateStarter = projectUpdateStarter;
         this.lockingService = lockingService;
+        this.readOnlyProjectInfoForm = readOnlyProjectInfoForm;
         this.navigationService = navigationService;
     }
 
@@ -111,37 +112,68 @@ public class AdminProjectSubview extends AbstractSubview {
     protected void initialize() {
         vaadinSession = VaadinSession.getCurrent();
         applicationEventBus.subscribe(this);
-        grid.withFullSize();
     }
 
     @NotNull
     @Override
     protected Component buildMainPanel() {
-        layout = new MVerticalLayout().withFullSize();
+        MHorizontalLayout mainLayout = new MHorizontalLayout().withFullSize();
+        buildGrid();
 
-        newButton = new Button("New project");
-        newButton.setIcon(VaadinIcons.PLUS);
+        MHorizontalLayout buttonLayout = new MHorizontalLayout().withMargin(false);
+
         newButton.addClickListener((e) -> UI.getCurrent().getNavigator().navigateTo(AdminEditProjectSubview.VIEW_NAME + "/new"));
-        layout.addComponent(newButton);
+        editButton.addClickListener(e -> editProject(readOnlyProjectInfoForm.getEntity()));
+        buttonLayout.with(newButton, editButton);
+        readOnlyProjectInfoForm.setVisible(false);
 
-        layout.addComponent(buildGrid());
+        MVerticalLayout editorLayout = new MVerticalLayout().withMargin(false);
+        editorLayout.with(buttonLayout);
+        editorLayout.with(readOnlyProjectInfoForm);
 
-        return layout;
+        mainLayout.with(grid).withExpand(grid, 0.75f);
+        mainLayout.with(editorLayout).withExpand(editorLayout, 0.25f);
+
+        return mainLayout;
     }
 
-    private Component buildGrid() {
+    private void buildGrid() {
+        grid.withFullSize();
         grid.addColumn(ValueProvider.identity(), new ProjectStateRenderer())
                 .setCaption("State").setWidth(180);
         grid.addColumn(Project::getName).setCaption("Name");
         grid.addColumn(Project::getUrl).setCaption("VCS Url");
         grid.addColumn(Project::getLastChangeCheck, new TemporalRenderer()).setCaption("Last check for changes");
+        grid.addComponentColumn(this::buildProjectActionComponent);
 
-        grid.addColumn(project -> "Update", new ButtonRenderer<>(clickEvent -> forceUpdate(clickEvent.getItem())));
-        grid.addColumn(project -> "Edit", new ButtonRenderer<>(clickEvent -> navigationService.openEditProjectView(clickEvent.getItem())));
-        grid.addColumn(project -> "Delete", new ButtonRenderer<>(clickEvent -> deleteProject(clickEvent.getItem())));
+        // Select the project in the read-only form when clicked
+        grid.asSingleSelect().addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                readOnlyProjectInfoForm.setEntity(projectService.refresh(e.getValue()));
+                readOnlyProjectInfoForm.setVisible(true);
+                editButton.setVisible(true);
+            } else {
+                readOnlyProjectInfoForm.setVisible(false);
+                editButton.setVisible(false);
+            }
+        });
 
         reloadProjects();
-        return grid;
+    }
+
+    private MenuBar buildProjectActionComponent(Project project) {
+        MenuBar menuBar = new MenuBar();
+        menuBar.addStyleName(ValoTheme.MENUBAR_BORDERLESS);
+        MenuBar.MenuItem actions = menuBar.addItem("Actions", null);
+        actions.addItem("Update now", VaadinIcons.REFRESH, (x) -> forceUpdate(project));
+        actions.addItem("Edit project", VaadinIcons.PENCIL, (x) -> editProject(project));
+        actions.addSeparator();
+        actions.addItem("Delete Project", VaadinIcons.TRASH, (x) -> deleteProject(project));
+        return menuBar;
+    }
+
+    private void editProject(Project project) {
+        navigationService.openEditProjectView(project);
     }
 
     @EventBusListenerMethod
@@ -155,27 +187,29 @@ public class AdminProjectSubview extends AbstractSubview {
         grid.setItems(projectService.findAllAlphabetically());
     }
 
-    private void deleteProject(Project item) {
-        SimpleOkCancelWindow window = new SimpleOkCancelWindow("Delete project");
-        window.setCustomContent(new Label("Do you want to delete the project " + item.getName() + "?<br>This action cannot be reverted!", ContentMode.HTML));
-        window.setOkHandler(() -> {
-            if (lockingService.tryLock(item)) {
-                try {
-                    projectService.deleteClean(item);
-                    NotificationUtils.showSuccess("Project deleted successfully");
-                    reloadProjects();
-                } catch (DatacTechnicalException e) {
-                    LOGGER.error("Deleting project failed", e);
-                    NotificationUtils.showError("Deleting project failed", true);
-                } finally {
-                    lockingService.unlock(item);
-                }
-            } else {
-                NotificationUtils.showError("Project is locked", false);
-            }
-            window.close();
-        });
-        UI.getCurrent().addWindow(window);
+    private void deleteProject(Project project) {
+        MessageBox.createWarning()
+                .withCaption("Delete project")
+                .withHtmlMessage(String.format("Do you want to delete the project %s?<br>This action cannot be reverted!", StringEscapeUtils.escapeHtml4(project.getName())))
+                .withYesButton(() -> {
+                    if (lockingService.tryLock(project)) {
+                        try {
+                            readOnlyProjectInfoForm.setVisible(false);
+                            projectService.deleteClean(project);
+                            NotificationUtils.showSuccess("Project deleted successfully");
+                            reloadProjects();
+                        } catch (DatacTechnicalException e) {
+                            LOGGER.error("Deleting project failed", e);
+                            NotificationUtils.showError("Deleting project failed", true);
+                        } finally {
+                            lockingService.unlock(project);
+                        }
+                    } else {
+                        NotificationUtils.showError("Project is locked", false);
+                    }
+                })
+                .withNoButton()
+                .open();
     }
 
     private void forceUpdate(Project item) {

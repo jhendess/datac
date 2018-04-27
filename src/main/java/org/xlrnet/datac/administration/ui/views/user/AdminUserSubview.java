@@ -1,7 +1,13 @@
 package org.xlrnet.datac.administration.ui.views.user;
 
-import java.util.Objects;
-
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.Label;
+import de.steinwedel.messagebox.MessageBox;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.grid.MGrid;
@@ -14,15 +20,7 @@ import org.xlrnet.datac.session.services.UserService;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
 import org.xlrnet.datac.session.ui.views.Subview;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.Label;
-
-import de.steinwedel.messagebox.MessageBox;
+import java.util.Objects;
 
 /**
  * Admin view which is responsible for managing the available users.
@@ -115,6 +113,7 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
         // Select the user in the editor when clicked
         grid.asSingleSelect().addValueChangeListener(e -> {
             if (e.getValue() != null) {
+                defaultPasswordTextField.setVisible(false);
                 userForm.setEntity(userService.refresh(e.getValue()));
             }
         });
