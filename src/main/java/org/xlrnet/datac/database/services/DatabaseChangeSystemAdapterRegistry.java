@@ -1,6 +1,6 @@
 package org.xlrnet.datac.database.services;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.xlrnet.datac.commons.util.Preconditions.checkConfiguration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,12 +10,10 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
+import org.xlrnet.datac.commons.lifecycle.AbstractLifecycleComponent;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
 import org.xlrnet.datac.foundation.configuration.StartupPhases;
@@ -24,18 +22,16 @@ import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 
 import com.google.common.collect.ImmutableList;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Service which provides central access to the available change indexing adapters. The adapters will be registered on application
  * startup.
  */
+@Slf4j
 @Service
 @Scope("singleton")
-public class DatabaseChangeSystemAdapterRegistry implements SmartLifecycle {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseChangeSystemAdapterRegistry.class);
-
-    /** Flag to indicate if the service is running. */
-    private boolean running = false;
+public class DatabaseChangeSystemAdapterRegistry extends AbstractLifecycleComponent {
 
      /* All raw discovered vcs adapters. */
     private final List<DatabaseChangeSystemAdapter> dcsAdapters;
@@ -52,36 +48,8 @@ public class DatabaseChangeSystemAdapterRegistry implements SmartLifecycle {
 
     @Autowired
     public DatabaseChangeSystemAdapterRegistry(List<DatabaseChangeSystemAdapter> dcsAdapters) {
+        super();
         this.dcsAdapters = dcsAdapters;
-    }
-
-    @Override
-    public boolean isAutoStartup() {
-        return true;
-    }
-
-    @Override
-    public void stop(Runnable callback) {
-        stop();
-        callback.run();
-    }
-
-    @Override
-    public void start() {
-        if (!running) {
-            init();
-        }
-        running = true;
-    }
-
-    @Override
-    public void stop() {
-        running = false;
-    }
-
-    @Override
-    public boolean isRunning() {
-        return running;
     }
 
     @Override
@@ -98,7 +66,8 @@ public class DatabaseChangeSystemAdapterRegistry implements SmartLifecycle {
         return ImmutableList.copyOf(dcsAdapterMetaInfo);
     }
 
-    private void init() {
+    @Override
+    protected void onStart() {
         dcsAdapterMetaInfo = new ArrayList<>(dcsAdapters.size());
         for (DatabaseChangeSystemAdapter dcsAdapter : dcsAdapters) {
             try {
@@ -108,14 +77,13 @@ public class DatabaseChangeSystemAdapterRegistry implements SmartLifecycle {
                 throw e;
             }
         }
-        running = true;
     }
 
     private void registerDcsAdapter(DatabaseChangeSystemAdapter dcsAdapter) {
         DatabaseChangeSystemMetaInfo metaInfo = dcsAdapter.getMetaInfo();
 
-        checkNotNull(metaInfo, "Metainfo for database change adapter %s may not be null", dcsAdapter.getClass().getName());
-        checkNotNull(metaInfo.getAdapterName(), "Returned metainfo for database change adapter %s may not be null", dcsAdapter.getClass().getName());
+        checkConfiguration(metaInfo != null, "Metainfo for database change adapter %s may not be null", dcsAdapter.getClass().getName());
+        checkConfiguration(metaInfo.getAdapterName() != null, "Returned metainfo for database change adapter %s may not be null", dcsAdapter.getClass().getName());
 
         dcsAdapterMetaInfo.add(metaInfo);
         metaInfoAdapterMap.put(metaInfo, dcsAdapter);

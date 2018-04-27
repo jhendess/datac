@@ -10,13 +10,11 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.lifecycle.AbstractLifecycleComponent;
 import org.xlrnet.datac.foundation.configuration.StartupPhases;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.api.VcsAdapter;
@@ -24,15 +22,16 @@ import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 
 import com.google.common.collect.ImmutableList;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Service which provides central access to the available VCS adapters. The adapters will be registered on application
  * startup.
  */
+@Slf4j
 @Component
 @Scope("singleton")
-public class VersionControlSystemRegistry implements SmartLifecycle {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(VersionControlSystemRegistry.class);
+public class VersionControlSystemRegistry extends AbstractLifecycleComponent {
 
     /**
      * All raw discovered vcs adapters.
@@ -49,13 +48,9 @@ public class VersionControlSystemRegistry implements SmartLifecycle {
      */
     private Map<VcsMetaInfo, VcsAdapter> metaInfoAdapterMap = new HashMap<>();
 
-    /**
-     * Flag if the service is running.
-     */
-    private boolean running;
-
     @Autowired
     public VersionControlSystemRegistry(List<VcsAdapter> vcsAdapters) {
+        super();
         this.vcsAdapters = vcsAdapters;
     }
 
@@ -124,41 +119,12 @@ public class VersionControlSystemRegistry implements SmartLifecycle {
     }
 
     @Override
-    public boolean isAutoStartup() {
-        return true;
-    }
-
-    @Override
-    public void stop(Runnable callback) {
-        stop();
-        callback.run();
-    }
-
-    @Override
     public int getPhase() {
         return StartupPhases.CONFIGURATION;
     }
 
     @Override
-    public void start() {
-        if (!running) {
-            init();
-        }
-    }
-
-    @Override
-    public void stop() {
-        LOGGER.info("Shutting down VCS adapters");
-        // TODO: Shut down the adapters
-        running = false;
-    }
-
-    @Override
-    public boolean isRunning() {
-        return running;
-    }
-
-    private void init() {
+    protected void onStart() {
         vcsAdapterMetaInfo = new ArrayList<>(vcsAdapters.size());
         for (VcsAdapter vcsAdapter : vcsAdapters) {
             try {
@@ -168,7 +134,6 @@ public class VersionControlSystemRegistry implements SmartLifecycle {
                 throw e;
             }
         }
-        running = true;
     }
 
     /**
@@ -202,7 +167,6 @@ public class VersionControlSystemRegistry implements SmartLifecycle {
 
         vcsAdapterMetaInfo.add(metaInfo);
         metaInfoAdapterMap.put(metaInfo, vcsAdapter);
-
 
         LOGGER.info("Successfully registered VCS adapter {} ({}) for system {}", metaInfo.getAdapterName(), vcsAdapter.getClass().getName(), metaInfo.getVcsName());
     }

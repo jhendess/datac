@@ -1,12 +1,11 @@
 package org.xlrnet.datac.administration.ui.views.user;
 
-import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.fields.MTextField;
 import org.vaadin.viritin.layouts.MVerticalLayout;
-import org.xlrnet.datac.foundation.ui.components.AbstractForm;
+import org.xlrnet.datac.foundation.ui.components.AbstractEntityForm;
 import org.xlrnet.datac.session.domain.User;
 
-import com.vaadin.data.BeanValidationBinder;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Component;
@@ -17,7 +16,7 @@ import com.vaadin.ui.themes.ValoTheme;
  */
 @UIScope
 @SpringComponent
-public class AdminUserForm extends AbstractForm<User> {
+public class AdminUserForm extends AbstractEntityForm<User> {
 
     /**
      * Login name of the entity.
@@ -39,18 +38,15 @@ public class AdminUserForm extends AbstractForm<User> {
      */
     private MTextField email = new MTextField("E-Mail address").withFullWidth();
 
-    @Override
-    @NotNull
-    protected BeanValidationBinder<User> buildBinder() {
-        return new BeanValidationBinder<>(User.class);
+    @Autowired
+    public AdminUserForm() {
+        super(User.class);
     }
 
     @Override
-    @NotNull
-    protected Component getContent() {
+    protected Component createContent() {
         // Select all text in firstName field automatically
         loginName.selectAll();
-        return new MVerticalLayout(loginName, firstName, lastName, email).withMargin(false)
-                .withStyleName(ValoTheme.FORMLAYOUT_LIGHT);
+        return new MVerticalLayout(loginName, firstName, lastName, email, getToolbar()).withMargin(false).withStyleName(ValoTheme.FORMLAYOUT_LIGHT);
     }
 }

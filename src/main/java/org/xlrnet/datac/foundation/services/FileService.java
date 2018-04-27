@@ -12,26 +12,27 @@ import java.util.Comparator;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.ProjectAlreadyInitializedException;
+import org.xlrnet.datac.commons.lifecycle.AbstractLifecycleComponent;
 import org.xlrnet.datac.foundation.configuration.StartupPhases;
 import org.xlrnet.datac.foundation.domain.Project;
+
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service for accessing the file system.
  */
+@Slf4j
 @Component
 @Scope("singleton")
-public class FileService implements SmartLifecycle {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(FileService.class);
+public class FileService extends AbstractLifecycleComponent {
 
     /**
      * The configuration value for the file directory which should be used for storing files.
@@ -42,41 +43,23 @@ public class FileService implements SmartLifecycle {
     /**
      * Path object for the working directory.
      */
+    @Getter
     private Path workingDirectoryPath;
 
-    private boolean running = false;
+    @Autowired
+    public FileService() {
+        super();
+    }
 
     @Override
-    public void start() {
+    protected void onStart() {
         LOGGER.info("Starting file service...");
         initializeWorkingDirectory();
     }
 
     @Override
-    public boolean isAutoStartup() {
-        // The file system must be initialized on boot
-        return true;
-    }
-
-    @Override
-    public void stop(Runnable callback) {
-        stop();
-        callback.run();
-    }
-
-    @Override
     public int getPhase() {
         return StartupPhases.INITIALIZATION;
-    }
-
-    @Override
-    public void stop() {
-        // No stop action necessary
-    }
-
-    @Override
-    public boolean isRunning() {
-        return running;
     }
 
     /**
@@ -172,14 +155,5 @@ public class FileService implements SmartLifecycle {
             }
         }
         LOGGER.info("Using path {} as working directory", getWorkingDirectoryPath().toAbsolutePath().toString());
-        running = true;
-    }
-
-    /**
-     * Returns the {@link Path} to the working directory.
-     * @return the {@link Path} to the working directory.
-     */
-    public Path getWorkingDirectoryPath() {
-        return workingDirectoryPath;
     }
 }

@@ -12,18 +12,18 @@ import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.fields.EnumSelect;
 import org.vaadin.viritin.fields.IntegerField;
 import org.vaadin.viritin.fields.MTextField;
-import org.vaadin.viritin.form.AbstractForm;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.database.domain.DatabaseConnection;
 import org.xlrnet.datac.database.domain.DatabaseType;
+import org.xlrnet.datac.foundation.ui.components.AbstractEntityForm;
 
 /**
  * Simple editor component for users.
  */
 @UIScope
 @SpringComponent
-public class AdminDatabaseConnectionForm extends AbstractForm<DatabaseConnection> {
+public class AdminDatabaseConnectionForm extends AbstractEntityForm<DatabaseConnection> {
 
     /**
      * Login name of the entity.

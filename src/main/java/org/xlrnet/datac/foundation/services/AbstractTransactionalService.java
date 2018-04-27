@@ -1,6 +1,9 @@
 package org.xlrnet.datac.foundation.services;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.Collection;
+import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.PagingAndSortingRepository;
@@ -8,8 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.domain.LimitOffsetPageable;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 
-import java.util.Collection;
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Abstract base class for all services which perform transactional operations.
@@ -153,6 +155,7 @@ public class AbstractTransactionalService<T extends AbstractEntity, R extends Pa
      *
      * @return the crud service for this service.
      */
+    @NotNull
     protected R getRepository() {
         return crudRepository;
     }
@@ -164,11 +167,8 @@ public class AbstractTransactionalService<T extends AbstractEntity, R extends Pa
      *         The entity to refresh.
      * @return The refreshed entity.
      */
-    public T refresh(T entity) {
-        if (entity != null) {
-            return getRepository().findOne(entity.getId());
-        } else {
-            return null;
-        }
+    @NotNull
+    public T refresh(@NotNull T entity) {
+        return getRepository().findOne(entity.getId());
     }
 }

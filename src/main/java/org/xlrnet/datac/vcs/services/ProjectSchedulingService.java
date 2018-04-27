@@ -6,27 +6,26 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
-import org.springframework.context.SmartLifecycle;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.PeriodicTrigger;
 import org.springframework.stereotype.Service;
+import org.xlrnet.datac.commons.lifecycle.AbstractLifecycleComponent;
 import org.xlrnet.datac.foundation.configuration.StartupPhases;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.vcs.tasks.ProjectUpdateTask;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Service which is responsible for scheduling automatic project updates.
  */
+@Slf4j
 @Service
-public class ProjectSchedulingService implements SmartLifecycle {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProjectSchedulingService.class);
+public class ProjectSchedulingService extends AbstractLifecycleComponent {
 
     /**
      * Information about the currently running environment.
@@ -50,8 +49,6 @@ public class ProjectSchedulingService implements SmartLifecycle {
 
     private Map<Long, ScheduledFuture> projectScheduleMap = new HashMap<>();
 
-    private boolean running = false;
-
     @Autowired
     public ProjectSchedulingService(Environment environment, ProjectRepository projectRepository, TaskScheduler taskScheduler, AutowireCapableBeanFactory beanFactory) {
         this.environment = environment;
@@ -61,25 +58,13 @@ public class ProjectSchedulingService implements SmartLifecycle {
     }
 
     @Override
-    public boolean isAutoStartup() {
-        return true;
-    }
-
-    @Override
-    public void stop(Runnable callback) {
-        stop();
-        callback.run();
-    }
-
-    @Override
-    public void start() {
+    protected void onStart() {
         if (!environment.acceptsProfiles("test", "development")) {
             LOGGER.info("Scheduling automatic project updates");
             scheduleAllProjects();
         } else {
             LOGGER.warn("Automatic project update scheduling is DISABLED in current profile");
         }
-        running = true;
     }
 
     private void scheduleAllProjects() {
@@ -136,17 +121,11 @@ public class ProjectSchedulingService implements SmartLifecycle {
     }
 
     @Override
-    public void stop() {
+    protected void onStop() {
         LOGGER.info("Unscheduling project updates");
         for (ScheduledFuture scheduledFuture : projectScheduleMap.values()) {
             scheduledFuture.cancel(true);
         }
-        running = false;
-    }
-
-    @Override
-    public boolean isRunning() {
-        return running;
     }
 
     @Override

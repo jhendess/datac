@@ -6,11 +6,11 @@ import java.nio.file.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.lifecycle.AbstractLifecycleComponent;
 import org.xlrnet.datac.foundation.configuration.StartupPhases;
 
 /**
@@ -18,31 +18,21 @@ import org.xlrnet.datac.foundation.configuration.StartupPhases;
  */
 @Service
 @Profile("test")
-public class CleanWorkingDirectoryOnStartup implements SmartLifecycle {
+public class CleanWorkingDirectoryOnStartup extends AbstractLifecycleComponent {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CleanWorkingDirectoryOnStartup.class);
 
+    /** Service for accessing files. */
     private final FileService fileService;
-    private boolean running;
 
     @Autowired
     public CleanWorkingDirectoryOnStartup(FileService fileService) {
+        super();
         this.fileService = fileService;
     }
 
     @Override
-    public boolean isAutoStartup() {
-        return true;
-    }
-
-    @Override
-    public void stop(Runnable callback) {
-        stop();
-        callback.run();
-    }
-
-    @Override
-    public void start() {
+    protected void onStart() {
         LOGGER.warn("Cleaning working directory in TEST mode");
         Path workingDirectoryPath = fileService.getWorkingDirectoryPath();
         try {
@@ -55,21 +45,9 @@ public class CleanWorkingDirectoryOnStartup implements SmartLifecycle {
                             throw new DatacRuntimeException(e);
                         }
                     });
-            running = true;
         } catch (Exception e) {
-            running = false;
             throw new DatacRuntimeException(e);
         }
-    }
-
-    @Override
-    public void stop() {
-        // Nothing to do here
-    }
-
-    @Override
-    public boolean isRunning() {
-        return running;
     }
 
     @Override

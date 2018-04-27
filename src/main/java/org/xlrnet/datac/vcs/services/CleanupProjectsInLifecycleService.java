@@ -1,13 +1,14 @@
 package org.xlrnet.datac.vcs.services;
 
-import com.google.common.collect.ImmutableList;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.stream.StreamSupport;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.lifecycle.AbstractLifecycleComponent;
 import org.xlrnet.datac.foundation.configuration.StartupPhases;
 import org.xlrnet.datac.foundation.domain.EventLog;
 import org.xlrnet.datac.foundation.domain.EventType;
@@ -18,18 +19,17 @@ import org.xlrnet.datac.foundation.services.FileService;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.stream.StreamSupport;
+import com.google.common.collect.ImmutableList;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Lifecycle service which performs cleanups on application start and shutdown.
  */
+@Slf4j
 @Component
 @Scope("singleton")
-public class CleanupProjectsInLifecycleService implements SmartLifecycle {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(CleanupProjectsInLifecycleService.class);
+public class CleanupProjectsInLifecycleService extends AbstractLifecycleComponent {
 
     private final EventLogService eventLogService;
 
@@ -41,6 +41,7 @@ public class CleanupProjectsInLifecycleService implements SmartLifecycle {
 
     @Autowired
     public CleanupProjectsInLifecycleService(EventLogService eventLogService, ProjectService projectService, VersionControlSystemRegistry vcsService, FileService fileService) {
+        super();
         this.eventLogService = eventLogService;
         this.projectService = projectService;
         this.vcsService = vcsService;
@@ -48,18 +49,7 @@ public class CleanupProjectsInLifecycleService implements SmartLifecycle {
     }
 
     @Override
-    public boolean isAutoStartup() {
-        return true;
-    }
-
-    @Override
-    public void stop(Runnable callback) {
-        stop();
-        callback.run();
-    }
-
-    @Override
-    public void start() {
+    protected void onStart() {
         LOGGER.info("Cleaning projects on startup");
         cleanAllProjects();
     }
@@ -97,17 +87,12 @@ public class CleanupProjectsInLifecycleService implements SmartLifecycle {
     }
 
     @Override
-    public void stop() {
+    protected void onStop() {
         // TODO: Check for projects in non-endstates and kindly kill them
         Collection<Project> runningProjects = projectService.findAllProjectsInState(ImmutableList.of(ProjectState.INDEXING, ProjectState.INITIALIZING, ProjectState.UPDATING));
         if (!runningProjects.isEmpty()) {
             LOGGER.warn("Projects are still updating");
         }
-    }
-
-    @Override
-    public boolean isRunning() {
-        return false;
     }
 
     @Override

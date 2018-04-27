@@ -8,10 +8,6 @@ import org.vaadin.viritin.grid.MGrid;
 import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
-import org.xlrnet.datac.commons.util.WindowUtils;
-import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
-import org.xlrnet.datac.foundation.ui.components.GenericHandler;
-import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
 import org.xlrnet.datac.session.domain.User;
 import org.xlrnet.datac.session.services.CryptoService;
 import org.xlrnet.datac.session.services.UserService;
@@ -25,8 +21,8 @@ import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.Label;
-import com.vaadin.ui.Notification;
-import com.vaadin.ui.UI;
+
+import de.steinwedel.messagebox.MessageBox;
 
 /**
  * Admin view which is responsible for managing the available users.
@@ -67,11 +63,6 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
      */
     private MGrid<User> grid;
 
-    /**
-     * Confirmation window for saving and deleting.
-     */
-    private SimpleOkCancelWindow confirmationWindow;
-
     @Autowired
     public AdminUserSubview(AdminUserForm userForm, UserService userService, CryptoService cryptoService) {
         this.userService = userService;
@@ -108,10 +99,11 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
             userForm.setEntity(new User());
             userForm.setVisible(true);
         });
-        MVerticalLayout editorLayout = new MVerticalLayout().withMargin(false).withStyleName("editor-list-form");
+        MVerticalLayout editorLayout = new MVerticalLayout().withMargin(false);
         editorLayout.with(newUserButton);
         editorLayout.with(defaultPasswordTextField);
         editorLayout.with(userForm);
+        userForm.setVisible(false);
 
         grid = new MGrid<>();
         grid.withStyleName("editor-list-grid").withFullWidth();
@@ -121,15 +113,17 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
         grid.addColumn(User::getEmail).setCaption("Email");
 
         // Select the user in the editor when clicked
-        grid.asSingleSelect().addValueChangeListener(e -> userForm.setEntity(userService.refresh(e.getValue())));
-
-        // Prepare confirmation window
-        confirmationWindow = new SimpleOkCancelWindow();
+        grid.asSingleSelect().addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                userForm.setEntity(userService.refresh(e.getValue()));
+            }
+        });
 
         // Setup all handlers
-        userForm.setSaveHandler(buildSaveHandler());
-        userForm.setDeleteHandler(buildDeleteHandler());
-        userForm.setCancelHandler(this::hideEditor);
+        userForm.setSavedHandler(this::savedHandler);
+        userForm.setDeleteHandler(this::deleteHandler);
+        userForm.setResetHandler((x) -> hideEditor());
+        userForm.setMessageGenerator((u) -> String.format("Do you want to delete the user %s?\nThis action cannot be reverted!", u.getLoginName()));
 
         mainLayout.with(grid).withExpand(grid, 0.75f);
         mainLayout.with(editorLayout).withExpand(editorLayout, 0.25f);
@@ -147,59 +141,46 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
         defaultPasswordTextField.setVisible(true);
     }
 
-    @NotNull
-    private EntityChangeHandler<User> buildDeleteHandler() {
-        return user -> {
-            if (Objects.equals(user.getId(), userService.getSessionUser().getId())) {
-                WindowUtils.showModalDialog("", "You cannot delete your own user!");
-            } else {
-                confirmationWindow.setCustomContent(new Label("Do you want to delete the user " + user.getLoginName() + "?<br>This action cannot be reverted!", ContentMode.HTML));
-                confirmationWindow.setOkHandler(() -> {
-                    userService.delete(user);
-                    hideEditor();
-                    confirmationWindow.close();
-                    updateUsers();
-                    NotificationUtils.showTrayNotification("User deleted successfully");
-                });
-
-                UI.getCurrent().addWindow(confirmationWindow);
-            }
-        };
+    private void deleteHandler(User user) {
+        if (Objects.equals(user.getId(), userService.getSessionUser().getId())) {
+            MessageBox.createWarning().withMessage("You cannot delete your own user!").open();
+        } else {
+            userService.delete(user);
+            hideEditor();
+            updateUsers();
+            NotificationUtils.showSaveSuccess();
+        }
     }
 
-    @NotNull
-    private EntityChangeHandler<User> buildSaveHandler() {
-        return (user) -> {
+    private void savedHandler(User user) {
             User existingUser = userService.findFirstByLoginNameIgnoreCase(user.getLoginName());
             // If user with same login name exists and who has a different ID than the current -> reject creation
             if (existingUser != null && !Objects.equals(existingUser.getId(), user.getId())) {
-                WindowUtils.showModalDialog(null, "There is already a user with the same name.");
+                NotificationUtils.showError("There is already a user with the same name.", true);
             } else {
                 StringBuilder saveConfirmation = new StringBuilder("Do you want to save the user?");
                 if (user.getId() == null) {
                     saveConfirmation.append("<br>The default password is <strong>").append(defaultPassword).append("</strong>");
                 }
-                confirmationWindow.setCustomContent(new Label(saveConfirmation.toString(), ContentMode.HTML));
-                confirmationWindow.setOkHandler(buildPersistUserHandler(user));
-                UI.getCurrent().addWindow(confirmationWindow);
+                MessageBox.createQuestion()
+                        .withCaption("Create new user")
+                        .withHtmlMessage(saveConfirmation.toString())
+                        .withYesButton(() -> persistUser(user))
+                        .withNoButton()
+                        .open();
             }
-        };
     }
 
-    @NotNull
-    private GenericHandler buildPersistUserHandler(User user) {
-        return () -> {
-            if (user.getId() == null) {
-                user.setPwChangeNecessary(true);
-                userService.createNewUser(user, defaultPassword);
-            } else {
-                userService.save(user);
-            }
-            hideEditor();
-            confirmationWindow.close();
-            updateUsers();
-            Notification.show("User saved successfully", Notification.Type.TRAY_NOTIFICATION);
-        };
+    private void persistUser(User user) {
+        if (user.getId() == null) {
+            user.setPwChangeNecessary(true);
+            userService.createNewUser(user, defaultPassword);
+        } else {
+            userService.save(user);
+        }
+        hideEditor();
+        updateUsers();
+        NotificationUtils.showSaveSuccess();
     }
 
     private void updateUsers() {
