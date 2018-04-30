@@ -1,15 +1,15 @@
 package org.xlrnet.datac.database.services;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import javax.xml.bind.DatatypeConverter;
-
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.AbstractSpringBootTest;
 import org.xlrnet.datac.database.domain.DatabaseConnection;
 import org.xlrnet.datac.test.domain.EntityCreatorUtil;
+
+import javax.xml.bind.DatatypeConverter;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class DatabaseConnectionServiceTest extends AbstractSpringBootTest  {
 
@@ -20,7 +20,7 @@ public class DatabaseConnectionServiceTest extends AbstractSpringBootTest  {
 
     @Test
     public void testTransparentPasswordEncryption_onlyPWUpdate() {
-        DatabaseConnection databaseConnection = EntityCreatorUtil.buildDatabaseConnection();
+        DatabaseConnection databaseConnection = EntityCreatorUtil.buildDatabaseConnection("connection");
         databaseConnection.setPassword(SAMPLE_PASSWORD);
 
         connectionService.save(databaseConnection);
@@ -34,7 +34,7 @@ public class DatabaseConnectionServiceTest extends AbstractSpringBootTest  {
 
     @Test
     public void testSaveEncryptedConnection() {
-        DatabaseConnection connection = EntityCreatorUtil.buildDatabaseConnection();
+        DatabaseConnection connection = EntityCreatorUtil.buildDatabaseConnection("encrypted_connection");
 
         DatabaseConnection savedEntity = connectionService.save(connection);
 

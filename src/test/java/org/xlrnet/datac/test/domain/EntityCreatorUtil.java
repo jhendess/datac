@@ -38,9 +38,9 @@ public class EntityCreatorUtil {
         return p;
     }
 
-    public static DatabaseConnection buildDatabaseConnection() {
+    public static DatabaseConnection buildDatabaseConnection(String name) {
         DatabaseConnection databaseConnection = new DatabaseConnection();
-        databaseConnection.setName("encrypted_connection");
+        databaseConnection.setName(name);
         databaseConnection.setType(DatabaseType.H2);
         databaseConnection.setJdbcUrl("jdbc:h2:mem:foo");
         databaseConnection.setUser("test");

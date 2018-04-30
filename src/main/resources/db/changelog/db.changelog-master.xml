@@ -457,4 +457,45 @@
             <column name="password" type="VARCHAR(80)" remarks="Encrypted password for the database connection."/>
         </createTable>
     </changeSet>
+    <changeSet id="28" author="jhendess">
+        <comment>Add tables for database instance configuration</comment>
+        <createTable tableName="db_group" remarks="Configuration data for database groups.">
+            <column name="id" type="BIGINT" autoIncrement="true" remarks="Primary key.">
+                <constraints primaryKey="true" primaryKeyName="pk_db_group"/>
+            </column>
+            <column name="name" type="VARCHAR(50)" remarks="Name of the database group.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="project_id" type="INT" remarks="Project to which this group belongs.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="parent_id" type="BIGINT" remarks="The parent of this group."/>
+        </createTable>
+        <createTable tableName="db_instance" remarks="Configuration data for database instances.">
+            <column name="id" type="BIGINT" autoIncrement="true" remarks="Primary key.">
+                <constraints primaryKey="true" primaryKeyName="pk_db_instance"/>
+            </column>
+            <column name="name" type="VARCHAR(50)" remarks="Name of the database instance.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="group_id" type="BIGINT" remarks="Group in which this instance lies.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="connection_id" type="BIGINT" remarks="The connection which will be used by this instance.">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="db_instance" baseColumnNames="connection_id"
+                                 constraintName="fk_db_instance__db_connection"
+                                 referencedTableName="db_connection"
+                                 referencedColumnNames="id" onDelete="RESTRICT"/>
+        <addForeignKeyConstraint baseTableName="db_instance" baseColumnNames="group_id"
+                                 constraintName="fk_db_instance__db_group"
+                                 referencedTableName="db_group"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="db_group" baseColumnNames="parent_id"
+                                 constraintName="fk_db_group__parent"
+                                 referencedTableName="db_group"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+    </changeSet>
 </databaseChangeLog>
