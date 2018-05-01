@@ -167,9 +167,14 @@ public class AdminProjectSubview extends AbstractSubview {
         MenuBar.MenuItem actions = menuBar.addItem("Actions", null);
         actions.addItem("Update now", VaadinIcons.REFRESH, (x) -> forceUpdate(project));
         actions.addItem("Edit project", VaadinIcons.PENCIL, (x) -> editProject(project));
+        actions.addItem("Configure instances", VaadinIcons.PACKAGE, (x) -> configureInstances(project));
         actions.addSeparator();
         actions.addItem("Delete Project", VaadinIcons.TRASH, (x) -> deleteProject(project));
         return menuBar;
+    }
+
+    private void configureInstances(Project project) {
+        navigationService.openConfigureInstancesView(project);
     }
 
     private void editProject(Project project) {

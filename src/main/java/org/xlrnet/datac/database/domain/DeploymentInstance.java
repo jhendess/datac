@@ -24,7 +24,7 @@ import javax.validation.constraints.Size;
 @NoArgsConstructor
 @Table(name = "db_instance")
 @EqualsAndHashCode(callSuper = true, exclude = "group")
-public class DeploymentInstance extends AbstractEntity {
+public class DeploymentInstance extends AbstractEntity implements IDatabaseInstance {
 
     /** Name of the database instance. */
     @Setter
@@ -51,5 +51,10 @@ public class DeploymentInstance extends AbstractEntity {
     public DeploymentInstance(String name, DatabaseConnection connection) {
         this.name = name;
         this.connection = connection;
+    }
+
+    @Override
+    public boolean isGroup() {
+        return false;
     }
 }

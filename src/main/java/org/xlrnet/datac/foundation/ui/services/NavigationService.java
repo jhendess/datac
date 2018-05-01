@@ -1,12 +1,12 @@
 package org.xlrnet.datac.foundation.ui.services;
 
-import static com.google.common.base.Preconditions.checkState;
-
+import com.vaadin.ui.UI;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.xlrnet.datac.administration.ui.views.database.AdminEditInstancesSubview;
 import org.xlrnet.datac.administration.ui.views.projects.AdminEditProjectSubview;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.session.ui.views.ProjectSubview;
@@ -14,7 +14,7 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import com.vaadin.ui.UI;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Service which provides convenience methods for navigation.
@@ -90,6 +90,11 @@ public class NavigationService {
         Revision revision2 = revisionGraphService.findLastRevisionOnBranch(branch);
         checkState(revision2 != null && revision2.getId().equals(revision.getId()), "Revision on branch is either null or doesn't match requested revision");
         navigateTo(String.format("%s/%d?branch=%d", ProjectSubview.VIEW_NAME, revision.getId(), branch.getId()));
+    }
+
+    public void openConfigureInstancesView(@NotNull Project project) {
+        checkState(project.isPersisted(), "Only instances of persisted projects can be managed");
+        navigateTo(String.format("%s/%d", AdminEditInstancesSubview.VIEW_NAME, project.getId()));
     }
 
     private void navigateTo(String target) {

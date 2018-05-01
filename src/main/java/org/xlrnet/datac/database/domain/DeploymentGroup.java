@@ -33,7 +33,7 @@ import static com.google.common.base.Preconditions.checkState;
 @NoArgsConstructor
 @Table(name = "db_group")
 @EqualsAndHashCode(callSuper = true, exclude = {"project", "children", "parent"})
-public class DeploymentGroup extends AbstractEntity {
+public class DeploymentGroup extends AbstractEntity implements IDatabaseInstance {
 
     /** Name of the database deployment. */
     @Setter
@@ -91,4 +91,8 @@ public class DeploymentGroup extends AbstractEntity {
         }
     }
 
+    @Override
+    public boolean isGroup() {
+        return true;
+    }
 }
