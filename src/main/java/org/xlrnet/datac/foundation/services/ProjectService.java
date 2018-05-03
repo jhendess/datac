@@ -1,10 +1,6 @@
 package org.xlrnet.datac.foundation.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.util.Collection;
-import java.util.regex.Pattern;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +24,10 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.Collection;
+import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Transactional service for accessing project data.
@@ -190,7 +189,7 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
     }
 
     @Override
-    public <S extends Project> S save(S entity) {
+    public <S extends Project> S save(@NotNull S entity) {
         passwordEncryptionListener.encrypt(entity);
         return super.save(entity);
     }

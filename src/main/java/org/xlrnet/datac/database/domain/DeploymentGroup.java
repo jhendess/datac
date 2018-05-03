@@ -29,7 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
  * Defines a group of deployable databases.
  */
 @Entity
-@ToString
+@ToString(exclude = {"children", "parent", "instances"})
 @NoArgsConstructor
 @Table(name = "db_group")
 @EqualsAndHashCode(callSuper = true, exclude = {"project", "children", "parent"})
@@ -49,7 +49,7 @@ public class DeploymentGroup extends AbstractEntity implements IDatabaseInstance
     @Setter
     @Getter
     @NotNull
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "project_id")
     private Project project;
 

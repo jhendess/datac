@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 @Slf4j
-public class DeploymentGroupHierarchialDataProvider extends AbstractBackEndHierarchicalDataProvider<IDatabaseInstance, Object> {
+public class DeploymentGroupHierarchcialDataProvider extends AbstractBackEndHierarchicalDataProvider<IDatabaseInstance, Object> {
 
     /** Service for accessing deployment groups and instances. */
     private final DatabaseDeploymentManagementService deploymentManagementService;
@@ -27,7 +27,7 @@ public class DeploymentGroupHierarchialDataProvider extends AbstractBackEndHiera
     @Getter(AccessLevel.PROTECTED)
     private final Project project;
 
-    public DeploymentGroupHierarchialDataProvider(DatabaseDeploymentManagementService deploymentManagementService, Project project) {
+    public DeploymentGroupHierarchcialDataProvider(DatabaseDeploymentManagementService deploymentManagementService, Project project) {
         this.deploymentManagementService = deploymentManagementService;
         this.project = project;
     }

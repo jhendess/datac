@@ -1,7 +1,7 @@
 package org.xlrnet.datac.database.services;
 
-import java.util.List;
-
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,7 +10,7 @@ import org.xlrnet.datac.database.domain.repository.DatabaseConnectionRepository;
 import org.xlrnet.datac.foundation.domain.PasswordEncryptionListener;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
 
 /**
  * Transactional service for accessing database configration data.
@@ -37,7 +37,7 @@ public class DatabaseConnectionService extends AbstractTransactionalService<Data
     }
 
     @Override
-    public <S extends DatabaseConnection> S save(S entity) {
+    public <S extends DatabaseConnection> S save(@NotNull S entity) {
         passwordEncryptionListener.encrypt(entity);
         return super.save(entity);
     }

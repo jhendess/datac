@@ -22,7 +22,7 @@ import org.xlrnet.datac.database.domain.DeploymentInstance;
 import org.xlrnet.datac.database.domain.IDatabaseInstance;
 import org.xlrnet.datac.database.services.DatabaseConnectionService;
 import org.xlrnet.datac.database.services.DatabaseDeploymentManagementService;
-import org.xlrnet.datac.database.util.DeploymentGroupHierarchialDataProvider;
+import org.xlrnet.datac.database.util.DeploymentGroupHierarchcialDataProvider;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
@@ -105,6 +105,7 @@ public class AdminEditInstancesSubview extends AbstractSubview {
                 newInstanceButton.withEnabled(true);
                 selectedGroup = (DeploymentGroup) e.getFirstSelectedItem().get();
             }
+            // TODO: This mechanism is pretty broken -> provide a separate window where the user can select the parent
         });
         treeGrid.addColumn(nameRenderer).setCaption("Name");
 

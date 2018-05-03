@@ -1,8 +1,6 @@
 package org.xlrnet.datac.foundation.services;
 
-import java.util.Collection;
-import java.util.List;
-
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.CrudRepository;
@@ -11,7 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.commons.domain.LimitOffsetPageable;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Abstract base class for all services which perform transactional operations.
@@ -44,8 +43,8 @@ public class AbstractTransactionalService<T extends AbstractEntity, R extends Pa
      *         The entity to delete.
      */
     @Transactional
-    public void delete(T entity) {
-        crudRepository.delete(entity);
+    public void delete(@NotNull T entity) {
+        getRepository().delete(entity.getId());
     }
 
     /**
@@ -56,7 +55,7 @@ public class AbstractTransactionalService<T extends AbstractEntity, R extends Pa
      * @return the entity with a given id.
      */
     @Transactional(readOnly = true)
-    public T findOne(Long id) {
+    public T findOne(@NotNull Long id) {
         return crudRepository.findOne(id);
     }
 
@@ -79,7 +78,7 @@ public class AbstractTransactionalService<T extends AbstractEntity, R extends Pa
      * @return the saved entity
      */
     @Transactional
-    public <S extends T> S save(S entity) {
+    public <S extends T> S save(@NotNull S entity) {
         return crudRepository.save(entity);
     }
 
@@ -93,7 +92,7 @@ public class AbstractTransactionalService<T extends AbstractEntity, R extends Pa
      *         in case the given entity is {@literal null}.
      */
     @Transactional
-    public <S extends T> Iterable<S> save(Iterable<S> entities) {
+    public <S extends T> Iterable<S> save(@NotNull Iterable<S> entities) {
         return crudRepository.save(entities);
     }
 
