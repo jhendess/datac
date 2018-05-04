@@ -1,13 +1,7 @@
 package org.xlrnet.datac.administration.ui.views.user;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.Label;
-import de.steinwedel.messagebox.MessageBox;
+import java.util.Objects;
+
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.grid.MGrid;
@@ -20,7 +14,15 @@ import org.xlrnet.datac.session.services.UserService;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
 import org.xlrnet.datac.session.ui.views.Subview;
 
-import java.util.Objects;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.Label;
+
+import de.steinwedel.messagebox.MessageBox;
 
 /**
  * Admin view which is responsible for managing the available users.
@@ -122,7 +124,7 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
         userForm.setSavedHandler(this::savedHandler);
         userForm.setDeleteHandler(this::deleteHandler);
         userForm.setResetHandler((x) -> hideEditor());
-        userForm.setMessageGenerator((u) -> String.format("Do you want to delete the user %s?\nThis action cannot be reverted!", u.getLoginName()));
+        userForm.setDeleteMessageGenerator((u) -> String.format("Do you want to delete the user %s?%nThis action cannot be reverted!", u.getLoginName()));
 
         mainLayout.with(grid).withExpand(grid, 0.75f);
         mainLayout.with(editorLayout).withExpand(editorLayout, 0.25f);

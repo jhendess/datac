@@ -1,12 +1,5 @@
 package org.xlrnet.datac.administration.ui.views.database;
 
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.UIScope;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.HorizontalLayout;
-import com.vaadin.ui.ProgressBar;
-import com.vaadin.ui.themes.ValoTheme;
-import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.fields.EnumSelect;
@@ -18,8 +11,17 @@ import org.xlrnet.datac.database.domain.DatabaseConnection;
 import org.xlrnet.datac.database.domain.DatabaseType;
 import org.xlrnet.datac.foundation.ui.components.AbstractEntityForm;
 
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.UIScope;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.ProgressBar;
+import com.vaadin.ui.themes.ValoTheme;
+
+import lombok.Getter;
+
 /**
- * Simple editor component for users.
+ * Simple editor component for database connections.
  */
 @UIScope
 @SpringComponent

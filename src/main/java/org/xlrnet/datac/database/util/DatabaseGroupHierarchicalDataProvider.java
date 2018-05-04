@@ -6,7 +6,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.xlrnet.datac.database.domain.DeploymentGroup;
-import org.xlrnet.datac.database.domain.DeploymentInstance;
+import org.xlrnet.datac.database.domain.DeploymentRoot;
 import org.xlrnet.datac.database.domain.IDatabaseInstance;
 import org.xlrnet.datac.database.services.DatabaseDeploymentManagementService;
 import org.xlrnet.datac.foundation.domain.Project;
@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 @Slf4j
-public class DeploymentGroupHierarchcialDataProvider extends AbstractBackEndHierarchicalDataProvider<IDatabaseInstance, Object> {
+public class DatabaseGroupHierarchicalDataProvider extends AbstractBackEndHierarchicalDataProvider<IDatabaseInstance, Object> {
 
     /** Service for accessing deployment groups and instances. */
     private final DatabaseDeploymentManagementService deploymentManagementService;
@@ -27,9 +27,13 @@ public class DeploymentGroupHierarchcialDataProvider extends AbstractBackEndHier
     @Getter(AccessLevel.PROTECTED)
     private final Project project;
 
-    public DeploymentGroupHierarchcialDataProvider(DatabaseDeploymentManagementService deploymentManagementService, Project project) {
+    /** Virtual root group. */
+    private DeploymentRoot deploymentRoot;
+
+    public DatabaseGroupHierarchicalDataProvider(DatabaseDeploymentManagementService deploymentManagementService, Project project) {
         this.deploymentManagementService = deploymentManagementService;
         this.project = project;
+        deploymentRoot = new DeploymentRoot("<PROJECT ROOT>");
     }
 
     @Override
@@ -41,15 +45,11 @@ public class DeploymentGroupHierarchcialDataProvider extends AbstractBackEndHier
     public boolean hasChildren(IDatabaseInstance item) {
         if (item instanceof DeploymentGroup) {
             DeploymentGroup deploymentGroup = (DeploymentGroup) item;
-            if (deploymentGroup.getInstances().size() > 0) {
-                return true;
-            } else {
-                return deploymentManagementService.hasChildGroups(deploymentGroup);
-            }
-        } else if (item instanceof DeploymentInstance) {
-            return false;
+            return deploymentManagementService.hasChildGroups(deploymentGroup);
+        } else if (item instanceof DeploymentRoot) {
+            return deploymentManagementService.countGroupsByProject(project);
         }
-        return false;
+        throw new IllegalStateException(String.format("Item must be either %s or %s", DeploymentGroup.class, DeploymentRoot.class));
     }
 
     @Override
@@ -57,13 +57,17 @@ public class DeploymentGroupHierarchcialDataProvider extends AbstractBackEndHier
         Optional parentOptional = query.getParentOptional();
         List<IDatabaseInstance> result = new ArrayList<>();
         if (parentOptional.isPresent()) {
-            DeploymentGroup parentGroup = (DeploymentGroup) parentOptional.get();
-            Set<DeploymentGroup> groupsByParent = deploymentManagementService.findDeploymentGroupsByParent(parentGroup);
-            result.addAll(groupsByParent);
-            result.addAll(parentGroup.getInstances());
+            if (parentOptional.get() instanceof DeploymentRoot) {
+                Set<DeploymentGroup> rootGroups = deploymentManagementService.findRootGroupsByProject(getProject());
+                result.addAll(rootGroups);
+            } else if (parentOptional.get() instanceof DeploymentGroup) {
+                Set<DeploymentGroup> groupsByParent = deploymentManagementService.findDeploymentGroupsByParent((DeploymentGroup) parentOptional.get());
+                result.addAll(groupsByParent);
+            } else {
+                throw new IllegalStateException();
+            }
         } else {
-            Set<DeploymentGroup> rootGroups = deploymentManagementService.findRootGroupsByProject(getProject());
-            result.addAll(rootGroups);
+            result.add(deploymentRoot);
         }
         return result.stream();
     }

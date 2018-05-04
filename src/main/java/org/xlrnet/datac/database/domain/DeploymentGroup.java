@@ -32,7 +32,7 @@ import static com.google.common.base.Preconditions.checkState;
 @ToString(exclude = {"children", "parent", "instances"})
 @NoArgsConstructor
 @Table(name = "db_group")
-@EqualsAndHashCode(callSuper = true, exclude = {"project", "children", "parent"})
+@EqualsAndHashCode(callSuper = true, exclude = {"project", "children", "parent", "instances"})
 public class DeploymentGroup extends AbstractEntity implements IDatabaseInstance {
 
     /** Name of the database deployment. */
@@ -67,12 +67,17 @@ public class DeploymentGroup extends AbstractEntity implements IDatabaseInstance
 
     /** Instances in this deployment group. */
     @Getter
-    @OneToMany(mappedBy = "group", targetEntity = DeploymentInstance.class, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "group", targetEntity = DeploymentInstance.class, cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Set<DeploymentInstance> instances = new HashSet<>();
 
     public DeploymentGroup(String name, Project project) {
         this.name = name;
         this.project = project;
+    }
+
+    public DeploymentGroup(Project project, DeploymentGroup parent) {
+        this.project = project;
+        this.parent = parent;
     }
 
     public void addChildGroup(@NotNull DeploymentGroup childGroup) {
@@ -94,5 +99,15 @@ public class DeploymentGroup extends AbstractEntity implements IDatabaseInstance
     @Override
     public boolean isGroup() {
         return true;
+    }
+
+    public String getParentPath() {
+        if (getParent() == null) {
+            return null;
+        } else {
+            String parentPath = getParent().getParentPath();
+            String parentName = getParent().getName();
+            return parentPath != null ? parentPath + "/" + parentName : parentName;
+        }
     }
 }

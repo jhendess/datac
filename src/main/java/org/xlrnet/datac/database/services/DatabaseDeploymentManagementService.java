@@ -44,11 +44,16 @@ public class DatabaseDeploymentManagementService extends AbstractTransactionalSe
 
     @Transactional(readOnly = true)
     public Set<DeploymentGroup> findDeploymentGroupsByParent(DeploymentGroup parent) {
-        return getRepository().findDeploymentGroupsByParent(parent);
+        return getRepository().findDeploymentGroupsByParentOrderByName(parent);
     }
 
     @Transactional(readOnly = true)
     public boolean hasChildGroups(DeploymentGroup deploymentGroup) {
         return getRepository().countByParent(deploymentGroup) > 0;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean countGroupsByProject(Project project) {
+        return getRepository().countRootGroupsByProject(project) > 0;
     }
 }

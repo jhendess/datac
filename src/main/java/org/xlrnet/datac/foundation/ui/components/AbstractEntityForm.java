@@ -29,7 +29,7 @@ public abstract class AbstractEntityForm<T extends AbstractEntity> extends org.v
      * never be called with a null value. */
     @Setter
     @Getter(AccessLevel.PROTECTED)
-    private MessageGenerator<T> messageGenerator = DEFAULT_DELETE_MESSAGE_GENERATOR;
+    private MessageGenerator<T> deleteMessageGenerator = DEFAULT_DELETE_MESSAGE_GENERATOR;
 
     public AbstractEntityForm(Class<T> entityType) {
         super(entityType);
@@ -44,7 +44,7 @@ public abstract class AbstractEntityForm<T extends AbstractEntity> extends org.v
     protected void delete(Button.ClickEvent e) {
         if (getEntity() != null) {
                 MessageBox.createWarning()
-                        .withMessage(getMessageGenerator().generate(getEntity()))
+                        .withMessage(getDeleteMessageGenerator().generate(getEntity()))
                         .withYesButton(() -> super.delete(e))
                         .withNoButton()
                         .open();

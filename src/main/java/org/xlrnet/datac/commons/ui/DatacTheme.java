@@ -24,5 +24,5 @@ public class DatacTheme {
      * Styles the text input like a password box. This is used to avoid autocompletion by browsers and should never be
      * used for actual user passwords!
      */
-    public static final String INPUT_PASSWORD = "input-password";
+    public static final String INPUT_PASSWORD = "input-password";       // NOSONAR: This is just a CSS class name
 }

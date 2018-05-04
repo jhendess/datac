@@ -6,6 +6,7 @@ import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.TreeGrid;
+import com.vaadin.ui.renderers.HtmlRenderer;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -17,12 +18,14 @@ import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.exception.IllegalUIStateException;
+import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.database.domain.DeploymentGroup;
 import org.xlrnet.datac.database.domain.DeploymentInstance;
 import org.xlrnet.datac.database.domain.IDatabaseInstance;
 import org.xlrnet.datac.database.services.DatabaseConnectionService;
 import org.xlrnet.datac.database.services.DatabaseDeploymentManagementService;
-import org.xlrnet.datac.database.util.DeploymentGroupHierarchcialDataProvider;
+import org.xlrnet.datac.database.util.DatabaseGroupHierarchicalDataProvider;
+import org.xlrnet.datac.database.util.DatabaseInstanceHierarchicalDataProvider;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
@@ -53,68 +56,26 @@ public class AdminEditInstancesSubview extends AbstractSubview {
     @Getter(AccessLevel.PROTECTED)
     private Project project;
 
+    /** Form for editing groups. */
+    private final AdminDeploymentGroupForm groupForm;
+
+    /** Provider for hierarchical data. */
+    private DatabaseInstanceHierarchicalDataProvider dataProvider;
+
     /** Renderer for name incl. an type-specific icon. */
-    private final ValueProvider<IDatabaseInstance, String> nameRenderer = (i) -> {
+    private final ValueProvider<IDatabaseInstance, String> nameWithIconProvider = (i) -> {
         String iconHtml = (i.isGroup() ? VaadinIcons.FOLDER : VaadinIcons.CONNECT).getHtml();
         return String.format("%s %s", iconHtml, StringEscapeUtils.escapeHtml4(i.getName()));
     };
 
+    private TreeGrid<IDatabaseInstance> treeGrid;
+
     @Autowired
-    public AdminEditInstancesSubview(ProjectService projectService, DatabaseDeploymentManagementService deploymentManagementService, DatabaseConnectionService connectionService) {
+    public AdminEditInstancesSubview(ProjectService projectService, DatabaseDeploymentManagementService deploymentManagementService, DatabaseConnectionService connectionService, AdminDeploymentGroupForm groupForm) {
         this.projectService = projectService;
         this.deploymentManagementService = deploymentManagementService;
         this.connectionService = connectionService;
-    }
-
-    @NotNull
-    @Override
-    protected Component buildMainPanel() {
-        MHorizontalLayout mainLayout = new MHorizontalLayout().withFullSize();
-
-        DeploymentGroupHierarchialDataProvider dataProvider = new DeploymentGroupHierarchialDataProvider(deploymentManagementService, getProject());
-
-        MButton newGroupButton = new MButton("New group");
-        newGroupButton.setIcon(VaadinIcons.PLUS);
-        newGroupButton.addClickListener(e -> {
-            // TODO
-        });
-        MButton newInstanceButton = new MButton("New instance").withEnabled(false);
-        newInstanceButton.setIcon(VaadinIcons.PLUS);
-        newInstanceButton.addClickListener(e -> {
-            // TODO
-        });
-        MHorizontalLayout buttonLayout = new MHorizontalLayout().withMargin(false);
-        buttonLayout.with(newGroupButton);
-        buttonLayout.with(newInstanceButton);
-        MVerticalLayout editorLayout = new MVerticalLayout().withMargin(false).withStyleName("editor-list-form");
-        editorLayout.with(buttonLayout);
-
-        TreeGrid<IDatabaseInstance> treeGrid = new TreeGrid<>(dataProvider);
-        treeGrid.setWidth("100%");
-        treeGrid.addSelectionListener((e) -> {
-            // TODO: Store the last selected value somewhere
-            if (!e.getFirstSelectedItem().isPresent()) {
-                newGroupButton.withEnabled(true);
-                newInstanceButton.withEnabled(false);   // Instances aren't allowed on root level
-            } else if (e.getFirstSelectedItem().get() instanceof DeploymentInstance) {
-                newGroupButton.withEnabled(false);
-                newInstanceButton.withEnabled(false);
-                selectedGroup = null;
-            } else {
-                newGroupButton.withEnabled(true);
-                newInstanceButton.withEnabled(true);
-                selectedGroup = (DeploymentGroup) e.getFirstSelectedItem().get();
-            }
-            // TODO: This mechanism is pretty broken -> provide a separate window where the user can select the parent
-        });
-        treeGrid.addColumn(nameRenderer).setCaption("Name");
-
-        // TODO: build layout
-
-        mainLayout.with(treeGrid).withExpand(treeGrid, 0.75f);
-        mainLayout.with(editorLayout).withExpand(editorLayout, 0.25f);
-
-        return mainLayout;
+        this.groupForm = groupForm;
     }
 
     @Override
@@ -142,5 +103,95 @@ public class AdminEditInstancesSubview extends AbstractSubview {
     @Override
     protected String getTitle() {
         return String.format("Instance configuration of %s", project.getName());
+    }
+
+    @NotNull
+    @Override
+    protected Component buildMainPanel() {
+        MHorizontalLayout mainLayout = new MHorizontalLayout().withFullSize();
+
+        DatabaseGroupHierarchicalDataProvider groupSelectorDataProvider = new DatabaseGroupHierarchicalDataProvider(
+                deploymentManagementService, getProject());
+        DeploymentGroupSelectorWindow groupSelectorWindow = new DeploymentGroupSelectorWindow(groupSelectorDataProvider, this::newParentGroup);
+
+        MButton newGroupButton = new MButton("New group");
+        newGroupButton.setIcon(VaadinIcons.PLUS);
+        newGroupButton.addClickListener(e -> {
+            groupForm.setVisible(false);
+            getUI().addWindow(groupSelectorWindow);
+        });
+        MButton newInstanceButton = new MButton("New instance").withEnabled(false);
+        newInstanceButton.setIcon(VaadinIcons.PLUS);
+        newInstanceButton.addClickListener(e -> {
+            // TODO
+        });
+        MHorizontalLayout buttonLayout = new MHorizontalLayout().withMargin(false);
+        buttonLayout.with(newGroupButton);
+        buttonLayout.with(newInstanceButton);
+        MVerticalLayout editorLayout = new MVerticalLayout().withMargin(false).withStyleName("editor-list-form");
+        editorLayout.with(buttonLayout);
+        editorLayout.with(groupForm);
+
+        dataProvider = new DatabaseInstanceHierarchicalDataProvider(
+                deploymentManagementService, getProject(), true);
+        treeGrid = new TreeGrid<>(dataProvider);
+        treeGrid.setWidth("100%");
+        treeGrid.addSelectionListener((e) -> {
+            // TODO: Store the last selected value somewhere
+            if (!e.getFirstSelectedItem().isPresent()) {
+                selectedGroup = null;
+                groupForm.setVisible(false);
+            } else if (e.getFirstSelectedItem().get() instanceof DeploymentInstance) {
+                selectedGroup = null;
+                groupForm.setVisible(false);
+            } else {
+                selectedGroup = (DeploymentGroup) e.getFirstSelectedItem().get();
+                groupForm.setVisible(true);
+                groupForm.setEntity(selectedGroup);
+            }
+            // TODO: This mechanism is pretty broken -> provide a separate window where the user can select the parent
+        });
+        treeGrid.addColumn(nameWithIconProvider, new HtmlRenderer()).setCaption("Name");
+        groupForm.setSavedHandler(this::saveGroup);
+        groupForm.setDeleteHandler(this::deleteGroup);
+        groupForm.setDeleteMessageGenerator(this::generateDeleteMessage);
+        groupForm.setResetHandler(g -> groupForm.setVisible(false));
+        groupForm.setVisible(false);
+
+        mainLayout.with(treeGrid).withExpand(treeGrid, 0.75f);
+        mainLayout.with(editorLayout).withExpand(editorLayout, 0.25f);
+
+        return mainLayout;
+    }
+
+    private void newParentGroup(DeploymentGroup parentGroup) {
+        DeploymentGroup deploymentGroup = new DeploymentGroup(project, parentGroup);
+        groupForm.setEntity(deploymentGroup);
+        groupForm.setVisible(true);
+    }
+
+    private String generateDeleteMessage(DeploymentGroup deploymentGroup) {
+        return String.format("Do you really want to delete the group%n%s?%nThis removes all historic deployment information and can't be reverted!", deploymentGroup.getName());
+    }
+
+    private void deleteGroup(DeploymentGroup deploymentGroup) {
+        if (deploymentManagementService.hasChildGroups(deploymentGroup) || !deploymentGroup.getInstances().isEmpty()) {
+            NotificationUtils.showError("Deployment groups with children can't be deleted.", false);
+            return;
+        }
+        deploymentManagementService.delete(deploymentGroup);
+        groupForm.setVisible(false);
+        dataProvider.refreshAll();
+    }
+
+    private void saveGroup(DeploymentGroup deploymentGroup) {
+        deploymentManagementService.save(deploymentGroup);
+        if (deploymentGroup.getParent() != null) {
+            dataProvider.refreshItem(deploymentGroup.getParent());
+            treeGrid.expand(deploymentGroup.getParent());
+        } else {
+            dataProvider.refreshAll();
+        }
+        groupForm.setVisible(false);
     }
 }

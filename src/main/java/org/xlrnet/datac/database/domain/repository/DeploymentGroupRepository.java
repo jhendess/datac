@@ -13,11 +13,13 @@ import java.util.Set;
  */
 public interface DeploymentGroupRepository extends PagingAndSortingRepository<DeploymentGroup, Long> {
 
-    @Query("SELECT g FROM DeploymentGroup g WHERE g.project = :project AND g.parent IS NULL")
+    @Query("SELECT g FROM DeploymentGroup g WHERE g.project = :project AND g.parent IS NULL ORDER BY g.name")
     Set<DeploymentGroup> findRootGroupsByProject(@Param("project") Project project);
 
-    Set<DeploymentGroup> findDeploymentGroupsByParent(DeploymentGroup parent);
+    Set<DeploymentGroup> findDeploymentGroupsByParentOrderByName(DeploymentGroup parent);
 
     int countByParent(DeploymentGroup parent);
 
+    @Query("SELECT COUNT(g) FROM DeploymentGroup g WHERE g.project = :project AND g.parent IS NULL")
+    int countRootGroupsByProject(@Param("project") Project project);
 }

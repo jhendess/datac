@@ -39,7 +39,7 @@ public class DummyRemoteRepositoryConnection implements VcsRemoteRepositoryConne
     @Override
     public VcsConnectionStatus checkConnection() throws VcsConnectionException {
         try {
-            Thread.sleep(500);
+            Thread.sleep(500);      // NOSONAR: This is just a dummy implementation in a test class
         } catch (InterruptedException e) {
             return VcsConnectionStatus.COMMUNICATION_FAILURE;
         }
@@ -50,7 +50,7 @@ public class DummyRemoteRepositoryConnection implements VcsRemoteRepositoryConne
     @NotNull
     public Collection<Branch> listBranches() throws VcsConnectionException {
         try {
-            Thread.sleep(1000);
+            Thread.sleep(1000);     // NOSONAR: This is just a dummy implementation in a test class
         } catch (InterruptedException e) {
             return null;
         }

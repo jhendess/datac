@@ -141,7 +141,7 @@ public class AdminDatabaseSubview extends AbstractSubview {
 
     private void saveConnection(DatabaseConnection databaseConnection) {
         CheckDatabaseConnectionTask task = new CheckDatabaseConnectionTask(dbForm.getEntity(), connectionManagerService);
-        task.setEntityChangeHandler((pingResult) -> {
+        task.setEntityChangeHandler(pingResult -> {
             if (pingResult.isConnected()) {
                 connectionService.save(databaseConnection);
                 runOnUiThread(() -> {
@@ -166,7 +166,7 @@ public class AdminDatabaseSubview extends AbstractSubview {
 
     private void checkConnectionForUser() {
         CheckDatabaseConnectionTask task = new CheckDatabaseConnectionTask(dbForm.getEntity(), connectionManagerService);
-        task.setEntityChangeHandler((pingResult) -> {
+        task.setEntityChangeHandler(pingResult -> {
             if (pingResult.isConnected()) {
                 runOnUiThread(() -> NotificationUtils.showSuccess("Connection established"));
             } else {
