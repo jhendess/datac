@@ -1,21 +1,23 @@
 package org.xlrnet.datac.database.util;
 
-import com.vaadin.data.provider.AbstractBackEndHierarchicalDataProvider;
-import com.vaadin.data.provider.HierarchicalQuery;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
+
 import org.xlrnet.datac.database.domain.DeploymentGroup;
 import org.xlrnet.datac.database.domain.DeploymentRoot;
 import org.xlrnet.datac.database.domain.IDatabaseInstance;
 import org.xlrnet.datac.database.services.DatabaseDeploymentManagementService;
 import org.xlrnet.datac.foundation.domain.Project;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Stream;
+import com.vaadin.data.provider.AbstractBackEndHierarchicalDataProvider;
+import com.vaadin.data.provider.HierarchicalQuery;
+
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DatabaseGroupHierarchicalDataProvider extends AbstractBackEndHierarchicalDataProvider<IDatabaseInstance, Object> {
@@ -27,12 +29,17 @@ public class DatabaseGroupHierarchicalDataProvider extends AbstractBackEndHierar
     @Getter(AccessLevel.PROTECTED)
     private final Project project;
 
+    /** Flag whether instances should be included or not. */
+    private final boolean includeInstances;
+
     /** Virtual root group. */
+    @Getter
     private DeploymentRoot deploymentRoot;
 
-    public DatabaseGroupHierarchicalDataProvider(DatabaseDeploymentManagementService deploymentManagementService, Project project) {
+    public DatabaseGroupHierarchicalDataProvider(DatabaseDeploymentManagementService deploymentManagementService, Project project, boolean includeInstances) {
         this.deploymentManagementService = deploymentManagementService;
         this.project = project;
+        this.includeInstances = includeInstances;
         deploymentRoot = new DeploymentRoot("<PROJECT ROOT>");
     }
 
@@ -43,13 +50,18 @@ public class DatabaseGroupHierarchicalDataProvider extends AbstractBackEndHierar
 
     @Override
     public boolean hasChildren(IDatabaseInstance item) {
+        boolean hasChildren = false;
         if (item instanceof DeploymentGroup) {
             DeploymentGroup deploymentGroup = (DeploymentGroup) item;
-            return deploymentManagementService.hasChildGroups(deploymentGroup);
+            if (includeInstances && !deploymentGroup.getInstances().isEmpty()) {
+                hasChildren = true;
+            } else {
+                hasChildren = deploymentManagementService.hasChildGroups(deploymentGroup);
+            }
         } else if (item instanceof DeploymentRoot) {
-            return deploymentManagementService.countGroupsByProject(project);
+            hasChildren = deploymentManagementService.countGroupsByProject(project);
         }
-        throw new IllegalStateException(String.format("Item must be either %s or %s", DeploymentGroup.class, DeploymentRoot.class));
+        return hasChildren;
     }
 
     @Override
@@ -61,10 +73,14 @@ public class DatabaseGroupHierarchicalDataProvider extends AbstractBackEndHierar
                 Set<DeploymentGroup> rootGroups = deploymentManagementService.findRootGroupsByProject(getProject());
                 result.addAll(rootGroups);
             } else if (parentOptional.get() instanceof DeploymentGroup) {
-                Set<DeploymentGroup> groupsByParent = deploymentManagementService.findDeploymentGroupsByParent((DeploymentGroup) parentOptional.get());
+                DeploymentGroup parentGroup = (DeploymentGroup) parentOptional.get();
+                Set<DeploymentGroup> groupsByParent = deploymentManagementService.findDeploymentGroupsByParent(parentGroup);
                 result.addAll(groupsByParent);
+                if (includeInstances) {
+                    result.addAll(parentGroup.getInstances());
+                }
             } else {
-                throw new IllegalStateException();
+                throw new IllegalStateException(String.format("Unexpected parent of type %s", parentOptional.get().getClass()));
             }
         } else {
             result.add(deploymentRoot);

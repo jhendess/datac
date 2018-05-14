@@ -1,13 +1,9 @@
 package org.xlrnet.datac.database.domain;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import org.hibernate.validator.constraints.NotEmpty;
-import org.xlrnet.datac.foundation.domain.AbstractEntity;
-import org.xlrnet.datac.foundation.domain.Project;
+import static com.google.common.base.Preconditions.checkState;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -20,10 +16,16 @@ import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-import java.util.HashSet;
-import java.util.Set;
 
-import static com.google.common.base.Preconditions.checkState;
+import org.hibernate.validator.constraints.NotEmpty;
+import org.xlrnet.datac.foundation.domain.AbstractEntity;
+import org.xlrnet.datac.foundation.domain.Project;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * Defines a group of deployable databases.
@@ -96,11 +98,6 @@ public class DeploymentGroup extends AbstractEntity implements IDatabaseInstance
         }
     }
 
-    @Override
-    public boolean isGroup() {
-        return true;
-    }
-
     public String getParentPath() {
         if (getParent() == null) {
             return null;
@@ -109,5 +106,10 @@ public class DeploymentGroup extends AbstractEntity implements IDatabaseInstance
             String parentName = getParent().getName();
             return parentPath != null ? parentPath + "/" + parentName : parentName;
         }
+    }
+
+    @Override
+    public InstanceType getInstanceType() {
+        return InstanceType.GROUP;
     }
 }

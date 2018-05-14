@@ -1,19 +1,20 @@
 package org.xlrnet.datac.database.domain;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import org.hibernate.validator.constraints.NotEmpty;
-import org.xlrnet.datac.foundation.domain.AbstractEntity;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.Size;
+
+import org.hibernate.validator.constraints.NotEmpty;
+import org.xlrnet.datac.foundation.domain.AbstractEntity;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * Concrete instance of a single deployment. Instances always use a configured {@link DatabaseConnection} in order to
@@ -54,7 +55,7 @@ public class DeploymentInstance extends AbstractEntity implements IDatabaseInsta
     }
 
     @Override
-    public boolean isGroup() {
-        return false;
+    public InstanceType getInstanceType() {
+        return InstanceType.DATABASE;
     }
 }

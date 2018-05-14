@@ -17,7 +17,7 @@ public class DeploymentRoot implements IDatabaseInstance {
     }
 
     @Override
-    public boolean isGroup() {
-        return true;
+    public InstanceType getInstanceType() {
+        return InstanceType.ROOT;
     }
 }

@@ -1,11 +1,7 @@
 package org.xlrnet.datac.administration.ui.views.database;
 
-import com.vaadin.data.ValueProvider;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.ui.TreeGrid;
-import com.vaadin.ui.renderers.HtmlRenderer;
-import com.vaadin.ui.themes.ValoTheme;
-import org.apache.commons.lang3.StringEscapeUtils;
+import java.util.function.Consumer;
+
 import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.label.MLabel;
 import org.vaadin.viritin.layouts.MHorizontalLayout;
@@ -15,8 +11,11 @@ import org.xlrnet.datac.database.domain.DeploymentGroup;
 import org.xlrnet.datac.database.domain.DeploymentRoot;
 import org.xlrnet.datac.database.domain.IDatabaseInstance;
 import org.xlrnet.datac.database.util.DatabaseGroupHierarchicalDataProvider;
+import org.xlrnet.datac.database.util.DatabaseInstanceIconProvider;
 
-import java.util.function.Consumer;
+import com.vaadin.ui.TreeGrid;
+import com.vaadin.ui.renderers.HtmlRenderer;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Simple modal window which allows the selection of a deployment group.
@@ -29,15 +28,11 @@ public class DeploymentGroupSelectorWindow extends MWindow {
 
     private final MHorizontalLayout buttonLayout = new MHorizontalLayout();
 
+    /** Handler which will be called on success. */
     private final Consumer<DeploymentGroup> successHandler;
 
+    /** The selected value. */
     private IDatabaseInstance selectedValue;
-
-    /** Renderer for name incl. an type-specific icon. */
-    private final ValueProvider<IDatabaseInstance, String> nameRenderer = (i) -> {
-        String iconHtml = ((i instanceof DeploymentRoot) ? VaadinIcons.PACKAGE : VaadinIcons.FOLDER).getHtml();
-        return String.format("%s %s", iconHtml, StringEscapeUtils.escapeHtml4(i.getName()));
-    };
 
     public DeploymentGroupSelectorWindow(DatabaseGroupHierarchicalDataProvider dataProvider, Consumer<DeploymentGroup> successHandler) {
         super();
@@ -70,7 +65,7 @@ public class DeploymentGroupSelectorWindow extends MWindow {
             selectedValue = d.getFirstSelectedItem().isPresent() ? d.getFirstSelectedItem().get() : null;
         });
         treeGrid.setDataProvider(dataProvider);
-        treeGrid.addColumn(nameRenderer, new HtmlRenderer());
+        treeGrid.addColumn(new DatabaseInstanceIconProvider(), new HtmlRenderer());
         treeGrid.setHeaderVisible(false);
 
         MLabel label = new MLabel("Select a new parent group");

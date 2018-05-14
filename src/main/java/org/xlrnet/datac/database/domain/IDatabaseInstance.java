@@ -5,6 +5,6 @@ public interface IDatabaseInstance {
     /** Returns the name of the instance. */
     String getName();
 
-    /** Flag to indicate if the concrete implementation is a group. */
-    boolean isGroup();
+    /** Returns the type of this instance. */
+    InstanceType getInstanceType();
 }
