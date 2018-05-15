@@ -26,6 +26,10 @@ public class EventLogProxy {
     /** The proxied delegate. */
     private EventLog delegate;
 
+    public boolean isDelegateSet() {
+        return delegate != null;
+    }
+
     public void setDelegate(EventLog delegate) {
         this.delegate = delegate;
     }
