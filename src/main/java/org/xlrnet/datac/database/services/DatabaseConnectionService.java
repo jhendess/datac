@@ -1,6 +1,8 @@
 package org.xlrnet.datac.database.services;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.Collection;
+import java.util.List;
+
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,7 +12,7 @@ import org.xlrnet.datac.database.domain.repository.DatabaseConnectionRepository;
 import org.xlrnet.datac.foundation.domain.PasswordEncryptionListener;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Transactional service for accessing database configration data.
@@ -28,7 +30,7 @@ public class DatabaseConnectionService extends AbstractTransactionalService<Data
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
      *
-     * @param crudRepository             The crud repository for providing basic crud operations.
+     * @param crudRepository The crud repository for providing basic crud operations.
      */
     @Autowired
     public DatabaseConnectionService(DatabaseConnectionRepository crudRepository, PasswordEncryptionListener passwordEncryptionListener) {
@@ -50,5 +52,15 @@ public class DatabaseConnectionService extends AbstractTransactionalService<Data
     @Transactional(readOnly = true)
     public List<DatabaseConnection> findAllOrderByNameAsc() {
         return getRepository().findAllByOrderByName();
+    }
+
+    /**
+     * Finds all database connections which are not associated to a database instance ordered by their name.
+     *
+     * @return all database connections which are not associated to a database instance ordered by their name.
+     */
+    @Transactional(readOnly = true)
+    public Collection<DatabaseConnection> findAllWithoutInstanceOrderByNameAsc() {
+        return getRepository().findAllByInstanceIsNullOrderByName();
     }
 }

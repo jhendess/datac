@@ -6,6 +6,8 @@ import javax.persistence.Entity;
 import javax.persistence.EntityListeners;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.validation.constraints.Max;
@@ -99,5 +101,9 @@ public class DatabaseConnection extends AbstractEntity implements PasswordEncryp
     @Size(max = 200)
     @Column(name = "url")
     private String jdbcUrl;
+
+    /** Inverse relationship of the associated instance. Not fetched by default. */
+    @OneToOne(optional = true, mappedBy = "connection", fetch = FetchType.LAZY)
+    private DeploymentInstance instance;
 
 }

@@ -10,6 +10,7 @@ import org.vaadin.viritin.layouts.MWindow;
 import org.xlrnet.datac.database.domain.DeploymentGroup;
 import org.xlrnet.datac.database.domain.DeploymentRoot;
 import org.xlrnet.datac.database.domain.IDatabaseInstance;
+import org.xlrnet.datac.database.domain.InstanceType;
 import org.xlrnet.datac.database.util.DatabaseGroupHierarchicalDataProvider;
 import org.xlrnet.datac.database.util.DatabaseInstanceIconProvider;
 
@@ -17,9 +18,13 @@ import com.vaadin.ui.TreeGrid;
 import com.vaadin.ui.renderers.HtmlRenderer;
 import com.vaadin.ui.themes.ValoTheme;
 
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Simple modal window which allows the selection of a deployment group.
  */
+@Slf4j
 public class DeploymentGroupSelectorWindow extends MWindow {
 
     private final DatabaseGroupHierarchicalDataProvider dataProvider;
@@ -28,16 +33,20 @@ public class DeploymentGroupSelectorWindow extends MWindow {
 
     private final MHorizontalLayout buttonLayout = new MHorizontalLayout();
 
-    /** Handler which will be called on success. */
-    private final Consumer<DeploymentGroup> successHandler;
+    /** Handler which will be called on success. May not be null. */
+    @Setter
+    private Consumer<DeploymentGroup> successHandler;
+
+    /** Flag whether the root group can be selected or not. */
+    @Setter
+    private boolean allowRootSelection;
 
     /** The selected value. */
     private IDatabaseInstance selectedValue;
 
-    public DeploymentGroupSelectorWindow(DatabaseGroupHierarchicalDataProvider dataProvider, Consumer<DeploymentGroup> successHandler) {
+    public DeploymentGroupSelectorWindow(DatabaseGroupHierarchicalDataProvider dataProvider) {
         super();
         this.dataProvider = dataProvider;
-        this.successHandler = successHandler;
         buildContent();
         setContent(content);
         setModal(true);
@@ -46,12 +55,10 @@ public class DeploymentGroupSelectorWindow extends MWindow {
     private void buildContent() {
         MButton selectButton = new MButton("Select").withStyleName(ValoTheme.BUTTON_PRIMARY).withEnabled(false)
                 .withListener((e) -> {
-                    if (successHandler != null) {
-                        if (selectedValue instanceof DeploymentRoot) {
-                            successHandler.accept(null);
-                        } else {
-                            successHandler.accept((DeploymentGroup) selectedValue);
-                        }
+                    if (selectedValue instanceof DeploymentRoot) {
+                        successHandler.accept(null);
+                    } else {
+                        successHandler.accept((DeploymentGroup) selectedValue);
                     }
                     close();
                 });
@@ -61,15 +68,29 @@ public class DeploymentGroupSelectorWindow extends MWindow {
 
         TreeGrid<IDatabaseInstance> treeGrid = new TreeGrid<>();
         treeGrid.addSelectionListener((d) -> {
-            selectButton.setEnabled(d.getFirstSelectedItem().isPresent());
-            selectedValue = d.getFirstSelectedItem().isPresent() ? d.getFirstSelectedItem().get() : null;
+            boolean enabled = false;
+            if (d.getFirstSelectedItem().isPresent()) {
+                IDatabaseInstance selection = d.getFirstSelectedItem().get();
+                if ((selection.getInstanceType() == InstanceType.ROOT && allowRootSelection)
+                        || selection.getInstanceType() == InstanceType.GROUP) {
+                    enabled = true;
+                }
+            }
+            selectButton.setEnabled(enabled);
+            selectedValue = enabled ? d.getFirstSelectedItem().get() : null;
         });
         treeGrid.setDataProvider(dataProvider);
         treeGrid.addColumn(new DatabaseInstanceIconProvider(), new HtmlRenderer());
         treeGrid.setHeaderVisible(false);
 
-        MLabel label = new MLabel("Select a new parent group");
+        MLabel label = new MLabel("Select a parent group for the new object");
 
         content.with(label, treeGrid, buttonLayout);
+
+        this.addAttachListener((e) -> {
+            LOGGER.trace("Attaching window {} to UI", DeploymentGroupSelectorWindow.class.getName());
+            treeGrid.collapse(dataProvider.getDeploymentRoot());
+            dataProvider.refreshAll();
+        });
     }
 }

@@ -2,10 +2,12 @@ package org.xlrnet.datac.administration.ui.views.database;
 
 import java.util.Collection;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.fields.MTextField;
 import org.vaadin.viritin.layouts.MVerticalLayout;
-import org.xlrnet.datac.database.domain.DeploymentGroup;
+import org.xlrnet.datac.database.domain.DatabaseConnection;
+import org.xlrnet.datac.database.domain.DeploymentInstance;
 import org.xlrnet.datac.foundation.ui.components.AbstractEntityForm;
 import org.xlrnet.datac.vcs.domain.Branch;
 
@@ -21,20 +23,24 @@ import com.vaadin.ui.HorizontalLayout;
  */
 @UIScope
 @SpringComponent
-public class AdminDeploymentGroupForm extends AbstractEntityForm<DeploymentGroup> {
+public class AdminDeploymentInstanceForm extends AbstractEntityForm<DeploymentInstance> {
+    // TODO: Refactor to use the same form as AdminDeploymentGroupForm
 
     /** Name of the group. */
-    private final MTextField name = new MTextField("Group name").withFullWidth();
+    private final MTextField name = new MTextField("Instance name").withFullWidth();
 
     /** Read-only name of the parent group. */
     private final MTextField parentGroupName = new MTextField("Parent group").withReadOnly(true).withFullWidth();
 
-    /** Optional branch which should be tracked by this group.*/
+    /** Branch which should be tracked by this instance.*/
     private final ComboBox<Branch> branch = new ComboBox<>("Tracked branch");
 
+    /** Database connection to use for this instance. */
+    private final ComboBox<DatabaseConnection> connection = new ComboBox<>("Database connection");
+
     @Autowired
-    public AdminDeploymentGroupForm() {
-        super(DeploymentGroup.class);
+    public AdminDeploymentInstanceForm() {
+        super(DeploymentInstance.class);
     }
 
     @Override
@@ -44,18 +50,25 @@ public class AdminDeploymentGroupForm extends AbstractEntityForm<DeploymentGroup
         branch.setWidth("100%");
         branch.setEmptySelectionAllowed(false);
         branch.setItemCaptionGenerator(Branch::getName);
-        return content.with(parentGroupName, name, branch, toolbar);
+        connection.setWidth("100%");
+        connection.setEmptySelectionAllowed(false);
+        connection.setItemCaptionGenerator(DatabaseConnection::getName);
+        return content.with(parentGroupName, name, branch, connection, toolbar);
     }
 
-    @Override
-    public void setEntity(DeploymentGroup entity) {
-        super.setEntity(entity);
-        String parentName = entity.getParent() != null ? entity.getParentPath() : "";
-        parentGroupName.setValue(parentName);
+    public void setAvailableConnections(Collection<DatabaseConnection> connections) {
+        connection.setDataProvider(DataProvider.ofCollection(connections));
     }
 
     public void setAvailableBranches(Collection<Branch> branches) {
         branch.setDataProvider(DataProvider.ofCollection(branches));
+    }
+
+    @Override
+    public void setEntity(DeploymentInstance entity) {
+        super.setEntity(entity);
+        String parentName = StringUtils.stripToEmpty(entity.getGroup().getParentPath()) + entity.getGroup().getName();
+        parentGroupName.setValue(parentName);
     }
 
     @Override

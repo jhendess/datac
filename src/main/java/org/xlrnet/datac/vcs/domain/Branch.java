@@ -1,21 +1,28 @@
 package org.xlrnet.datac.vcs.domain;
 
-import com.google.common.base.MoreObjects;
+import java.util.Objects;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.validator.constraints.NotEmpty;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.domain.Project;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-import java.util.Objects;
+import com.google.common.base.MoreObjects;
 
 /**
  * Representation of a branch in a VCS.
  */
 @Entity
 @Table(name = "branch")
+// FIXME: Add somewhere a validation which ensures that only tracked branches are attached to instances
 public class Branch extends AbstractEntity implements Comparable<Branch> {
 
     @NotEmpty

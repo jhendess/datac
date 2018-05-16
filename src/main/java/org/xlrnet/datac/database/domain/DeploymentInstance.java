@@ -49,6 +49,10 @@ public class DeploymentInstance extends AbstractEntity implements IDatabaseInsta
     @JoinColumn(name = "connection_id")
     private DatabaseConnection connection;
 
+    public DeploymentInstance(DeploymentGroup group) {
+        this.group = group;
+    }
+
     public DeploymentInstance(String name, DatabaseConnection connection) {
         this.name = name;
         this.connection = connection;
