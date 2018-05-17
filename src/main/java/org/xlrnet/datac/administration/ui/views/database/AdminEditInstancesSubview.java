@@ -1,5 +1,6 @@
 package org.xlrnet.datac.administration.ui.views.database;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang3.math.NumberUtils;
@@ -9,12 +10,14 @@ import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.exception.IllegalUIStateException;
+import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.database.domain.DeploymentGroup;
 import org.xlrnet.datac.database.domain.DeploymentInstance;
 import org.xlrnet.datac.database.domain.IDatabaseInstance;
 import org.xlrnet.datac.database.services.DatabaseConnectionService;
-import org.xlrnet.datac.database.services.DatabaseDeploymentManagementService;
+import org.xlrnet.datac.database.services.DeploymentGroupService;
+import org.xlrnet.datac.database.services.DeploymentInstanceService;
 import org.xlrnet.datac.database.util.DatabaseGroupHierarchicalDataProvider;
 import org.xlrnet.datac.database.util.DatabaseInstanceIconProvider;
 import org.xlrnet.datac.foundation.domain.Project;
@@ -47,9 +50,12 @@ public class AdminEditInstancesSubview extends AbstractSubview {
     /** Service for accessing project data. */
     private final ProjectService projectService;
 
-    /** Service for accessing instance data. */
-    private final DatabaseDeploymentManagementService deploymentManagementService;
+    /** Service for managing deployment groups. */
+    private final DeploymentGroupService deploymentGroupService;
 
+    /** Service for managing deployment instances.*/
+    private final DeploymentInstanceService deploymentInstanceService;
+    
     /** Service for accessing connection data. */
     private final DatabaseConnectionService connectionService;
 
@@ -82,9 +88,10 @@ public class AdminEditInstancesSubview extends AbstractSubview {
     private List<Branch> availableBranchesInProject;
 
     @Autowired
-    public AdminEditInstancesSubview(ProjectService projectService, DatabaseDeploymentManagementService deploymentManagementService, DatabaseConnectionService connectionService, BranchService branchService, AdminDeploymentGroupForm groupForm, AdminDeploymentInstanceForm instanceForm) {
+    public AdminEditInstancesSubview(ProjectService projectService, DeploymentGroupService deploymentGroupService, DeploymentInstanceService deploymentInstanceService, DatabaseConnectionService connectionService, BranchService branchService, AdminDeploymentGroupForm groupForm, AdminDeploymentInstanceForm instanceForm) {
         this.projectService = projectService;
-        this.deploymentManagementService = deploymentManagementService;
+        this.deploymentGroupService = deploymentGroupService;
+        this.deploymentInstanceService = deploymentInstanceService;
         this.connectionService = connectionService;
         this.branchService = branchService;
         this.groupForm = groupForm;
@@ -102,7 +109,7 @@ public class AdminEditInstancesSubview extends AbstractSubview {
             LOGGER.warn("Unable to find project {}", project);
             throw new IllegalUIStateException("Unable to find project " + projectId, VIEW_NAME, getParameters());
         }
-        availableBranchesInProject = branchService.findAllWatchedByProject(project);
+        availableBranchesInProject = Collections.unmodifiableList(branchService.findAllWatchedByProject(project));
     }
 
     @NotNull
@@ -125,7 +132,7 @@ public class AdminEditInstancesSubview extends AbstractSubview {
         MHorizontalLayout mainLayout = new MHorizontalLayout().withFullSize();
 
         DatabaseGroupHierarchicalDataProvider groupSelectorDataProvider = new DatabaseGroupHierarchicalDataProvider(
-                deploymentManagementService, getProject(), true);
+                deploymentGroupService, getProject(), true);
         DeploymentGroupSelectorWindow groupSelectorWindow = new DeploymentGroupSelectorWindow(groupSelectorDataProvider);
 
         MButton newGroupButton = new MButton("New group");
@@ -152,9 +159,9 @@ public class AdminEditInstancesSubview extends AbstractSubview {
         editorLayout.with(groupForm);
         editorLayout.with(instanceForm);
 
-        dataProvider = new DatabaseGroupHierarchicalDataProvider(deploymentManagementService, getProject(), true);
+        dataProvider = new DatabaseGroupHierarchicalDataProvider(deploymentGroupService, getProject(), true);
         treeGrid = new TreeGrid<>(dataProvider);
-        treeGrid.setWidth("100%");
+        treeGrid.setWidth(DatacTheme.FULL_SIZE);
         treeGrid.addSelectionListener((e) -> {
             if (e.getFirstSelectedItem().isPresent()) {
                 IDatabaseInstance databaseInstance = e.getFirstSelectedItem().get();
@@ -179,14 +186,16 @@ public class AdminEditInstancesSubview extends AbstractSubview {
         treeGrid.addColumn(new DatabaseInstanceIconProvider(), new HtmlRenderer()).setCaption("Name");
         groupForm.setSavedHandler(this::saveGroup);
         groupForm.setDeleteHandler(this::deleteGroup);
-        groupForm.setDeleteMessageGenerator(this::generateDeleteMessage);
+        groupForm.setDeleteMessageGenerator(this::generateDeleteGroupMessage);
         groupForm.setResetHandler(g -> groupForm.setVisible(false));
         groupForm.setAvailableBranches(availableBranchesInProject);
         groupForm.setVisible(false);
         instanceForm.setVisible(false);
         instanceForm.setAvailableBranches(availableBranchesInProject);
         instanceForm.setResetHandler(i -> instanceForm.setVisible(false));
-        // TODO: setup instance handlers
+        instanceForm.setSavedHandler(this::saveInstance);
+        instanceForm.setDeleteHandler(this::deleteInstance);
+        instanceForm.setDeleteMessageGenerator(this::generateDeleteInstanceMessage);
         treeGrid.expand(dataProvider.getDeploymentRoot());
 
         mainLayout.with(treeGrid).withExpand(treeGrid, 0.75f);
@@ -203,6 +212,8 @@ public class AdminEditInstancesSubview extends AbstractSubview {
     private void newInstance(DeploymentGroup parentGroup) {
         DeploymentInstance deploymentInstance = new DeploymentInstance(parentGroup);
         instanceForm.setAvailableConnections(connectionService.findAllWithoutInstanceOrderByNameAsc());
+        instanceForm.getBranch().setSelectedItem(null);
+        instanceForm.getConnection().setSelectedItem(null);
         instanceForm.setEntity(deploymentInstance);
         instanceForm.setVisible(true);
     }
@@ -210,31 +221,51 @@ public class AdminEditInstancesSubview extends AbstractSubview {
     private void newParentGroup(DeploymentGroup parentGroup) {
         DeploymentGroup deploymentGroup = new DeploymentGroup(project, parentGroup);
         groupForm.setEntity(deploymentGroup);
+        groupForm.getBranch().setSelectedItem(null);
         groupForm.setVisible(true);
     }
 
     @NotNull
-    private String generateDeleteMessage(DeploymentGroup deploymentGroup) {
+    private String generateDeleteInstanceMessage(DeploymentInstance instance) {
+        return String.format("Do you really want to delete the instance%n%s?%nThis removes all historic deployment information and can't be reverted!", instance.getName());
+    }
+
+    @NotNull
+    private String generateDeleteGroupMessage(DeploymentGroup deploymentGroup) {
         return String.format("Do you really want to delete the group%n%s?%nThis removes all historic deployment information and can't be reverted!", deploymentGroup.getName());
     }
 
+    private void deleteInstance(DeploymentInstance deploymentInstance) {
+        deploymentInstanceService.delete(deploymentInstance);
+        instanceForm.setVisible(false);
+        dataProvider.refreshAll();
+    }
+
     private void deleteGroup(DeploymentGroup deploymentGroup) {
-        if (deploymentManagementService.hasChildGroups(deploymentGroup) || !deploymentGroup.getInstances().isEmpty()) {
+        if (deploymentGroupService.hasChildGroups(deploymentGroup) || !deploymentGroup.getInstances().isEmpty()) {
             NotificationUtils.showError("Deployment groups with children can't be deleted.", false);
             return;
         }
-        deploymentManagementService.delete(deploymentGroup);
+        deploymentGroupService.delete(deploymentGroup);
         groupForm.setVisible(false);
         dataProvider.refreshAll();
     }
 
+    private void saveInstance(DeploymentInstance deploymentInstance) {
+        deploymentInstanceService.save(deploymentInstance);
+        dataProvider.refreshAll();
+        treeGrid.expand(deploymentInstance.getGroup());
+        instanceForm.setVisible(false);
+    }
+
     private void saveGroup(DeploymentGroup deploymentGroup) {
-        deploymentManagementService.save(deploymentGroup);
+        deploymentGroupService.save(deploymentGroup);
         if (deploymentGroup.getParent() != null) {
             dataProvider.refreshItem(deploymentGroup.getParent());
             treeGrid.expand(deploymentGroup.getParent());
         } else {
             dataProvider.refreshAll();
+            treeGrid.expand(dataProvider.getDeploymentRoot());
         }
         groupForm.setVisible(false);
     }

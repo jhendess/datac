@@ -89,8 +89,10 @@ public class DeploymentGroupSelectorWindow extends MWindow {
 
         this.addAttachListener((e) -> {
             LOGGER.trace("Attaching window {} to UI", DeploymentGroupSelectorWindow.class.getName());
+            treeGrid.getSelectionModel().deselectAll();
             treeGrid.collapse(dataProvider.getDeploymentRoot());
             dataProvider.refreshAll();
+            treeGrid.expand(dataProvider.getDeploymentRoot());
         });
     }
 }

@@ -70,7 +70,8 @@ public class NotificationUtils {
         } else {
             notification.setDelayMsec(ERROR_NOTIFICATION_DELAY_MS);
         }
-        applyDefaultAndShow(notification);
+        notification.setPosition(Position.BOTTOM_RIGHT);
+        notification.show(Page.getCurrent());
     }
 
     /**

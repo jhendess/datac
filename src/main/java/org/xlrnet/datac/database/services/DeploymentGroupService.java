@@ -1,6 +1,7 @@
 package org.xlrnet.datac.database.services;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.Set;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,14 +10,14 @@ import org.xlrnet.datac.database.domain.repository.DeploymentGroupRepository;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 
-import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * Service for managing deployment groups.
+ * Service for accessing and modifying {@link DeploymentGroup} objects.
  */
 @Slf4j
 @Service
-public class DatabaseDeploymentManagementService extends AbstractTransactionalService<DeploymentGroup, DeploymentGroupRepository> {
+public class DeploymentGroupService extends AbstractTransactionalService<DeploymentGroup, DeploymentGroupRepository> {
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
@@ -25,7 +26,7 @@ public class DatabaseDeploymentManagementService extends AbstractTransactionalSe
      *         The crud repository for providing basic crud operations.
      */
     @Autowired
-    public DatabaseDeploymentManagementService(DeploymentGroupRepository crudRepository) {
+    public DeploymentGroupService(DeploymentGroupRepository crudRepository) {
         super(crudRepository);
     }
 

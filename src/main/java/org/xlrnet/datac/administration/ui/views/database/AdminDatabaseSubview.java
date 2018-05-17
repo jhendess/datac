@@ -14,6 +14,7 @@ import org.xlrnet.datac.database.domain.ConnectionPingResult;
 import org.xlrnet.datac.database.domain.DatabaseConnection;
 import org.xlrnet.datac.database.services.ConnectionManagerService;
 import org.xlrnet.datac.database.services.DatabaseConnectionService;
+import org.xlrnet.datac.database.services.DeploymentInstanceService;
 import org.xlrnet.datac.database.tasks.CheckDatabaseConnectionTask;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
 
@@ -45,6 +46,11 @@ public class AdminDatabaseSubview extends AbstractSubview {
     private final ConnectionManagerService connectionManagerService;
 
     /**
+     * Service for accessing deployment instances.
+     */
+    private final DeploymentInstanceService instanceService;
+
+    /**
      * Form for editing database connections.
      */
     private final AdminDatabaseConnectionForm dbForm;
@@ -55,9 +61,10 @@ public class AdminDatabaseSubview extends AbstractSubview {
     private final TaskExecutor taskExecutor;
 
     @Autowired
-    public AdminDatabaseSubview(DatabaseConnectionService connectionService, ConnectionManagerService connectionManagerService, AdminDatabaseConnectionForm dbForm, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor) {
+    public AdminDatabaseSubview(DatabaseConnectionService connectionService, ConnectionManagerService connectionManagerService, DeploymentInstanceService instanceService, AdminDatabaseConnectionForm dbForm, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor) {
         this.connectionService = connectionService;
         this.connectionManagerService = connectionManagerService;
+        this.instanceService = instanceService;
         this.dbForm = dbForm;
         this.taskExecutor = taskExecutor;
     }
@@ -131,11 +138,15 @@ public class AdminDatabaseSubview extends AbstractSubview {
     private AbstractForm.DeleteHandler<DatabaseConnection> buildDeleteHandler() {
         return (connection -> {
             if (connection != null && connection.isPersisted()) {
-                connectionService.delete(connection);
-                NotificationUtils.showSaveSuccess();
+                if (connection.getInstance() == null) {
+                    connectionService.delete(connection);
+                    NotificationUtils.showSaveSuccess();
+                    hideEditor();
+                } else {
+                    NotificationUtils.showError("Deletion failed", String.format("The connection can't be deleted because it is bound to the project %s on instance %s", connection.getInstance().getGroup().getProject().getName(), connection.getInstance().getName()), true);
+                }
             }
             updateConnections();
-            hideEditor();
         });
     }
 

@@ -2,7 +2,6 @@ package org.xlrnet.datac.administration.ui.views.database;
 
 import java.util.Collection;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.fields.MTextField;
 import org.vaadin.viritin.layouts.MVerticalLayout;
@@ -17,6 +16,9 @@ import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
+
+import lombok.AccessLevel;
+import lombok.Getter;
 
 /**
  * Simple editor component for deployment groups connections.
@@ -33,9 +35,11 @@ public class AdminDeploymentInstanceForm extends AbstractEntityForm<DeploymentIn
     private final MTextField parentGroupName = new MTextField("Parent group").withReadOnly(true).withFullWidth();
 
     /** Branch which should be tracked by this instance.*/
+    @Getter(AccessLevel.PROTECTED)
     private final ComboBox<Branch> branch = new ComboBox<>("Tracked branch");
 
     /** Database connection to use for this instance. */
+    @Getter(AccessLevel.PROTECTED)
     private final ComboBox<DatabaseConnection> connection = new ComboBox<>("Database connection");
 
     @Autowired
@@ -67,7 +71,8 @@ public class AdminDeploymentInstanceForm extends AbstractEntityForm<DeploymentIn
     @Override
     public void setEntity(DeploymentInstance entity) {
         super.setEntity(entity);
-        String parentName = StringUtils.stripToEmpty(entity.getGroup().getParentPath()) + entity.getGroup().getName();
+        String parentPath = entity.getGroup().getParentPath();
+        String parentName = parentPath == null ? entity.getGroup().getName() : parentPath + "/" + entity.getGroup().getName();
         parentGroupName.setValue(parentName);
     }
 

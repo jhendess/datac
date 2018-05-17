@@ -69,7 +69,7 @@ public class DeploymentGroup extends AbstractEntity implements IDatabaseInstance
 
     /** Instances in this deployment group. */
     @Getter
-    @OneToMany(mappedBy = "group", targetEntity = DeploymentInstance.class, cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "group", targetEntity = DeploymentInstance.class, fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     private Set<DeploymentInstance> instances = new HashSet<>();
 
     public DeploymentGroup(String name, Project project) {

@@ -1,5 +1,9 @@
 package org.xlrnet.datac.database.services;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xlrnet.datac.AbstractSpringBootTest;
@@ -11,27 +15,32 @@ import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.test.domain.EntityCreatorUtil;
 import org.xlrnet.datac.vcs.domain.Branch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-public class DatabaseDeploymentManagementServiceTest extends AbstractSpringBootTest {
+public class DeploymentGroupServiceTest extends AbstractSpringBootTest {
 
     @Autowired
     private ProjectService projectService;
 
     @Autowired
-    private DatabaseDeploymentManagementService deploymentManagementService;
+    private DeploymentGroupService deploymentManagementService;
 
     @Autowired
     private DatabaseConnectionService connectionService;
 
-    @Test
-    public void testPersistDatabaseGroup() {
+    @Autowired
+    private DeploymentInstanceService instanceService;
+
+    private Project project;
+
+    @Before
+    public void setup() {
         Project entity = EntityCreatorUtil.buildProject();
         Branch branch = EntityCreatorUtil.buildBranch();
         entity.addBranch(branch.setDevelopment(true));
-        Project project = projectService.save(entity);
+        project = projectService.save(entity);
+    }
 
+    @Test
+    public void testPersistDatabaseGroup() {
         DeploymentGroup rootGroup = new DeploymentGroup("Test group", project);
         DeploymentGroup childGroup1 = new DeploymentGroup("Child 1", project);
         DeploymentGroup childGroup2 = new DeploymentGroup("Child 2", project);
@@ -54,8 +63,7 @@ public class DatabaseDeploymentManagementServiceTest extends AbstractSpringBootT
         DeploymentGroup reloaded = deploymentManagementService.findOne(savedRoot.getId());
 
         assertNotNull(reloaded);
-        assertEquals(1, rootGroup.getInstances().size());
-        assertEquals(2, rootGroup.getChildren().size());
+        assertEquals(1, savedRoot.getInstances().size());
+        assertEquals(2, savedRoot.getChildren().size());
     }
-
 }

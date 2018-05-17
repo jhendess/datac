@@ -1,15 +1,17 @@
 package org.xlrnet.datac.administration.ui.views.eventlog;
 
+import org.apache.commons.lang3.StringUtils;
+import org.vaadin.viritin.layouts.MVerticalLayout;
+import org.xlrnet.datac.commons.ui.DatacTheme;
+import org.xlrnet.datac.commons.util.DateTimeUtils;
+import org.xlrnet.datac.commons.util.DisplayUtils;
+import org.xlrnet.datac.foundation.domain.EventLogMessage;
+
 import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Window;
-import org.apache.commons.lang3.StringUtils;
-import org.vaadin.viritin.layouts.MVerticalLayout;
-import org.xlrnet.datac.commons.util.DateTimeUtils;
-import org.xlrnet.datac.commons.util.DisplayUtils;
-import org.xlrnet.datac.foundation.domain.EventLogMessage;
 
 /**
  * Window which displays a detailed view of a single eventlog message.
@@ -26,7 +28,7 @@ public class EventLogDetailWindow extends Window {
         layout.addStyleName(DisplayUtils.severityToStyle(message.getSeverity()));
 
         GridLayout gridLayout = new GridLayout(2, 5);
-        gridLayout.setWidth("100%");
+        gridLayout.setWidth(DatacTheme.FULL_SIZE);
 
         gridLayout.addComponent(new Label("Time:"));
         gridLayout.addComponent(new Label(DateTimeUtils.format(message.getCreatedAt())));

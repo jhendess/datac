@@ -6,6 +6,11 @@ package org.xlrnet.datac.commons.ui;
 public class DatacTheme {
 
     /**
+     * Full size component (100%) for use in Vaadin calls like setWidth().
+     */
+    public static final String FULL_SIZE = "100%";
+
+    /**
      * Wide textfield.
      */
     public static final String FIELD_WIDE = "field-wide";

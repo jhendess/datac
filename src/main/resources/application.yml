@@ -13,7 +13,6 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
   jta:
     bitronix:
       properties:

@@ -45,8 +45,8 @@ public class LoggingVaadinErrorHandler implements ErrorHandler {
             eventLog.setDelegate(eventLogService.newEventLog().setType(EventType.UNCAUGHT_EXCEPTION));
         }
         Throwable throwable = event.getThrowable();
-        LOGGER.error("An unexpected UI error occurred", throwable);
-        eventLogService.addExceptionToEventLog(eventLog, "An unexpected UI error occurred", throwable);
+        LOGGER.error("An unexpected error occurred while processing a UI action", throwable);
+        eventLogService.addExceptionToEventLog(eventLog, "An unexpected error occurred while processing a UI action", throwable);
         try {
             eventLogService.save(eventLog);
             if (UI.getCurrent() != null) {

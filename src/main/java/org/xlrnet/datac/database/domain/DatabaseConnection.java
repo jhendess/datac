@@ -6,7 +6,6 @@ import javax.persistence.Entity;
 import javax.persistence.EntityListeners;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -20,6 +19,8 @@ import org.xlrnet.datac.foundation.domain.PasswordEncryptedEntity;
 import org.xlrnet.datac.foundation.domain.PasswordEncryptionListener;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 /**
  * Configuration object for a single database connection.
@@ -27,7 +28,9 @@ import lombok.Data;
 @Data
 @Entity
 @Table(name = "db_connection")
+@ToString(of = {"name", "type"})
 @EntityListeners(PasswordEncryptionListener.class)
+@EqualsAndHashCode(callSuper = true, of = {"name", "type"})
 public class DatabaseConnection extends AbstractEntity implements PasswordEncryptedEntity {
 
     /**
@@ -102,8 +105,8 @@ public class DatabaseConnection extends AbstractEntity implements PasswordEncryp
     @Column(name = "url")
     private String jdbcUrl;
 
-    /** Inverse relationship of the associated instance. Not fetched by default. */
-    @OneToOne(optional = true, mappedBy = "connection", fetch = FetchType.LAZY)
+    /** Inverse relationship of the associated instance. */
+    @OneToOne(mappedBy = "connection")
     private DeploymentInstance instance;
 
 }

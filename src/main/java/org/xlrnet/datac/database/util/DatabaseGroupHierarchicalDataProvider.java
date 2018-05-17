@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 import org.xlrnet.datac.database.domain.DeploymentGroup;
 import org.xlrnet.datac.database.domain.DeploymentRoot;
 import org.xlrnet.datac.database.domain.IDatabaseInstance;
-import org.xlrnet.datac.database.services.DatabaseDeploymentManagementService;
+import org.xlrnet.datac.database.services.DeploymentGroupService;
 import org.xlrnet.datac.foundation.domain.Project;
 
 import com.vaadin.data.provider.AbstractBackEndHierarchicalDataProvider;
@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DatabaseGroupHierarchicalDataProvider extends AbstractBackEndHierarchicalDataProvider<IDatabaseInstance, Object> {
 
     /** Service for accessing deployment groups and instances. */
-    private final DatabaseDeploymentManagementService deploymentManagementService;
+    private final DeploymentGroupService deploymentManagementService;
 
     /** The project root in which all deployment groups must reside. */
     @Getter(AccessLevel.PROTECTED)
@@ -36,7 +36,7 @@ public class DatabaseGroupHierarchicalDataProvider extends AbstractBackEndHierar
     @Getter
     private DeploymentRoot deploymentRoot;
 
-    public DatabaseGroupHierarchicalDataProvider(DatabaseDeploymentManagementService deploymentManagementService, Project project, boolean includeInstances) {
+    public DatabaseGroupHierarchicalDataProvider(DeploymentGroupService deploymentManagementService, Project project, boolean includeInstances) {
         this.deploymentManagementService = deploymentManagementService;
         this.project = project;
         this.includeInstances = includeInstances;

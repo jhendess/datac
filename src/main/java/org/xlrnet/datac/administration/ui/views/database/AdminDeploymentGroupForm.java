@@ -5,6 +5,7 @@ import java.util.Collection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.fields.MTextField;
 import org.vaadin.viritin.layouts.MVerticalLayout;
+import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.database.domain.DeploymentGroup;
 import org.xlrnet.datac.foundation.ui.components.AbstractEntityForm;
 import org.xlrnet.datac.vcs.domain.Branch;
@@ -15,6 +16,9 @@ import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
+
+import lombok.AccessLevel;
+import lombok.Getter;
 
 /**
  * Simple editor component for deployment groups connections.
@@ -30,6 +34,7 @@ public class AdminDeploymentGroupForm extends AbstractEntityForm<DeploymentGroup
     private final MTextField parentGroupName = new MTextField("Parent group").withReadOnly(true).withFullWidth();
 
     /** Optional branch which should be tracked by this group.*/
+    @Getter(AccessLevel.PROTECTED)
     private final ComboBox<Branch> branch = new ComboBox<>("Tracked branch");
 
     @Autowired
@@ -41,7 +46,7 @@ public class AdminDeploymentGroupForm extends AbstractEntityForm<DeploymentGroup
     protected Component createContent() {
         MVerticalLayout content = new MVerticalLayout().withMargin(false);
         HorizontalLayout toolbar = getToolbar();
-        branch.setWidth("100%");
+        branch.setWidth(DatacTheme.FULL_SIZE);
         branch.setEmptySelectionAllowed(false);
         branch.setItemCaptionGenerator(Branch::getName);
         return content.with(parentGroupName, name, branch, toolbar);

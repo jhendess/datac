@@ -1,6 +1,7 @@
 package org.xlrnet.datac.foundation.ui.components;
 
 import org.vaadin.viritin.button.MButton;
+import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.commons.util.MessageGenerator;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 
@@ -42,14 +43,14 @@ public abstract class AbstractEntityForm<T extends AbstractEntity> extends org.v
 
     @Override
     protected void delete(Button.ClickEvent e) {
-        if (getEntity() != null) {
+        if (getEntity() != null && getEntity().isPersisted()) {
                 MessageBox.createWarning()
                         .withMessage(getDeleteMessageGenerator().generate(getEntity()))
                         .withYesButton(() -> super.delete(e))
                         .withNoButton()
                         .open();
         } else {
-            LOGGER.warn("Attempting to delete null object from UI");
+            NotificationUtils.showWarning("You can only delete persisted objects.");
         }
     }
 }

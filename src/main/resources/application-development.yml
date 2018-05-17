@@ -1,0 +1,14 @@
+#
+# Configuration file for the development profile
+#
+
+
+# Enable TRACE logging by default
+logging:
+  level:
+    org.xlrnet.datac: trace
+
+# Enable SQL logging
+spring:
+  jpa:
+    show-sql: true

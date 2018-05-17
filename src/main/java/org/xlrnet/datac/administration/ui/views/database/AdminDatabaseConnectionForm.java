@@ -90,7 +90,7 @@ public class AdminDatabaseConnectionForm extends AbstractEntityForm<DatabaseConn
         progressBar.setVisible(false);
         toolbar.addComponent(progressBar);
 
-        password.setWidth("100%");
+        password.setWidth(DatacTheme.FULL_SIZE);
         name.selectAll();
         type.setEmptySelectionAllowed(false);
 
