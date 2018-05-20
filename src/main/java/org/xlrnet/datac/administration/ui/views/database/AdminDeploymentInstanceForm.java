@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.database.domain.DatabaseConnection;
 import org.xlrnet.datac.database.domain.DeploymentInstance;
+import org.xlrnet.datac.database.services.DeploymentInstanceService;
+import org.xlrnet.datac.foundation.services.ValidationService;
 
 import java.util.Collection;
 
@@ -21,15 +23,15 @@ import java.util.Collection;
  */
 @UIScope
 @SpringComponent
-public class AdminDeploymentInstanceForm extends AbstractDeploymentForm<DeploymentInstance> {
+public class AdminDeploymentInstanceForm extends AbstractDeploymentForm<DeploymentInstance, DeploymentInstanceService> {
 
     /** Database connection to use for this instance. */
     @Getter(AccessLevel.PROTECTED)
     private final ComboBox<DatabaseConnection> connection = new ComboBox<>("Database connection");
 
     @Autowired
-    public AdminDeploymentInstanceForm() {
-        super(DeploymentInstance.class);
+    public AdminDeploymentInstanceForm(ValidationService validationService, DeploymentInstanceService transactionalService) {
+        super(DeploymentInstance.class, transactionalService, validationService);
         connection.setWidth("100%");
         connection.setEmptySelectionAllowed(false);
         connection.setItemCaptionGenerator(DatabaseConnection::getName);

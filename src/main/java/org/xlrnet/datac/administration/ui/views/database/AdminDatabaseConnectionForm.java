@@ -1,5 +1,12 @@
 package org.xlrnet.datac.administration.ui.views.database;
 
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.UIScope;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.ProgressBar;
+import com.vaadin.ui.themes.ValoTheme;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.fields.EnumSelect;
@@ -9,23 +16,16 @@ import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.database.domain.DatabaseConnection;
 import org.xlrnet.datac.database.domain.DatabaseType;
+import org.xlrnet.datac.database.services.DatabaseConnectionService;
+import org.xlrnet.datac.foundation.services.ValidationService;
 import org.xlrnet.datac.foundation.ui.components.AbstractEntityForm;
-
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.UIScope;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.HorizontalLayout;
-import com.vaadin.ui.ProgressBar;
-import com.vaadin.ui.themes.ValoTheme;
-
-import lombok.Getter;
 
 /**
  * Simple editor component for database connections.
  */
 @UIScope
 @SpringComponent
-public class AdminDatabaseConnectionForm extends AbstractEntityForm<DatabaseConnection> {
+public class AdminDatabaseConnectionForm extends AbstractEntityForm<DatabaseConnection, DatabaseConnectionService> {
 
     /**
      * Login name of the entity.
@@ -77,8 +77,8 @@ public class AdminDatabaseConnectionForm extends AbstractEntityForm<DatabaseConn
     private ProgressBar progressBar = new ProgressBar();
 
     @Autowired
-    public AdminDatabaseConnectionForm() {
-        super(DatabaseConnection.class);
+    public AdminDatabaseConnectionForm(ValidationService validationService, DatabaseConnectionService transactionalService) {
+        super(DatabaseConnection.class, transactionalService, validationService);
     }
 
     @Override

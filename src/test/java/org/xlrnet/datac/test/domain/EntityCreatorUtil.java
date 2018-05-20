@@ -1,5 +1,6 @@
 package org.xlrnet.datac.test.domain;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.database.domain.DatabaseConnection;
 import org.xlrnet.datac.database.domain.DatabaseType;
@@ -19,7 +20,7 @@ public class EntityCreatorUtil {
     @NotNull
     public static Branch buildBranch() {
         Branch testBranch = new Branch();
-        testBranch.setName("1");
+        testBranch.setName(RandomStringUtils.randomAlphabetic(10));
         testBranch.setDevelopment(true);
         testBranch.setInternalId("1");
         return testBranch;

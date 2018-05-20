@@ -7,6 +7,8 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.vaadin.viritin.fields.MTextField;
 import org.xlrnet.datac.database.domain.AbstractDeploymentInstance;
+import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
+import org.xlrnet.datac.foundation.services.ValidationService;
 import org.xlrnet.datac.foundation.ui.components.AbstractEntityForm;
 import org.xlrnet.datac.vcs.domain.Branch;
 
@@ -15,7 +17,7 @@ import java.util.Collection;
 /**
  * Abstract form for deployment instances and groups.
  */
-public abstract class AbstractDeploymentForm<T extends AbstractDeploymentInstance> extends AbstractEntityForm<T> {
+public abstract class AbstractDeploymentForm<T extends AbstractDeploymentInstance, S extends AbstractTransactionalService<T, ?>> extends AbstractEntityForm<T, S> {
 
     /** Name of the group. */
     @Getter(AccessLevel.PROTECTED)
@@ -29,8 +31,8 @@ public abstract class AbstractDeploymentForm<T extends AbstractDeploymentInstanc
     @Getter(AccessLevel.PROTECTED)
     private final ComboBox<Branch> branch = new ComboBox<>("Tracked branch (inherited if empty)");
 
-    AbstractDeploymentForm(Class<T> entityType) {
-        super(entityType);
+    AbstractDeploymentForm(Class<T> entityType, S transactionalService, ValidationService validationService) {
+        super(entityType, transactionalService, validationService);
         branch.setWidth("100%");
         branch.setEmptySelectionAllowed(true);
         branch.setItemCaptionGenerator(Branch::getName);

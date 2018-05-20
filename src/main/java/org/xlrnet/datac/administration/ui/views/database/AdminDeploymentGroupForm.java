@@ -8,17 +8,19 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.database.domain.DeploymentGroup;
+import org.xlrnet.datac.database.services.DeploymentGroupService;
+import org.xlrnet.datac.foundation.services.ValidationService;
 
 /**
  * Simple editor component for deployment groups connections.
  */
 @UIScope
 @SpringComponent
-public class AdminDeploymentGroupForm extends AbstractDeploymentForm<DeploymentGroup> {
+public class AdminDeploymentGroupForm extends AbstractDeploymentForm<DeploymentGroup, DeploymentGroupService> {
 
     @Autowired
-    public AdminDeploymentGroupForm() {
-        super(DeploymentGroup.class);
+    public AdminDeploymentGroupForm(ValidationService validationService, DeploymentGroupService transactionalService) {
+        super(DeploymentGroup.class, transactionalService, validationService);
     }
 
     @Override

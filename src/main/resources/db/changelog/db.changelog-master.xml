@@ -498,4 +498,21 @@
                                  referencedTableName="db_group"
                                  referencedColumnNames="id" onDelete="CASCADE"/>
     </changeSet>
+    <changeSet id="29" author="jhendess">
+        <comment>Add branch column to deployment group and instance tables</comment>
+        <addColumn tableName="db_group">
+            <column name="branch_id" type="INTEGER"
+                    remarks="Tracked branch for deployments in this group. Inherited from parent if empty."/>
+        </addColumn>
+        <addColumn tableName="db_instance">
+            <column name="branch_id" type="INTEGER"
+                    remarks="Tracked branch for deployments on this instance. Inherited from parent if empty."/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="db_group" baseColumnNames="branch_id"
+                                 constraintName="fk_db_group__branch" referencedTableName="branch"
+                                 referencedColumnNames="id"/>
+        <addForeignKeyConstraint baseTableName="db_instance" baseColumnNames="branch_id"
+                                 constraintName="fk_db_instance__branch" referencedTableName="branch"
+                                 referencedColumnNames="id"/>
+    </changeSet>
 </databaseChangeLog>

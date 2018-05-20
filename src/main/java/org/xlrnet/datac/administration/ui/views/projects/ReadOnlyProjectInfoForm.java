@@ -12,6 +12,8 @@ import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
 import org.xlrnet.datac.database.services.DatabaseChangeSystemAdapterRegistry;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.services.ProjectService;
+import org.xlrnet.datac.foundation.services.ValidationService;
 import org.xlrnet.datac.foundation.ui.components.AbstractEntityForm;
 import org.xlrnet.datac.vcs.api.VcsMetaInfo;
 import org.xlrnet.datac.vcs.domain.Branch;
@@ -24,7 +26,7 @@ import java.util.Optional;
  */
 @UIScope
 @SpringComponent
-public class ReadOnlyProjectInfoForm extends AbstractEntityForm<Project> {
+public class ReadOnlyProjectInfoForm extends AbstractEntityForm<Project, ProjectService> {
 
     /**
      * Name of the project.
@@ -91,8 +93,8 @@ public class ReadOnlyProjectInfoForm extends AbstractEntityForm<Project> {
      */
     private final DatabaseChangeSystemAdapterRegistry dcsRegistry;
 
-    public ReadOnlyProjectInfoForm(VersionControlSystemRegistry vcsRegistry, DatabaseChangeSystemAdapterRegistry dcsRegistry) {
-        super(Project.class);
+    public ReadOnlyProjectInfoForm(VersionControlSystemRegistry vcsRegistry, DatabaseChangeSystemAdapterRegistry dcsRegistry, ValidationService validationService) {
+        super(Project.class, null, validationService);
         this.vcsRegistry = vcsRegistry;
         this.dcsRegistry = dcsRegistry;
     }

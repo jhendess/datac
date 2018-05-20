@@ -4,9 +4,11 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.xlrnet.datac.vcs.domain.Branch;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
@@ -26,8 +28,8 @@ public class DeploymentInstance extends AbstractDeploymentInstance {
     @Setter
     @Getter
     @NotNull
-    @OneToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "group_id")
+    @OneToOne(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
     private DeploymentGroup group;
 
     /** The connection which is configured for this instance. */
@@ -63,5 +65,17 @@ public class DeploymentInstance extends AbstractDeploymentInstance {
         return "DeploymentInstance{" +
                 "name='" + getName() + '\'' +
                 '}';
+    }
+
+    @Override
+    AbstractDeploymentInstance getParent() {
+        return getGroup();
+    }
+
+    // Must be not-null for instances
+    @Override
+    @NotNull(message = "Branch must be either defined on instance or inherited from group")
+    public Branch getActualBranch() {
+        return super.getActualBranch();
     }
 }

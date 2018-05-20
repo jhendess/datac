@@ -1,6 +1,10 @@
 package org.xlrnet.datac.vcs.domain;
 
-import java.util.Objects;
+import com.google.common.base.MoreObjects;
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.validator.constraints.NotEmpty;
+import org.xlrnet.datac.foundation.domain.AbstractEntity;
+import org.xlrnet.datac.foundation.domain.Project;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -9,13 +13,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-
-import org.apache.commons.lang3.StringUtils;
-import org.hibernate.validator.constraints.NotEmpty;
-import org.xlrnet.datac.foundation.domain.AbstractEntity;
-import org.xlrnet.datac.foundation.domain.Project;
-
-import com.google.common.base.MoreObjects;
+import java.util.Objects;
 
 /**
  * Representation of a branch in a VCS.

@@ -1,8 +1,14 @@
 package org.xlrnet.datac.administration.ui.views.database;
 
-import java.util.Collections;
-import java.util.List;
-
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.TreeGrid;
+import com.vaadin.ui.renderers.HtmlRenderer;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,22 +26,15 @@ import org.xlrnet.datac.database.services.DeploymentGroupService;
 import org.xlrnet.datac.database.services.DeploymentInstanceService;
 import org.xlrnet.datac.database.util.DatabaseGroupHierarchicalDataProvider;
 import org.xlrnet.datac.database.util.DatabaseInstanceIconProvider;
+import org.xlrnet.datac.database.util.InheritedBranchNameProvider;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.services.BranchService;
 
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.TreeGrid;
-import com.vaadin.ui.renderers.HtmlRenderer;
-
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Subview for editing the instances bound to a project.
@@ -184,6 +183,7 @@ public class AdminEditInstancesSubview extends AbstractSubview {
             }
         });
         treeGrid.addColumn(new DatabaseInstanceIconProvider(), new HtmlRenderer()).setCaption("Name");
+        treeGrid.addColumn(new InheritedBranchNameProvider()).setCaption("Branch");
         groupForm.setSavedHandler(this::saveGroup);
         groupForm.setDeleteHandler(this::deleteGroup);
         groupForm.setDeleteMessageGenerator(this::generateDeleteGroupMessage);
@@ -261,12 +261,11 @@ public class AdminEditInstancesSubview extends AbstractSubview {
     private void saveGroup(DeploymentGroup deploymentGroup) {
         deploymentGroupService.save(deploymentGroup);
         if (deploymentGroup.getParent() != null) {
-            dataProvider.refreshItem(deploymentGroup.getParent());
             treeGrid.expand(deploymentGroup.getParent());
         } else {
-            dataProvider.refreshAll();
             treeGrid.expand(dataProvider.getDeploymentRoot());
         }
+        dataProvider.refreshAll();
         groupForm.setVisible(false);
     }
 }

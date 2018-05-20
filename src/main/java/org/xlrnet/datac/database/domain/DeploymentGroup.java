@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.vcs.domain.Branch;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
@@ -15,6 +16,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.HashSet;
 import java.util.Set;
@@ -48,18 +50,25 @@ public class DeploymentGroup extends AbstractDeploymentInstance implements IData
     private DeploymentGroup parent;
 
     /** Child groups. */
+    @Valid
     @Getter
     @OneToMany(targetEntity = DeploymentGroup.class, cascade = CascadeType.ALL)
     @JoinColumn(name = "parent_id")
     private Set<DeploymentGroup> children = new HashSet<>();
 
     /** Instances in this deployment group. */
+    @Valid
     @Getter
     @OneToMany(mappedBy = "group", targetEntity = DeploymentInstance.class, fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     private Set<DeploymentInstance> instances = new HashSet<>();
 
     public DeploymentGroup(String name, Project project) {
+        this(name, project, null);
+    }
+
+    public DeploymentGroup(String name, Project project, Branch branch) {
         setName(name);
+        setBranch(branch);
         this.project = project;
     }
 
