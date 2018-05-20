@@ -1,21 +1,16 @@
 package org.xlrnet.datac.database.domain;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import javax.persistence.CascadeType;
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-
-import org.hibernate.validator.constraints.NotEmpty;
-import org.xlrnet.datac.foundation.domain.AbstractEntity;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /**
  * Concrete instance of a single deployment. Instances always use a configured {@link DatabaseConnection} in order to
@@ -25,15 +20,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Table(name = "db_instance")
 @EqualsAndHashCode(callSuper = true, exclude = {"group", "connection"})
-public class DeploymentInstance extends AbstractEntity implements IDatabaseInstance, Comparable<DeploymentInstance> {
-
-    /** Name of the database instance. */
-    @Setter
-    @Getter
-    @NotEmpty
-    @Size(max = 50)
-    @Column(name = "name")
-    private String name;
+public class DeploymentInstance extends AbstractDeploymentInstance {
 
     /** Group in which this instance is deployed. */
     @Setter
@@ -56,12 +43,12 @@ public class DeploymentInstance extends AbstractEntity implements IDatabaseInsta
     }
 
     public DeploymentInstance(String name, DatabaseConnection connection) {
-        this.name = name;
+        setName(name);
         this.connection = connection;
     }
 
     public DeploymentInstance(String name, DatabaseConnection connection, DeploymentGroup group) {
-        this.name = name;
+        setName(name);
         this.connection = connection;
         this.group = group;
     }
@@ -74,12 +61,7 @@ public class DeploymentInstance extends AbstractEntity implements IDatabaseInsta
     @Override
     public String toString() {
         return "DeploymentInstance{" +
-                "name='" + name + '\'' +
+                "name='" + getName() + '\'' +
                 '}';
-    }
-
-    @Override
-    public int compareTo(@org.jetbrains.annotations.NotNull DeploymentInstance o) {
-        return this.getName().compareTo(o.getName());
     }
 }

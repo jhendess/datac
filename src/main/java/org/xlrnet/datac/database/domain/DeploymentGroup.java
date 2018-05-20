@@ -1,12 +1,13 @@
 package org.xlrnet.datac.database.domain;
 
-import static com.google.common.base.Preconditions.checkState;
-
-import java.util.HashSet;
-import java.util.Set;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import org.xlrnet.datac.foundation.domain.Project;
 
 import javax.persistence.CascadeType;
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
@@ -15,17 +16,10 @@ import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import java.util.HashSet;
+import java.util.Set;
 
-import org.hibernate.validator.constraints.NotEmpty;
-import org.xlrnet.datac.foundation.domain.AbstractEntity;
-import org.xlrnet.datac.foundation.domain.Project;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Defines a group of deployable databases.
@@ -35,15 +29,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @Table(name = "db_group")
 @EqualsAndHashCode(callSuper = true, exclude = {"project", "children", "parent", "instances"})
-public class DeploymentGroup extends AbstractEntity implements IDatabaseInstance {
-
-    /** Name of the database deployment. */
-    @Setter
-    @Getter
-    @NotEmpty
-    @Size(max = 50)
-    @Column(name = "name")
-    private String name;
+public class DeploymentGroup extends AbstractDeploymentInstance implements IDatabaseInstance {
 
     /**
      * Project to which this group belongs
@@ -73,7 +59,7 @@ public class DeploymentGroup extends AbstractEntity implements IDatabaseInstance
     private Set<DeploymentInstance> instances = new HashSet<>();
 
     public DeploymentGroup(String name, Project project) {
-        this.name = name;
+        setName(name);
         this.project = project;
     }
 
