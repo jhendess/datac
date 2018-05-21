@@ -85,7 +85,7 @@ public abstract class AbstractEntityForm<T extends AbstractEntity, S extends Abs
     boolean preSave(T entity) {
         try {
             validationService.checkConstraints(entity);
-        } catch (ConstraintViolationException cve) {
+        } catch (ConstraintViolationException cve) { // NOSONAR: Part of regular error handling (not nice, but works)
             NotificationUtils.showValidationError("Validation failed", cve.getConstraintViolations());
             return false;
         }

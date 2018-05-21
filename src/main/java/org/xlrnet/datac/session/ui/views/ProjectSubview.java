@@ -4,7 +4,11 @@ import com.vaadin.data.HasValue;
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.NativeSelect;
+import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
@@ -165,13 +169,14 @@ public class ProjectSubview extends AbstractSubview {
 
         NativeSelect<Branch> branchSelector = new NativeSelect<>();
         List<Branch> branchList = branchService.findAllWatchedByProject(project);
-        if (!branchList.contains(branch)) {
+        if (branch != null && !branchList.contains(branch)) {
             branchList.add(branch);
         }
-        Collections.sort(branchList);
-        branchSelector.setItems(branchList);
         branchSelector.setSelectedItem(branch);
         branchSelector.setEmptySelectionAllowed(false);
+        branchSelector.setEmptySelectionCaption("<Select a branch>");
+        Collections.sort(branchList);
+        branchSelector.setItems(branchList);
         branchSelector.addValueChangeListener(this::handleBranchSelectionChange);
         branchSelector.setItemCaptionGenerator(Branch::getName);
         branchSelector.setCaption("Change branch");
