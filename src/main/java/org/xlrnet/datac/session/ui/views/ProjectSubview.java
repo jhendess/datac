@@ -1,15 +1,10 @@
 package org.xlrnet.datac.session.ui.views;
 
-import com.vaadin.data.HasValue;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Alignment;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.NativeSelect;
-import com.vaadin.ui.TabSheet;
-import com.vaadin.ui.themes.ValoTheme;
+import static org.xlrnet.datac.session.ui.views.ProjectSubview.VIEW_NAME;
+
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -31,10 +26,16 @@ import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.util.Collections;
-import java.util.List;
-
-import static org.xlrnet.datac.session.ui.views.ProjectSubview.VIEW_NAME;
+import com.vaadin.data.HasValue;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.NativeSelect;
+import com.vaadin.ui.TabSheet;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Main project view which provides a tabbed view on a single proejct.
@@ -59,6 +60,7 @@ public class ProjectSubview extends AbstractSubview {
      * Parameter which may contain a branch name.
      */
     private static final String BRANCH_PARAMETER = "branch";
+    public static final String EMPTY_BRANCH_CAPTION = "<Select a branch>";
 
     /**
      * Service for accessing branch data.
@@ -172,11 +174,11 @@ public class ProjectSubview extends AbstractSubview {
         if (branch != null && !branchList.contains(branch)) {
             branchList.add(branch);
         }
-        branchSelector.setSelectedItem(branch);
-        branchSelector.setEmptySelectionAllowed(false);
-        branchSelector.setEmptySelectionCaption("<Select a branch>");
         Collections.sort(branchList);
         branchSelector.setItems(branchList);
+        branchSelector.setEmptySelectionAllowed(false);
+        //branchSelector.setEmptySelectionCaption(EMPTY_BRANCH_CAPTION);
+        branchSelector.setSelectedItem(branch);
         branchSelector.addValueChangeListener(this::handleBranchSelectionChange);
         branchSelector.setItemCaptionGenerator(Branch::getName);
         branchSelector.setCaption("Change branch");
@@ -192,8 +194,10 @@ public class ProjectSubview extends AbstractSubview {
 
     private void handleBranchSelectionChange(HasValue.ValueChangeEvent<Branch> branchValueChangeEvent) {
         Branch newBranch = branchValueChangeEvent.getValue();
-        Revision newRevision = revisionGraphService.findLastRevisionOnBranch(newBranch);
-        changeRevision(newRevision, newBranch);
+        if (newBranch != null) {
+            Revision newRevision = revisionGraphService.findLastRevisionOnBranch(newBranch);
+            changeRevision(newRevision, newBranch);
+        }
     }
 
     private void changeRevision(Revision newRevision, Branch newBranch) {
