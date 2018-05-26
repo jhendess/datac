@@ -1,12 +1,9 @@
 package org.xlrnet.datac.database.domain;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import org.xlrnet.datac.foundation.domain.Project;
-import org.xlrnet.datac.vcs.domain.Branch;
+import static com.google.common.base.Preconditions.checkState;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
@@ -18,10 +15,15 @@ import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
-import java.util.HashSet;
-import java.util.Set;
 
-import static com.google.common.base.Preconditions.checkState;
+import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.vcs.domain.Branch;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * Defines a group of deployable databases.
@@ -93,13 +95,14 @@ public class DeploymentGroup extends AbstractDeploymentInstance implements IData
         }
     }
 
+    @org.jetbrains.annotations.NotNull
     public String getParentPath() {
         if (getParent() == null) {
-            return null;
+            return "";
         } else {
             String parentPath = getParent().getParentPath();
             String parentName = getParent().getName();
-            return parentPath != null ? parentPath + "/" + parentName : parentName;
+            return parentPath + "/" + parentName;
         }
     }
 

@@ -1,14 +1,12 @@
 package org.xlrnet.datac.session.ui.components.project;
 
-import com.vaadin.annotations.JavaScript;
-import com.vaadin.annotations.StyleSheet;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.GridLayout;
-import com.vaadin.ui.Label;
-import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,8 +14,10 @@ import org.springframework.context.annotation.Scope;
 import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.label.MLabel;
 import org.vaadin.viritin.layouts.MCssLayout;
+import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.services.ChangeSetService;
 import org.xlrnet.datac.foundation.ui.components.CodeSnippet;
@@ -25,7 +25,16 @@ import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.foundation.ui.util.RevisionFormatService;
 import org.xlrnet.datac.vcs.domain.Revision;
 
-import java.util.*;
+import com.vaadin.annotations.JavaScript;
+import com.vaadin.annotations.StyleSheet;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.GridLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Layout component which is used for displaying the changes of a project revision.
@@ -58,11 +67,15 @@ public class ProjectChangeLayout extends AbstractProjectLayout {
     /** List of all detailed change set layouts. */
     private List<Component> detailedChangeSetLayouts = new ArrayList<>(0);
 
+    /** Window for starting a quick deployment. */
+    private final QuickDeploymentWindow quickDeploymentWindow;
+
     @Autowired
-    public ProjectChangeLayout(ChangeSetService changeSetService, RevisionFormatService revisionFormatService, NavigationService navigationService) {
+    public ProjectChangeLayout(ChangeSetService changeSetService, RevisionFormatService revisionFormatService, NavigationService navigationService, QuickDeploymentWindow quickDeploymentWindow) {
         this.changeSetService = changeSetService;
         this.revisionFormatService = revisionFormatService;
         this.navigationService = navigationService;
+        this.quickDeploymentWindow = quickDeploymentWindow;
     }
 
     @Override
@@ -91,42 +104,51 @@ public class ProjectChangeLayout extends AbstractProjectLayout {
         detailedChangeSetLayouts = new ArrayList<>(changeSetSize);
         changeListLayout.removeAllComponents();
         for (DatabaseChangeSet changeSet : changeSets) {
-            String title = changeSetService.formatDatabaseChangeSetTitle(changeSet);
-            MCssLayout changeLayout = new MCssLayout().withStyleName("change", "card", "card-2");
-            MLabel changeSetLabel = new MLabel(title).withStyleName(ValoTheme.LABEL_BOLD);
-            changeLayout.add(changeSetLabel);
-            if (changeSet.isModifying()) {
-                changeLayout.setDescription("This change set was modified after check-in.");
-                changeSetLabel.setIcon(VaadinIcons.BOLT);
-            } else if (changeSet.getIntroducingChangeSet() == null && Objects.equals(changeSet.getRevision().getId(), getRevision().getId())) {
-                changeLayout.setDescription("This change set was introduced in the current revision.");
-                changeSetLabel.setIcon(VaadinIcons.PLUS);
-            } else {
-                changeSetLabel.setIcon(VaadinIcons.DATABASE);
-            }
-
-            MVerticalLayout detailedChangeSet = buildDetailedPanel(changeSet);
-            detailedChangeSet.setVisible(false);
-            changeLayout.add(detailedChangeSet);
-            detailedChangeSetLayouts.add(detailedChangeSet);
-
-            // Show or hide the detailed layout on click and format the preview
-            changeLayout.addLayoutClickListener(e -> {
-                detailedChangeSet.setVisible(!detailedChangeSet.isVisible());
-                if (detailedChangeSet.isVisible() && codeSnippetMap.containsKey(changeSet)) {
-                    codeSnippetMap.get(changeSet).formatWithPrism();
-                }
-            });
+            MCssLayout changeLayout = buildComponentForSingleChangeSet(changeSet);
             changeListLayout.addComponent(changeLayout);
         }
     }
 
     @NotNull
+    private MCssLayout buildComponentForSingleChangeSet(DatabaseChangeSet changeSet) {
+        String title = changeSetService.formatDatabaseChangeSetTitle(changeSet);
+        MCssLayout changeLayout = new MCssLayout().withStyleName("change", "card", "card-2");
+        MLabel changeSetLabel = new MLabel(title).withStyleName(ValoTheme.LABEL_BOLD);
+        changeLayout.add(changeSetLabel);
+        if (changeSet.isModifying()) {
+            changeLayout.setDescription("This change set was modified after check-in.");
+            changeSetLabel.setIcon(VaadinIcons.BOLT);
+        } else if (changeSet.getIntroducingChangeSet() == null && Objects.equals(changeSet.getRevision().getId(), getRevision().getId())) {
+            changeLayout.setDescription("This change set was introduced in the current revision.");
+            changeSetLabel.setIcon(VaadinIcons.PLUS);
+        } else {
+            changeSetLabel.setIcon(VaadinIcons.DATABASE);
+        }
+
+        MVerticalLayout detailedChangeSet = buildDetailedPanel(changeSet);
+        detailedChangeSet.setVisible(false);
+        changeLayout.add(detailedChangeSet);
+        detailedChangeSetLayouts.add(detailedChangeSet);
+
+        // Show or hide the detailed layout on click and format the preview
+        changeLayout.addLayoutClickListener(e -> {
+            detailedChangeSet.setVisible(!detailedChangeSet.isVisible());
+            if (detailedChangeSet.isVisible() && codeSnippetMap.containsKey(changeSet)) {
+                codeSnippetMap.get(changeSet).formatWithPrism();
+            }
+        });
+        return changeLayout;
+    }
+
+    @NotNull
     private MVerticalLayout buildDetailedPanel(DatabaseChangeSet changeSet) {
-        MVerticalLayout panelContent = new MVerticalLayout().withStyleName("change-detail-container");
+        MVerticalLayout panelContent = new MVerticalLayout().withStyleName("change-detail-container").withFullWidth();
+        MHorizontalLayout topContainer = new MHorizontalLayout().withMargin(false).withFullWidth();
+        panelContent.addComponent(topContainer);
         GridLayout grid = new GridLayout(2, 6);
+        grid.setMargin(false);
+        grid.setWidth(DatacTheme.FULL_SIZE);
         grid.addStyleName("change-detail-grid");
-        panelContent.addComponent(grid);
 
         DatabaseChangeSet firstChangeSet = changeSet.getIntroducingChangeSet() != null ? changeSet.getIntroducingChangeSet() : changeSet;
         Revision firstRevision = firstChangeSet.getRevision();
@@ -143,7 +165,17 @@ public class ProjectChangeLayout extends AbstractProjectLayout {
         grid.addComponent(new MLabel("Created at: "));
         grid.addComponent(new MLabel(revisionFormatService.formatTimestamp(firstRevision)));
 
-        /* Add information about modification if the currently processed changeset modified a previous one. */
+        MVerticalLayout buttonLayout = new MVerticalLayout().withMargin(false);
+        buttonLayout.add(new MButton("Quick deploy...").withListener((e) -> {
+            quickDeploymentWindow.prepareWindow(changeSet, getRevision());
+            UI.getCurrent().addWindow(quickDeploymentWindow);
+        }));
+
+
+        topContainer.with(grid).withExpand(grid, 0.85f);
+        topContainer.with(buttonLayout).withExpand(buttonLayout, 0.15f);
+
+        /* Add information about modification if the currently processed changeset was modified by a previous one. */
         if (changeSet.isModifying()) {
             Revision conflictingRevision = changeSet.getRevision();
             grid.addComponent(new MLabel("Modified revision: "));

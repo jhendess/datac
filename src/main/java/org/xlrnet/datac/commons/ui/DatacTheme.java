@@ -30,4 +30,9 @@ public class DatacTheme {
      * used for actual user passwords!
      */
     public static final String INPUT_PASSWORD = "input-password";       // NOSONAR: This is just a CSS class name
+
+    /**
+     * Enables word wrap on labels.
+     */
+    public static final String BREAKING_LABEL = "breaking-label";
 }

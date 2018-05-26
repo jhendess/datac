@@ -66,6 +66,12 @@
     border-radius: 50%
   }
 
+  /** Make all labels breaking by default. */
+  .breaking-label.v-label {
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
   /** Override the default stlye of Vaadin's link buttons which add unnecessary padding. */
   .v-button-link.v-button {
     padding-left: 0;

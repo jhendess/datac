@@ -1,11 +1,5 @@
 package org.xlrnet.datac.database.domain;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.xlrnet.datac.vcs.domain.Branch;
-
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -13,6 +7,13 @@ import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
+
+import org.xlrnet.datac.vcs.domain.Branch;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Concrete instance of a single deployment. Instances always use a configured {@link DatabaseConnection} in order to
@@ -68,7 +69,7 @@ public class DeploymentInstance extends AbstractDeploymentInstance {
     }
 
     @Override
-    AbstractDeploymentInstance getParent() {
+    DeploymentGroup getParent() {
         return getGroup();
     }
 
@@ -77,5 +78,9 @@ public class DeploymentInstance extends AbstractDeploymentInstance {
     @NotNull(message = "Branch must be either defined on instance or inherited from group")
     public Branch getActualBranch() {
         return super.getActualBranch();
+    }
+
+    public String getFullPath() {
+        return getParent().getParentPath() + "/" + getParent().getName() + "/" + getName();
     }
 }

@@ -131,6 +131,12 @@
             <artifactId>messagebox</artifactId>
             <version>4.0.21</version>
         </dependency>
+        <!-- Multiselect combobox for Vaadin -->
+        <dependency>
+            <groupId>org.vaadin.addons</groupId>
+            <artifactId>vaadin-combobox-multiselect</artifactId>
+            <version>2.6</version>
+        </dependency>
         <!-- Vaadin Spring EventBus -->
         <dependency>
             <groupId>org.vaadin.spring.addons</groupId>
