@@ -5,6 +5,8 @@ import java.util.Set;
 
 import javax.validation.ConstraintViolation;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.vaadin.server.Page;
 import com.vaadin.shared.Position;
 import com.vaadin.ui.Notification;
@@ -96,6 +98,9 @@ public class NotificationUtils {
         StringBuilder stringBuilder = new StringBuilder();
         for (Iterator<ConstraintViolation<?>> iterator = constraintViolations.iterator(); iterator.hasNext(); ) {
             ConstraintViolation<?> constraintViolation = iterator.next();
+            if (StringUtils.isNotBlank(constraintViolation.getPropertyPath().toString())) {
+                stringBuilder.append(constraintViolation.getPropertyPath()).append(": ");
+            }
             stringBuilder.append(constraintViolation.getMessage());
             if (iterator.hasNext()) {
                 stringBuilder.append("\n");

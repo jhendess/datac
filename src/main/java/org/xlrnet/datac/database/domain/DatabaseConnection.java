@@ -14,6 +14,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 import org.hibernate.validator.constraints.NotEmpty;
+import org.xlrnet.datac.commons.util.validation.ILateValidationGroup;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.domain.PasswordEncryptedEntity;
 import org.xlrnet.datac.foundation.domain.PasswordEncryptionListener;
@@ -66,7 +67,7 @@ public class DatabaseConnection extends AbstractEntity implements PasswordEncryp
     /**
      * Salt used for encrypting the user credentials. Will be automatically set by an entity listener.
      */
-    @NotNull
+    @NotNull(groups = ILateValidationGroup.class)
     @Column(name = "salt")
     private byte[] salt;
 

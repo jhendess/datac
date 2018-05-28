@@ -24,6 +24,7 @@ import javax.validation.constraints.Size;
 
 import org.hibernate.validator.constraints.NotEmpty;
 import org.hibernate.validator.constraints.URL;
+import org.xlrnet.datac.commons.util.validation.ILateValidationGroup;
 import org.xlrnet.datac.foundation.domain.validation.Regex;
 import org.xlrnet.datac.foundation.domain.validation.ValidBranches;
 import org.xlrnet.datac.vcs.api.VcsRemoteCredentials;
@@ -112,6 +113,7 @@ public class Project extends AbstractEntity implements VcsRemoteCredentials, Loc
     /**
      * Salt used for encrypting the user credentials. Will be automatically set by an entity listener.
      */
+    @NotNull(groups = ILateValidationGroup.class)
     @Column(name = "salt")
     private byte[] salt;
 

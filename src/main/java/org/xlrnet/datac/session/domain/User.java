@@ -1,14 +1,16 @@
 package org.xlrnet.datac.session.domain;
 
-import org.hibernate.validator.constraints.Email;
-import org.xlrnet.datac.foundation.domain.AbstractEntity;
+import java.util.Objects;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-import java.util.Objects;
+
+import org.hibernate.validator.constraints.Email;
+import org.xlrnet.datac.commons.util.validation.ILateValidationGroup;
+import org.xlrnet.datac.foundation.domain.AbstractEntity;
 
 /**
  * A user who may access the application.
@@ -53,14 +55,14 @@ public class User extends AbstractEntity {
     /**
      * Hashed login password of the user.
      */
-    @NotNull
+    @NotNull(groups = ILateValidationGroup.class)
     @Column(name = "password")
     private byte[] password;
 
     /**
      * Password salt.
      */
-    @NotNull
+    @NotNull(groups = ILateValidationGroup.class)
     @Column(name = "salt")
     private byte[] salt;
 

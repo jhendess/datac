@@ -1,13 +1,7 @@
 package org.xlrnet.datac.foundation.ui.components;
 
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.themes.ValoTheme;
-import de.steinwedel.messagebox.MessageBox;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import javax.validation.ConstraintViolationException;
+
 import org.vaadin.viritin.button.MButton;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.commons.util.MessageGenerator;
@@ -15,7 +9,15 @@ import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.foundation.services.ValidationService;
 
-import javax.validation.ConstraintViolationException;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.themes.ValoTheme;
+
+import de.steinwedel.messagebox.MessageBox;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Enhanced version of Viritin's AbstractForm. Provides a customizable delete dialog.
@@ -73,7 +75,7 @@ public abstract class AbstractEntityForm<T extends AbstractEntity, S extends Abs
     /**
      * Custom post-save action. Shows a success notification by default.
      */
-    void postSave() {
+    protected void postSave() {
         NotificationUtils.showSaveSuccess();
     }
 
@@ -82,7 +84,7 @@ public abstract class AbstractEntityForm<T extends AbstractEntity, S extends Abs
      * action or false to prevent saving.
      * Runs a full validation on the entity by default.
      */
-    boolean preSave(T entity) {
+    protected boolean preSave(T entity) {
         try {
             validationService.checkConstraints(entity);
         } catch (ConstraintViolationException cve) { // NOSONAR: Part of regular error handling (not nice, but works)

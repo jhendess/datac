@@ -1,16 +1,13 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.Lists;
-import com.vaadin.annotations.PropertyId;
-import com.vaadin.data.BeanValidationBinder;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.shared.ui.MarginInfo;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.validation.ConstraintViolationException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
@@ -45,12 +42,29 @@ import org.xlrnet.datac.vcs.services.VersionControlSystemRegistry;
 import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
 import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
 
-import javax.validation.ConstraintViolationException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.google.common.base.Objects;
+import com.google.common.collect.Lists;
+import com.vaadin.annotations.PropertyId;
+import com.vaadin.data.BeanValidationBinder;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.shared.ui.MarginInfo;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.CheckBoxGroup;
+import com.vaadin.ui.ComboBox;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Layout;
+import com.vaadin.ui.ProgressBar;
+import com.vaadin.ui.TextArea;
+import com.vaadin.ui.TextField;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Assistant for creating new projects.
@@ -170,7 +184,6 @@ public class AdminEditProjectSubview extends AbstractSubview {
     /**
      * Enable automatic scheduled polling for new changes.
      */
-    @PropertyId("automaticPollingEnabled")
     private MCheckBox automaticPollingEnabledField = new MCheckBox("Enable automatic polling");
 
     /**
@@ -280,10 +293,8 @@ public class AdminEditProjectSubview extends AbstractSubview {
         vcsSelect.setEmptySelectionAllowed(false);
         changeLogLocationField.addStyleName(DatacTheme.FIELD_WIDE);
         automaticPollingEnabledField.withStyleName(DatacTheme.FIELD_WIDE)
-            .withValue(projectBean.isAutomaticPollingEnabled())
             .withValueChangeListener(e -> pollIntervalField.setEnabled(e.getValue()));
-        pollIntervalField.withStyleName(DatacTheme.FIELD_WIDE)
-        .withEnabled(projectBean.isAutomaticPollingEnabled());
+        pollIntervalField.withStyleName(DatacTheme.FIELD_WIDE).withEnabled(projectBean.isAutomaticPollingEnabled());
         vcsDevBranchSelect.addStyleName(DatacTheme.FIELD_WIDE);
         newBranchesPattern.addStyleName(DatacTheme.FIELD_WIDE);
 
@@ -330,6 +341,7 @@ public class AdminEditProjectSubview extends AbstractSubview {
         }
         oldVcsUrl = projectBean.getUrl();
         projectBinder.bindInstanceFields(this);
+        projectBinder.bind(automaticPollingEnabledField, Project::isAutomaticPollingEnabled, Project::setAutomaticPollingEnabled);
         projectBinder.setBean(projectBean);
     }
 

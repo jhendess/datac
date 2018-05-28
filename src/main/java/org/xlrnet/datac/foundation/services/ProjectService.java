@@ -1,6 +1,10 @@
 package org.xlrnet.datac.foundation.services;
 
-import lombok.extern.slf4j.Slf4j;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Collection;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,10 +28,7 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.services.BranchService;
 import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 
-import java.util.Collection;
-import java.util.regex.Pattern;
-
-import static com.google.common.base.Preconditions.checkArgument;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Transactional service for accessing project data.
@@ -175,9 +176,6 @@ public class ProjectService extends AbstractTransactionalService<Project, Projec
 
     @Transactional
     public Project saveProject(Project project) {
-        if (project.isPersisted()) {
-            branchService.deleteByProject(project);
-        }
         Project saved = save(project);
         if (saved != null) {
             if (project.isPersisted()) {
