@@ -9,11 +9,14 @@ import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
 import org.vaadin.viritin.layouts.MWindow;
 import org.xlrnet.datac.commons.ui.DatacTheme;
-import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.DeploymentInstance;
+import org.xlrnet.datac.database.domain.QuickDeploymentResult;
 import org.xlrnet.datac.database.services.DeploymentInstanceService;
+import org.xlrnet.datac.database.services.DeploymentManagerService;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.ui.components.ProgressWindow;
+import org.xlrnet.datac.foundation.ui.util.ProgressWindowChangeHandler;
 import org.xlrnet.datac.vcs.domain.Revision;
 
 import com.vaadin.spring.annotation.SpringComponent;
@@ -21,8 +24,13 @@ import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Component;
+import com.vaadin.ui.UI;
 import com.vaadin.ui.themes.ValoTheme;
 
+import de.steinwedel.messagebox.MessageBox;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @UIScope
 @SpringComponent
 public class QuickDeploymentWindow extends MWindow {
@@ -38,6 +46,9 @@ public class QuickDeploymentWindow extends MWindow {
 
     /** Service for loading available instances. */
     private final DeploymentInstanceService instanceService;
+
+    /** Service to execute deployments. */
+    private final DeploymentManagerService deploymentManagerService;
 
     /** Checkbox to select the target instances for the deployment. */
     private ComboBoxMultiselect<DeploymentInstance> targetInstances = new ComboBoxMultiselect<>("Target instances");
@@ -61,16 +72,24 @@ public class QuickDeploymentWindow extends MWindow {
     private MLabel noInstancesLabel = new MLabel("There are no compatible or writable deployment instances for this change. Either create new instances or change their tracking branch.")
             .withStyleName(ValoTheme.LABEL_FAILURE).withVisible(false);
 
-    public QuickDeploymentWindow(DeploymentInstanceService instanceService) {
+    /** Window to display deployment progress. */
+    private final ProgressWindow progressWindow = new ProgressWindow();
+
+    /** Handler to update the progress window. */
+    private final ProgressWindowChangeHandler progressWindowChangeHandler = new ProgressWindowChangeHandler(progressWindow);
+
+    public QuickDeploymentWindow(DeploymentInstanceService instanceService, DeploymentManagerService deploymentManagerService) {
         this.instanceService = instanceService;
+        this.deploymentManagerService = deploymentManagerService;
         setModal(true);
         setWidth("1200px");
         setHeight("600px");
         center();
         setContent(buildContent());
 
-        targetInstances.setItemCaptionGenerator(DeploymentInstance::getFullPath);   // TODO: Show parent name
+        targetInstances.setItemCaptionGenerator(DeploymentInstance::getFullPath);
         targetInstances.addStyleName(DatacTheme.FIELD_WIDE);
+        progressWindow.setCaption("Quick deployment progress");
     }
 
     private Component buildContent() {
@@ -88,7 +107,22 @@ public class QuickDeploymentWindow extends MWindow {
     }
 
     private void performDeployment(Button.ClickEvent event) {
-        NotificationUtils.showNotImplemented();
+        progressWindow.reset();
+        UI.getCurrent().addWindow(progressWindow);
+        deploymentManagerService.startAsynchronousQuickDeployment(project, targetInstances.getSelectedItems(), changeSet, progressWindowChangeHandler, this::handleDeploymentComplete);
+    }
+
+    private void handleDeploymentComplete(QuickDeploymentResult quickDeploymentResult) {
+        getUI().access(() -> {
+            progressWindow.close();
+
+            if (quickDeploymentResult.isSuccessful()) {
+                // TODO: Do some logging?
+                MessageBox.createInfo().withMessage("Quick deployment finished successfully").open();
+            } else {
+                MessageBox.createError().withMessage("Quick deployment failed:\n" + quickDeploymentResult.getErrorMessage() + "\nCheck the event log for more details.").open();
+            }
+        });
     }
 
     void prepareWindow(DatabaseChangeSet changeSet, Revision revision) {

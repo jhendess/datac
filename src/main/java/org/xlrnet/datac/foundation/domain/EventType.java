@@ -14,5 +14,7 @@ public enum EventType {
     /** Project is being cleaned. */
     PROJECT_CLEANUP,
     /** Change sets are reset manually. */
-    CHANGESET_RESET;
+    CHANGESET_RESET,
+    /** Quick deployment executed. */
+    QUICK_DEPLOYMENT;
 }
