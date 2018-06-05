@@ -27,7 +27,6 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.themes.ValoTheme;
 
-import de.steinwedel.messagebox.MessageBox;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -114,13 +113,13 @@ public class QuickDeploymentWindow extends MWindow {
 
     private void handleDeploymentComplete(QuickDeploymentResult quickDeploymentResult) {
         getUI().access(() -> {
-            progressWindow.close();
+            progressWindow.setCloseButtonEnabled(true);
 
             if (quickDeploymentResult.isSuccessful()) {
                 // TODO: Do some logging?
-                MessageBox.createInfo().withMessage("Quick deployment finished successfully").open();
+                progressWindow.setMessage("Quick deployment finished successfully");
             } else {
-                MessageBox.createError().withMessage("Quick deployment failed:\n" + quickDeploymentResult.getErrorMessage() + "\nCheck the event log for more details.").open();
+                progressWindow.setMessage("Quick deployment failed:\n" + quickDeploymentResult.getErrorMessage() + "\nCheck the event log for more details.");
             }
         });
     }
