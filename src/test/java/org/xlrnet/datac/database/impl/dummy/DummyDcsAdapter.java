@@ -1,5 +1,8 @@
 package org.xlrnet.datac.database.impl.dummy;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -10,10 +13,8 @@ import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
 import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
+import org.xlrnet.datac.database.domain.DeploymentInstance;
 import org.xlrnet.datac.foundation.domain.Project;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Dummy change adapter which corresponds to the dummy VCS adapter. Creates a complex change graph with various
@@ -151,6 +152,11 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
 
 
         return changeSets;
+    }
+
+    @Override
+    public void prepareDeployment(@NotNull Project project, @NotNull DeploymentInstance targetInstance, @NotNull DatabaseChangeSet changeSet) throws DatacTechnicalException {
+        // Nothing to do...
     }
 
     private DatabaseChange buildDummyChange() {

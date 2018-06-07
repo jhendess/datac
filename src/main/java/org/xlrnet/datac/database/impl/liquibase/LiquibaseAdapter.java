@@ -1,24 +1,13 @@
 package org.xlrnet.datac.database.impl.liquibase;
 
-import ch.qos.logback.classic.Level;
-import com.google.common.base.Throwables;
-import liquibase.change.Change;
-import liquibase.changelog.ChangeLogParameters;
-import liquibase.changelog.ChangeSet;
-import liquibase.changelog.DatabaseChangeLog;
-import liquibase.database.Database;
-import liquibase.database.core.H2Database;
-import liquibase.exception.LiquibaseException;
-import liquibase.exception.LiquibaseParseException;
-import liquibase.parser.ChangeLogParser;
-import liquibase.parser.ChangeLogParserFactory;
-import liquibase.resource.ResourceAccessor;
-import liquibase.sql.Sql;
-import liquibase.sqlgenerator.SqlGeneratorFactory;
-import liquibase.statement.SqlStatement;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.PostConstruct;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -27,16 +16,39 @@ import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
 import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
+import org.xlrnet.datac.database.domain.DeploymentInstance;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.services.FileService;
+import org.xlrnet.datac.vcs.api.VcsAdapter;
+import org.xlrnet.datac.vcs.api.VcsLocalRepository;
+import org.xlrnet.datac.vcs.services.VersionControlSystemRegistry;
 
-import javax.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.base.Throwables;
+
+import ch.qos.logback.classic.Level;
+import liquibase.change.Change;
+import liquibase.changelog.ChangeLogParameters;
+import liquibase.changelog.ChangeSet;
+import liquibase.changelog.DatabaseChangeLog;
+import liquibase.database.Database;
+import liquibase.database.DatabaseConnection;
+import liquibase.database.DatabaseFactory;
+import liquibase.database.core.H2Database;
+import liquibase.exception.DatabaseException;
+import liquibase.exception.LiquibaseException;
+import liquibase.exception.LiquibaseParseException;
+import liquibase.parser.ChangeLogParser;
+import liquibase.parser.ChangeLogParserFactory;
+import liquibase.resource.ResourceAccessor;
+import liquibase.sql.Sql;
+import liquibase.sqlgenerator.SqlGeneratorFactory;
+import liquibase.statement.SqlStatement;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service which provides access to liquibase change log files.
  */
+@Slf4j
 @Component
 public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
 
@@ -49,19 +61,30 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
      */
     private final FileService fileService;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LiquibaseAdapter.class);
+    /**
+     * VCS registry.
+     */
+    private final VersionControlSystemRegistry versionControlSystemRegistry;
+
+    /** Factory for liquibase connections. */
+    private final LiquibaseConnectionFactory liquibaseConnectionFactory;
 
     @Autowired
-    public LiquibaseAdapter(FileService fileService) {
+    public LiquibaseAdapter(FileService fileService, VersionControlSystemRegistry versionControlSystemRegistry, LiquibaseConnectionFactory liquibaseConnectionFactory) {
         this.fileService = fileService;
+        this.versionControlSystemRegistry = versionControlSystemRegistry;
+        this.liquibaseConnectionFactory = liquibaseConnectionFactory;
     }
 
     private DatabaseChangeLog getDatabaseChangeLog(String changeLogFile, Project project) throws LiquibaseException {
+        LOGGER.debug("Opening Liquibase changelog file at {}", changeLogFile);
         ResourceAccessor resourceAccessor = getFileSystemResourceAccessorForProject(project);
         ChangeLogParser parser = ChangeLogParserFactory.getInstance().getParser(changeLogFile, resourceAccessor);
         Database database = getReadOnlyDatabase();
         ChangeLogParameters changeLogParameters = new ChangeLogParameters(database);
-        return parser.parse(changeLogFile, changeLogParameters, resourceAccessor);
+        DatabaseChangeLog parse = parser.parse(changeLogFile, changeLogParameters, resourceAccessor);
+        LOGGER.debug("Successfully opened Liquibase changelog file at {}", changeLogFile);
+        return parse;
     }
 
     @PostConstruct
@@ -107,6 +130,51 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
         return datacChangeSets;
     }
 
+    @Override
+    public void prepareDeployment(@NotNull Project project, @NotNull DeploymentInstance targetInstance, @NotNull DatabaseChangeSet changeSet) throws DatacTechnicalException {
+        VcsAdapter vcsAdapter = versionControlSystemRegistry.getVcsAdapter(project);
+        VcsLocalRepository vcsLocalRepository = vcsAdapter.openLocalRepository(fileService.getProjectRepositoryPath(project), project);
+        vcsLocalRepository.checkoutRevision(changeSet.getRevision());
+
+        try {
+            DatabaseChangeLog databaseChangeLog = getDatabaseChangeLog(project.getChangelogLocation(), project);
+            ChangeSet originalChangeSet = databaseChangeLog.getChangeSet(changeSet.getSourceFilename(), changeSet.getAuthor(), changeSet.getInternalId());
+            if (originalChangeSet == null) {
+                LOGGER.error("Unable to find change set {} {} {}", changeSet.getSourceFilename(), changeSet.getAuthor(), changeSet.getInternalId());
+                throw new DatacTechnicalException("Unable to find change set");
+            }
+
+            Database targetDatabase = null;
+            try {
+                targetDatabase = getDatabaseFromDeploymentInstance(targetInstance);
+
+                StringBuilder stringBuilder = new StringBuilder();
+                for (Change change : originalChangeSet.getChanges()) {
+                    generateSql(change, targetDatabase, stringBuilder);
+                    stringBuilder.append("\n");
+                }
+
+            } finally {
+                if (targetDatabase != null && targetDatabase.getConnection() != null) {
+                    targetDatabase.getConnection().close();
+                }
+            }
+        } catch (LiquibaseParseException pe) {
+            if (StringUtils.endsWith(pe.getMessage(), DOES_NOT_EXIST)) {
+                LOGGER.warn("Unable to find find changelog file {}", StringUtils.substringBefore(DOES_NOT_EXIST, pe.getMessage()));
+            } else {
+                throw new DatacTechnicalException(pe);
+            }
+        } catch (LiquibaseException | SQLException e) {
+            LOGGER.error("Unexpected exception occurred while trying to prepare a deployment", e);
+            throw new DatacTechnicalException(e);
+        }
+    }
+
+    private Database getDatabaseFromDeploymentInstance(DeploymentInstance targetInstance) throws DatabaseException, SQLException {
+        DatabaseConnection liquibaseConnection = liquibaseConnectionFactory.createDatabaseConnectionFromConfig(targetInstance);
+        return DatabaseFactory.getInstance().findCorrectDatabaseImplementation(liquibaseConnection);
+    }
 
     /**
      * Convert a given {@link ChangeSet} from liquibase to a {@link DatabaseChangeSet} entity from datac.
@@ -155,8 +223,9 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
 
         if (!liquibaseChange.generateStatementsVolatile(mockDatabase)) {
             try {
-                StringBuilder sqlBuilder = generateSql(liquibaseChange, mockDatabase);
-                datacChange.setPreviewSql(sqlBuilder.toString());
+                StringBuilder stringBuilder = new StringBuilder();
+                generateSql(liquibaseChange, mockDatabase, stringBuilder);
+                datacChange.setPreviewSql(stringBuilder.toString());
             } catch (DatacTechnicalException e) {
                 LOGGER.warn("Generating preview SQL failed: {}", Throwables.getRootCause(e).getMessage());
             }
@@ -168,9 +237,7 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
         return datacChange;
     }
 
-    @NotNull
-    private StringBuilder generateSql(@NotNull Change change, @NotNull Database database) throws DatacTechnicalException {
-        StringBuilder sqlBuilder = new StringBuilder();
+    private void generateSql(@NotNull Change change, @NotNull Database database, StringBuilder sqlBuilder) throws DatacTechnicalException {
         try {
             SqlStatement[] sqlStatements = change.generateStatements(database);
             for (SqlStatement sqlStatement : sqlStatements) {
@@ -180,9 +247,8 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
                 }
             }
         } catch (RuntimeException e) {
-            throw new DatacTechnicalException("Generating preview SQL failed", e);
+            throw new DatacTechnicalException("Generating SQL failed", e);
         }
-        return sqlBuilder;
     }
 
     @NotNull

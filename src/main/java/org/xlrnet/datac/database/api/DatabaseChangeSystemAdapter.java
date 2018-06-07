@@ -5,6 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
+import org.xlrnet.datac.database.domain.DeploymentInstance;
 import org.xlrnet.datac.foundation.domain.Project;
 
 /**
@@ -27,4 +28,6 @@ public interface DatabaseChangeSystemAdapter {
      */
     @NotNull
     List<DatabaseChangeSet> listDatabaseChangeSetsForProject(@NotNull Project project) throws DatacTechnicalException;
+
+    void prepareDeployment(@NotNull Project project, @NotNull DeploymentInstance targetInstance, @NotNull DatabaseChangeSet changeSet) throws DatacTechnicalException;
 }

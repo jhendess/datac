@@ -1,16 +1,24 @@
 package org.xlrnet.datac.database.services;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.LockFailedException;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
 import org.xlrnet.datac.database.domain.ConnectionPingResult;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.DeploymentInstance;
+import org.xlrnet.datac.database.domain.InstanceDeploymentResult;
+import org.xlrnet.datac.database.domain.QuickDeploymentConfig;
 import org.xlrnet.datac.database.domain.QuickDeploymentResult;
 import org.xlrnet.datac.database.util.DeploymentPhase;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
@@ -47,26 +55,30 @@ public class DeploymentManagerService {
     /** Service for connecting to databases. */
     private final ConnectionManagerService connectionManagerService;
 
+    /** Registry for accessing DCS. */
+    private final DatabaseChangeSystemAdapterRegistry databaseChangeSystemAdapterRegistry;
+
     @Autowired
-    public DeploymentManagerService(LockingService lockingService, EventLogService eventLogService, EventLogProxy eventLogProxy, ConnectionManagerService connectionManagerService) {
+    public DeploymentManagerService(LockingService lockingService, EventLogService eventLogService, EventLogProxy eventLogProxy, ConnectionManagerService connectionManagerService, DatabaseChangeSystemAdapterRegistry databaseChangeSystemAdapterRegistry) {
         this.lockingService = lockingService;
         this.eventLogService = eventLogService;
         this.eventLogProxy = eventLogProxy;
         this.connectionManagerService = connectionManagerService;
+        this.databaseChangeSystemAdapterRegistry = databaseChangeSystemAdapterRegistry;
     }
 
     /**
      * Performs an asynchronous quick deployment for a given project on one or more deployment instances.
      * @param project The project for which the deployment should be performed. This configuration data is used to resolve information about required adapters.
-     * @param targetInstances  The target instances.
+     * @param deploymentConfig  The deployment config.
      * @param changeSet        The change set to execute.
      * @param changeHandler    The handler for progress updates.
      */
     @Async
-    public void startAsynchronousQuickDeployment(@NotNull Project project, @NotNull Collection<DeploymentInstance> targetInstances, @NotNull DatabaseChangeSet changeSet, @NotNull ProgressChangeHandler changeHandler, EntityChangeHandler<QuickDeploymentResult> finishedHandler) {
+    public void startAsynchronousQuickDeployment(@NotNull Project project, @NotNull QuickDeploymentConfig deploymentConfig, @NotNull DatabaseChangeSet changeSet, @NotNull ProgressChangeHandler changeHandler, EntityChangeHandler<QuickDeploymentResult> finishedHandler) {
         QuickDeploymentResult result;
         try {
-            result = performQuickDeployment(project, targetInstances, changeSet, changeHandler);
+            result = performQuickDeployment(project, deploymentConfig, changeSet, changeHandler);
         } catch (LockFailedException e) {       // NOSONAR: No logging of exception necessary
                 LOGGER.warn("Update of project {} [id={}] failed because project is locked", project.getName(), project.getId());
             result = QuickDeploymentResult.failed(DeploymentPhase.LOCKING, "Project is locked");
@@ -74,41 +86,53 @@ public class DeploymentManagerService {
         finishedHandler.onChange(result);
     }
 
-    private QuickDeploymentResult performQuickDeployment(@NotNull Project project, @NotNull Collection<DeploymentInstance> targetInstances, @NotNull DatabaseChangeSet changeSet, @NotNull ProgressChangeHandler changeHandler) throws LockFailedException {
-        LOGGER.info("Starting quick deployment for project {} and change set {} on instances {}", project.getName(), changeSet.getInternalId(), targetInstances);
+    private QuickDeploymentResult performQuickDeployment(@NotNull Project project, @NotNull QuickDeploymentConfig quickDeploymentConfig, @NotNull DatabaseChangeSet changeSet, @NotNull ProgressChangeHandler changeHandler) throws LockFailedException {
+        LOGGER.info("Starting quick deployment for project {} and change set {} on instances {}", project.getName(), changeSet.getInternalId(), quickDeploymentConfig);
         eventLogProxy.setDelegate(eventLogService.newEventLog().setType(EventType.QUICK_DEPLOYMENT).setProject(project));
+        List<InstanceDeploymentResult> instanceDeploymentResults = new ArrayList<>();
         try {
             if (lockingService.tryLock(project)) {
+                // Open DCS adapter
+                Optional<DatabaseChangeSystemAdapter> databaseChangeSystemAdapterOptional = databaseChangeSystemAdapterRegistry.getAdapterByProject(project);
+                if (!databaseChangeSystemAdapterOptional.isPresent()) {
+                    handleDeploymentFailure(DeploymentPhase.CONFIG_VALIDATION);
+                    return QuickDeploymentResult.failed(DeploymentPhase.CONFIG_VALIDATION, "Unable to open DCS adapter");
+                }
+                DatabaseChangeSystemAdapter dcsAdapter = databaseChangeSystemAdapterOptional.get();
+                Set<DeploymentInstance> instances = quickDeploymentConfig.getInstances();
+
                 changeHandler.handleProgressChange(0, "Validating deployment configuration ...");
                 // Pre-validate instance configuration
-                if (!validateInstances(project, targetInstances)) {
+                if (!validateInstances(project, instances)) {
                     handleDeploymentFailure(DeploymentPhase.CONFIG_VALIDATION);
                     return QuickDeploymentResult.failed(DeploymentPhase.CONFIG_VALIDATION, "At least one instance is not configured correctly.");
                 }
                 // Check connection to instances
-                if (!validateInstanceConnections(targetInstances, changeHandler)) {
+                if (!validateInstanceConnections(instances, changeHandler)) {
                     handleDeploymentFailure(DeploymentPhase.CONNECTION_VALIDATION);
                     return QuickDeploymentResult.failed(DeploymentPhase.CONNECTION_VALIDATION, "Connection failure.");
                 }
-                // Generate SQL
 
-                // Run SQL
+                // Perform deployment
+                int i = 0;
+                for (DeploymentInstance targetInstance : instances) {
+                    changeHandler.handleProgressChange((float) i++ / instances.size(), String.format("Deploying %s...", targetInstance.getFullPath()));
+                    dcsAdapter.prepareDeployment(project, targetInstance, changeSet);
+                }
 
-                // Close connections
-
-                LOGGER.info("Finished quick deployment for project {} and change set {} on instances {}", project.getName(), changeSet.getInternalId(), targetInstances);
+                LOGGER.info("Finished quick deployment for project {} and change set {} on instances {}", project.getName(), changeSet.getInternalId(), quickDeploymentConfig);
                 changeHandler.handleProgressChange(1, "Finished quick deployment");
             } else {
                 throw new LockFailedException(project);
             }
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | DatacTechnicalException e) {
             LOGGER.error("Unexpected error during quick deployment for project {} [id={}]", project.getName(), project.getId(), e);
             eventLogService.addExceptionToEventLog(eventLogProxy, "Unexpected error during quick deployment",  e);
         } finally {
             lockingService.unlock(project);
             eventLogService.save(eventLogProxy);
         }
-        return QuickDeploymentResult.success();
+        return QuickDeploymentResult.success(instanceDeploymentResults);
     }
 
     private void handleDeploymentFailure(DeploymentPhase deploymentPhase) {

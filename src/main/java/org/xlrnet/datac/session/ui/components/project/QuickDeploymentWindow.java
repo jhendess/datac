@@ -11,6 +11,7 @@ import org.vaadin.viritin.layouts.MWindow;
 import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.DeploymentInstance;
+import org.xlrnet.datac.database.domain.QuickDeploymentConfig;
 import org.xlrnet.datac.database.domain.QuickDeploymentResult;
 import org.xlrnet.datac.database.services.DeploymentInstanceService;
 import org.xlrnet.datac.database.services.DeploymentManagerService;
@@ -19,10 +20,12 @@ import org.xlrnet.datac.foundation.ui.components.ProgressWindow;
 import org.xlrnet.datac.foundation.ui.util.ProgressWindowChangeHandler;
 import org.xlrnet.datac.vcs.domain.Revision;
 
+import com.vaadin.data.BeanValidationBinder;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
+import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.themes.ValoTheme;
@@ -52,6 +55,9 @@ public class QuickDeploymentWindow extends MWindow {
     /** Checkbox to select the target instances for the deployment. */
     private ComboBoxMultiselect<DeploymentInstance> targetInstances = new ComboBoxMultiselect<>("Target instances");
 
+    /** Checkbox to abort if any instance fails. */
+    private CheckBox abortOnFailure = new CheckBox("Cancel deployment on single instance failure");
+
     /** Flag to show only compatible instances as possible targets. */
     boolean compatibleInstancesOnly = true;
 
@@ -77,6 +83,8 @@ public class QuickDeploymentWindow extends MWindow {
     /** Handler to update the progress window. */
     private final ProgressWindowChangeHandler progressWindowChangeHandler = new ProgressWindowChangeHandler(progressWindow);
 
+    private final BeanValidationBinder<QuickDeploymentConfig> binder = new BeanValidationBinder<>(QuickDeploymentConfig.class);
+
     public QuickDeploymentWindow(DeploymentInstanceService instanceService, DeploymentManagerService deploymentManagerService) {
         this.instanceService = instanceService;
         this.deploymentManagerService = deploymentManagerService;
@@ -89,12 +97,15 @@ public class QuickDeploymentWindow extends MWindow {
         targetInstances.setItemCaptionGenerator(DeploymentInstance::getFullPath);
         targetInstances.addStyleName(DatacTheme.FIELD_WIDE);
         progressWindow.setCaption("Quick deployment progress");
+
+        binder.forField(targetInstances).bind(QuickDeploymentConfig::getInstances, QuickDeploymentConfig::setInstances);
+        binder.forField(abortOnFailure).bind(QuickDeploymentConfig::isAbortOnFailure, QuickDeploymentConfig::setAbortOnFailure);
     }
 
     private Component buildContent() {
         MVerticalLayout content = new MVerticalLayout().withFullSize();
         MVerticalLayout form = new MVerticalLayout();
-        form.with(headerLabel, noInstancesLabel, infoLabel, targetInstances);
+        form.with(headerLabel, noInstancesLabel, infoLabel, targetInstances, abortOnFailure);
 
         MHorizontalLayout buttonLayout = new MHorizontalLayout().with(deployButton, cancelButton);
         MVerticalLayout footer = new MVerticalLayout().withStyleName(ValoTheme.WINDOW_BOTTOM_TOOLBAR)
@@ -108,7 +119,7 @@ public class QuickDeploymentWindow extends MWindow {
     private void performDeployment(Button.ClickEvent event) {
         progressWindow.reset();
         UI.getCurrent().addWindow(progressWindow);
-        deploymentManagerService.startAsynchronousQuickDeployment(project, targetInstances.getSelectedItems(), changeSet, progressWindowChangeHandler, this::handleDeploymentComplete);
+        deploymentManagerService.startAsynchronousQuickDeployment(project, binder.getBean(), changeSet, progressWindowChangeHandler, this::handleDeploymentComplete);
     }
 
     private void handleDeploymentComplete(QuickDeploymentResult quickDeploymentResult) {
@@ -128,6 +139,7 @@ public class QuickDeploymentWindow extends MWindow {
         this.changeSet = changeSet;
         this.revision = revision;
         this.project = revision.getProject();
+        binder.setBean(new QuickDeploymentConfig());
         refreshInstances();
     }
 
@@ -143,5 +155,6 @@ public class QuickDeploymentWindow extends MWindow {
         noInstancesLabel.setVisible(!instancesAvailable);
         deployButton.setEnabled(instancesAvailable);
         targetInstances.setItems(instances);
+        abortOnFailure.setValue(false);
     }
 }

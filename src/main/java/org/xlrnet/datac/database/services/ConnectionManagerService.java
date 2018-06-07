@@ -26,7 +26,8 @@ public class ConnectionManagerService {
      * @return A JDBC connection.
      * @throws SQLException if a database access error occurs or the url is null
      */
-    private Connection getConnectionFromEntity(DatabaseConnection config, boolean useSchema) throws SQLException {
+    public Connection getConnectionFromConfig(DatabaseConnection config, boolean useSchema) throws SQLException {
+        // TODO: use some connection pooling mechanism to keep track of connections and reap them if necessary
         Connection connection = DriverManager.getConnection(config.getJdbcUrl(), config.getUser(), config.getPassword());
         if (useSchema && StringUtils.isNotBlank(config.getSchema())) {
             connection.setSchema(config.getSchema());
@@ -44,7 +45,7 @@ public class ConnectionManagerService {
         ConnectionPingResult connectionPingResult;
         String jdbcUrl = config.getJdbcUrl();
         LOGGER.info("Pinging connection to {}", jdbcUrl);
-        try (Connection connection = getConnectionFromEntity(config, true)) {
+        try (Connection connection = getConnectionFromConfig(config, true)) {
             DatabaseMetaData metaData = connection.getMetaData();
             String dbProductName = metaData.getDatabaseProductName();
             String dbProductVersion = metaData.getDatabaseProductVersion();
