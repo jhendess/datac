@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.LockFailedException;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
+import org.xlrnet.datac.database.api.IPreparedDeploymentContainer;
 import org.xlrnet.datac.database.domain.ConnectionPingResult;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.DeploymentInstance;
@@ -117,7 +118,7 @@ public class DeploymentManagerService {
                 int i = 0;
                 for (DeploymentInstance targetInstance : instances) {
                     changeHandler.handleProgressChange((float) i++ / instances.size(), String.format("Deploying %s...", targetInstance.getFullPath()));
-                    dcsAdapter.prepareDeployment(project, targetInstance, changeSet);
+                    IPreparedDeploymentContainer preparedDeployment = dcsAdapter.prepareDeployment(project, targetInstance, changeSet);
                 }
 
                 LOGGER.info("Finished quick deployment for project {} and change set {} on instances {}", project.getName(), changeSet.getInternalId(), quickDeploymentConfig);

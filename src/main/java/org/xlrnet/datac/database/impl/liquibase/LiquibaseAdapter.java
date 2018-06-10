@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
+import org.xlrnet.datac.database.api.IPreparedDeploymentContainer;
 import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.DeploymentInstance;
@@ -130,11 +131,13 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
         return datacChangeSets;
     }
 
+    @NotNull
     @Override
-    public void prepareDeployment(@NotNull Project project, @NotNull DeploymentInstance targetInstance, @NotNull DatabaseChangeSet changeSet) throws DatacTechnicalException {
+    public IPreparedDeploymentContainer prepareDeployment(@NotNull Project project, @NotNull DeploymentInstance targetInstance, @NotNull DatabaseChangeSet changeSet) throws DatacTechnicalException {
         VcsAdapter vcsAdapter = versionControlSystemRegistry.getVcsAdapter(project);
         VcsLocalRepository vcsLocalRepository = vcsAdapter.openLocalRepository(fileService.getProjectRepositoryPath(project), project);
         vcsLocalRepository.checkoutRevision(changeSet.getRevision());
+        IPreparedDeploymentContainer preparedDeploymentContainer = new LiquibaseDeploymentContainer();
 
         try {
             DatabaseChangeLog databaseChangeLog = getDatabaseChangeLog(project.getChangelogLocation(), project);
@@ -147,13 +150,13 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
             Database targetDatabase = null;
             try {
                 targetDatabase = getDatabaseFromDeploymentInstance(targetInstance);
-
-                StringBuilder stringBuilder = new StringBuilder();
+                List<String> allSql = new ArrayList<>();
                 for (Change change : originalChangeSet.getChanges()) {
+                    StringBuilder stringBuilder = new StringBuilder();
                     generateSql(change, targetDatabase, stringBuilder);
-                    stringBuilder.append("\n");
+                    allSql.add(stringBuilder.toString());
                 }
-
+                
             } finally {
                 if (targetDatabase != null && targetDatabase.getConnection() != null) {
                     targetDatabase.getConnection().close();
@@ -169,6 +172,7 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
             LOGGER.error("Unexpected exception occurred while trying to prepare a deployment", e);
             throw new DatacTechnicalException(e);
         }
+        return preparedDeploymentContainer;
     }
 
     private Database getDatabaseFromDeploymentInstance(DeploymentInstance targetInstance) throws DatabaseException, SQLException {

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
+import org.xlrnet.datac.database.api.IPreparedDeploymentContainer;
 import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.DeploymentInstance;
@@ -154,9 +155,11 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
         return changeSets;
     }
 
+    @NotNull
     @Override
-    public void prepareDeployment(@NotNull Project project, @NotNull DeploymentInstance targetInstance, @NotNull DatabaseChangeSet changeSet) throws DatacTechnicalException {
+    public IPreparedDeploymentContainer prepareDeployment(@NotNull Project project, @NotNull DeploymentInstance targetInstance, @NotNull DatabaseChangeSet changeSet) throws DatacTechnicalException {
         // Nothing to do...
+        return null;
     }
 
     private DatabaseChange buildDummyChange() {

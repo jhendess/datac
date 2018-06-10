@@ -29,5 +29,15 @@ public interface DatabaseChangeSystemAdapter {
     @NotNull
     List<DatabaseChangeSet> listDatabaseChangeSetsForProject(@NotNull Project project) throws DatacTechnicalException;
 
-    void prepareDeployment(@NotNull Project project, @NotNull DeploymentInstance targetInstance, @NotNull DatabaseChangeSet changeSet) throws DatacTechnicalException;
+    /**
+     * Prepare a new deployment. The adaptor may decide on its own if a connection to a  Implementors may assume that this method is called on a locked project, therefore full
+     * access to the underlying VCS is granted.
+     * @param project
+     * @param targetInstance
+     * @param changeSet
+     * @return
+     * @throws DatacTechnicalException
+     */
+    @NotNull
+    IPreparedDeploymentContainer prepareDeployment(@NotNull Project project, @NotNull DeploymentInstance targetInstance, @NotNull DatabaseChangeSet changeSet) throws DatacTechnicalException;
 }
