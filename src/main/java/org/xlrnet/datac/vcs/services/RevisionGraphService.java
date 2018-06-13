@@ -1,7 +1,21 @@
 package org.xlrnet.datac.vcs.services;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -23,24 +37,13 @@ import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.foundation.services.ValidationService;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
+import org.xlrnet.datac.vcs.domain.CachedRevisionDecorator;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
 import org.xlrnet.datac.vcs.util.RevisionTimestampComparator;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Preconditions.checkArgument;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 
 /**
  * Service for accessing and manipulating VCS revision graphs.
@@ -95,7 +98,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
      */
     @NotNull
     @Transactional(readOnly = true)
-    public List<Revision> findAllByProject(@NotNull Project project) {
+    public Stream<Revision> findAllByProject(@NotNull Project project) {
         return getRepository().findAllByProject(project);
     }
 
@@ -113,6 +116,15 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         return getRepository().countRevisionByInternalIdAndProject(revisionId, project) > 0;
     }
 
+    /**
+     * Fetches the revision with a given id in a given project.
+     *
+     * @param internalId
+     *         The revision id.
+     * @param project
+     *         The project in which the revision exists.
+     * @return The revision if it exists, or null.
+     */
     @Transactional(readOnly = true)
     @Nullable
     public Revision findByInternalIdAndProject(String internalId, Project project) {
@@ -135,21 +147,6 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         return getRepository().findAllByProject(project, new LimitOffsetPageable(limit, offset, new Sort(
                 new Sort.Order(Sort.Direction.DESC, "commitTime"))
         ));
-    }
-
-    /**
-     * Fetches the revision with a given id in a given project.
-     *
-     * @param project
-     *         The project in which the revision exists.
-     * @param revisionId
-     *         The revision id.
-     * @return The revision if it exists, or null.
-     */
-    @Nullable
-    @Transactional(readOnly = true)
-    public Revision findRevisionInProject(@NotNull Project project, @NotNull String revisionId) {
-        return getRepository().findByInternalIdAndProject(revisionId, project);
     }
 
     /**
@@ -191,7 +188,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         }
         LOGGER.trace("Finished safe saving of revision graph");
 
-        return findRevisionInProject(revision.getProject(), revision.getInternalId());
+        return findByInternalIdAndProject(revision.getInternalId(), revision.getProject());
     }
 
 
@@ -378,6 +375,25 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         return resultList;
     }
 
+    @Transactional(readOnly = true)
+    public Revision findCachedByInternalIdAndProject(String internalId, Project project) {
+        LOGGER.trace("Loading revision cache in project {}...", project.getName());
+        Map<String, Revision> revisionMap = new HashMap<>();
+        Multimap<String, String> parentChildRevisionMap = MultimapBuilder.hashKeys().arrayListValues(2).build();
+        Multimap<String, String> childParentRevisionMap = MultimapBuilder.hashKeys().arrayListValues(2).build();
+        Stream<Revision> allByProject = findAllByProject(project);
+        allByProject.forEach(r -> revisionMap.put(r.getInternalId(), new CachedRevisionDecorator(r, revisionMap, parentChildRevisionMap, childParentRevisionMap)));
+
+        Stream<Object[]> allParentChildRelationsInProject = getRepository().findAllParentChildRelationsInProject(project.getId());
+        allParentChildRelationsInProject.forEach(s -> {
+            parentChildRevisionMap.put((String) s[0], (String) s[1]);
+            childParentRevisionMap.put((String) s[1], (String) s[0]);
+        });
+        LOGGER.trace("Finished loading revision cache for project {}", project.getName());
+
+        return revisionMap.get(internalId);
+    }
+
     private long collectParents(@NotNull VcsRevision rootRevision, Map<String, Revision> revisionMap) {
         Set<String> importedRevisions = new HashSet<>(revisionMap.size());
         Queue<VcsRevision> revisionsToImport = new LinkedList<>();
@@ -429,7 +445,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
                 LOGGER.trace("Found visited revision {}", internalId);
                 continue;
             }
-            Revision converted = findRevisionInProject(project, internalId);
+            Revision converted = findByInternalIdAndProject(internalId, project);
             if (converted != null) {
                 // Existing revision means that all parents have already been persisted - skip other parents
                 LOGGER.trace("Found existing revision {} in database", internalId);

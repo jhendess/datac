@@ -196,6 +196,9 @@ public class ProjectSubview extends AbstractSubview {
         Branch newBranch = branchValueChangeEvent.getValue();
         if (newBranch != null) {
             Revision newRevision = revisionGraphService.findLastRevisionOnBranch(newBranch);
+            if (newRevision != null) {
+                newRevision = revisionGraphService.findCachedByInternalIdAndProject(newRevision.getInternalId(), newRevision.getProject());
+            }
             changeRevision(newRevision, newBranch);
         }
     }

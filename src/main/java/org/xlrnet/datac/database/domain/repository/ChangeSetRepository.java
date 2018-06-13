@@ -1,13 +1,13 @@
 package org.xlrnet.datac.database.domain.repository;
 
+import java.util.List;
+
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.domain.Revision;
-
-import java.util.List;
 
 /**
  * Repository for accessing change set data.
@@ -16,7 +16,8 @@ public interface ChangeSetRepository extends PagingAndSortingRepository<Database
 
     List<DatabaseChangeSet> findAllByRevision(Revision revision);
 
-    long countAllByRevision(Revision revision);
+    @Query(value = "SELECT COUNT(*) FROM CHANGESET WHERE REVISION_ID = ?1", nativeQuery = true)
+    long countAllByRevisionId(Long revisionId);
 
     /**
      * Counts all change sets which were modified the given change set.

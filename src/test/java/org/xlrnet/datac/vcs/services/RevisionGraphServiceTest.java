@@ -1,5 +1,17 @@
 package org.xlrnet.datac.vcs.services;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.xlrnet.datac.test.domain.EntityCreatorUtil.buildBranch;
+import static org.xlrnet.datac.test.domain.EntityCreatorUtil.buildProject;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import javax.transaction.Transactional;
+import javax.validation.ConstraintViolationException;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,16 +21,6 @@ import org.xlrnet.datac.foundation.services.ProjectService;
 import org.xlrnet.datac.test.domain.EntityCreatorUtil;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
-
-import javax.transaction.Transactional;
-import javax.validation.ConstraintViolationException;
-import java.time.Instant;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.xlrnet.datac.test.domain.EntityCreatorUtil.buildBranch;
-import static org.xlrnet.datac.test.domain.EntityCreatorUtil.buildProject;
 
 /**
  * Tests simple CRUD operations on the revision graph.  Tests run using {@link Transactional} to avoid errors.
@@ -65,7 +67,7 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
 
         revisionGraphService.save(child);
 
-        List<Revision> revisions = revisionGraphService.findAllByProject(testProject);
+        List<Revision> revisions = revisionGraphService.findAllByProject(testProject).collect(Collectors.toList());
         assertEquals(2, revisions.size());
         for (Revision revision : revisions) {
             assertNotNull("Expected project to be set", revision.getProject());
@@ -128,7 +130,7 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
 
         revisionGraphService.save(root);
 
-        Revision savedRevision = revisionGraphService.findRevisionInProject(testProject, "0");
+        Revision savedRevision = revisionGraphService.findByInternalIdAndProject("0", testProject);
         assertNotNull(savedRevision);
         assertEquals(2, savedRevision.getParents().size());
     }
@@ -149,7 +151,7 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
 
         revisionGraphService.save(root);
 
-        Revision savedRevision = revisionGraphService.findRevisionInProject(testProject, "0");
+        Revision savedRevision = revisionGraphService.findByInternalIdAndProject("0", testProject);
         assertNotNull(savedRevision);
         assertEquals(2, savedRevision.getParents().size());
     }

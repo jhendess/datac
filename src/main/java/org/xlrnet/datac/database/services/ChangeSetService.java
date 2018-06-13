@@ -1,5 +1,15 @@
 package org.xlrnet.datac.database.services;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
@@ -19,7 +29,11 @@ import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.repository.ChangeSetRepository;
 import org.xlrnet.datac.foundation.configuration.async.ThreadScoped;
-import org.xlrnet.datac.foundation.domain.*;
+import org.xlrnet.datac.foundation.domain.EventLog;
+import org.xlrnet.datac.foundation.domain.EventLogMessage;
+import org.xlrnet.datac.foundation.domain.EventType;
+import org.xlrnet.datac.foundation.domain.MessageSeverity;
+import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.validation.SortOrderValidator;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.foundation.services.EventLogService;
@@ -27,11 +41,6 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Transactional service for accessing change set data. This service is thread-scoped in order to guarantee isolated
@@ -109,7 +118,8 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
      * @return A list of change sets in the given revision.
      */
     public List<DatabaseChangeSet> findAllInRevision(Revision revision) {
-        List<DatabaseChangeSet> allByRevision = getRepository().findAllByRevision(revision);
+        Revision refreshed = revisionGraphService.refresh(revision);
+        List<DatabaseChangeSet> allByRevision = getRepository().findAllByRevision(refreshed);
         allByRevision.sort(new SortableComparator());
         return allByRevision;
     }
@@ -132,7 +142,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
      * @return Number of change sets in the given revision.
      */
     public long countByRevision(Revision revision) {
-        return getRepository().countAllByRevision(revision);
+        return getRepository().countAllByRevisionId(revision.getId());
     }
 
     /**
@@ -152,11 +162,12 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     @Transactional(readOnly = true)
     public List<DatabaseChangeSet> findLastDatabaseChangeSetsOnBranch(Branch branch, int changeSetsToFind, int revisionsToVisit) throws DatacTechnicalException {
         Project project = branch.getProject();
-        Revision lastDevRevision = revisionGraphService.findByInternalIdAndProject(branch.getInternalId(), project);
+        Revision lastDevRevision = revisionGraphService.findCachedByInternalIdAndProject(branch.getInternalId(), project);
         ArrayList<DatabaseChangeSet> changeSets = new ArrayList<>();
         AtomicInteger visitedRevisions = new AtomicInteger(0);
         breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, (r) -> {
-            if (countByRevision(r) > 0) {
+            long countByRevision = countByRevision(r);
+            if (countByRevision > 0) {
                 List<DatabaseChangeSet> changeSetsInRevision = findAllInRevision(r);
                 for (int i = changeSetsInRevision.size() - 1; i > 0 && changeSets.size() < changeSetsToFind; i--) {
                     changeSets.add(changeSetsInRevision.get(i));
@@ -195,13 +206,16 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     @NotNull
     @Transactional(readOnly = true)
     public List<DatabaseChangeSet> findDatabaseChangeSetsInRevision(@NotNull Revision revision, int revisionsToVisit) throws DatacTechnicalException {
-        Revision reloadedRevision = revisionGraphService.refresh(revision);
+        Revision reloadedRevision = revisionGraphService.findCachedByInternalIdAndProject(revision.getInternalId(), revision.getProject());
         final List<DatabaseChangeSet> changeSetsInRevision = new ArrayList<>();
         AtomicInteger visitedRevisions = new AtomicInteger(0);
         breadthFirstTraverser.traverseParentsCutOnMatch(reloadedRevision, (r) -> {
+            LOGGER.trace("Checking revision {} for change sets", r.getInternalId());
             if (changeSetsInRevision.isEmpty() && countByRevision(r) > 0) {
+                LOGGER.trace("Loading all change sets in revision {}", r.getInternalId());
                 for (DatabaseChangeSet databaseChangeSet : findAllInRevision(r)) {
                     changeSetsInRevision.add(databaseChangeSet);
+                    LOGGER.trace("Initializing changes for change set {}", databaseChangeSet.getId());
                     Hibernate.initialize(databaseChangeSet.getChanges());
                 }
             }

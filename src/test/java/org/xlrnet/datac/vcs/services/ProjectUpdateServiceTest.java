@@ -1,5 +1,13 @@
 package org.xlrnet.datac.vcs.services;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+
+import javax.transaction.Transactional;
+
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,13 +21,6 @@ import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.impl.dummy.DummyRevision;
-
-import javax.transaction.Transactional;
-import java.time.Instant;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link ProjectUpdateService}. Tests run using {@link Transactional} to avoid errors.
@@ -56,7 +57,7 @@ public class ProjectUpdateServiceTest extends AbstractSpringBootTest {
 
         projectUpdateService.updateRevisionsInBranch(testProject, testBranch, mockedRepository);
 
-        Revision revision = graphService.findRevisionInProject(testProject, "1");
+        Revision revision = graphService.findByInternalIdAndProject("1", testProject);
 
         validateRevisionGraph(revision);
     }
@@ -89,7 +90,7 @@ public class ProjectUpdateServiceTest extends AbstractSpringBootTest {
         projectUpdateService.updateRevisionsInBranch(testProject, testBranch, mockedRepository);
 
         // Validate
-        Revision revision = graphService.findRevisionInProject(testProject, "NEW");
+        Revision revision = graphService.findByInternalIdAndProject("NEW", testProject);
         assertNotNull(revision);
         assertEquals("New revision id doesn't match", "NEW", revision.getInternalId());
         assertEquals("New revision parent count doesn't match", 1, revision.getParents().size());
