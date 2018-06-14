@@ -135,6 +135,9 @@ public class ProjectSubview extends AbstractSubview {
             project = revision.getProject();
         }
 
+        // Only operate on the cached revision
+        revision = revisionGraphService.findCachedByInternalIdAndProject(revision.getInternalId(), project);
+
         String branchParameter = getNamedParameter(BRANCH_PARAMETER);
         if (branchParameter != null) {
             branch = branchService.findOne(Long.valueOf(branchParameter));

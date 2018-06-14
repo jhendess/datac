@@ -1,6 +1,7 @@
 package org.xlrnet.datac.database.domain.repository;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -17,7 +18,7 @@ public interface ChangeSetRepository extends PagingAndSortingRepository<Database
     List<DatabaseChangeSet> findAllByRevision(Revision revision);
 
     @Query(value = "SELECT COUNT(*) FROM CHANGESET WHERE REVISION_ID = ?1", nativeQuery = true)
-    long countAllByRevisionId(Long revisionId);
+    long countByRevisionId(Long revisionId);
 
     /**
      * Counts all change sets which were modified the given change set.
@@ -46,4 +47,7 @@ public interface ChangeSetRepository extends PagingAndSortingRepository<Database
     @Modifying
     @Query(value = "DELETE FROM CHANGESET WHERE REVISION_ID IN (SELECT ID FROM REVISION WHERE PROJECT_ID = ?1)", nativeQuery = true)
     void deleteAllByProjectId(Long projectId);
+
+    @Query(value = "SELECT REVISION_ID, COUNT(*) FROM CHANGESET JOIN REVISION R on CHANGESET.REVISION_ID = R.ID WHERE R.PROJECT_ID = ?1 GROUP BY REVISION_ID", nativeQuery = true)
+    Stream<Object[]> countAllByProject(Long projectId);
 }

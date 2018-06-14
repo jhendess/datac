@@ -2,6 +2,7 @@ package org.xlrnet.datac.database.services;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.lang3.StringUtils;
@@ -18,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +31,6 @@ import org.xlrnet.datac.commons.util.SortableComparator;
 import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.repository.ChangeSetRepository;
-import org.xlrnet.datac.foundation.configuration.async.ThreadScoped;
 import org.xlrnet.datac.foundation.domain.EventLog;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
 import org.xlrnet.datac.foundation.domain.EventType;
@@ -37,6 +39,7 @@ import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.validation.SortOrderValidator;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
 import org.xlrnet.datac.foundation.services.EventLogService;
+import org.xlrnet.datac.foundation.services.ProjectCacheReloadEvent;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.LockingService;
@@ -47,7 +50,7 @@ import org.xlrnet.datac.vcs.services.RevisionGraphService;
  * caches. FIXME: Maybe this isn't a good idea if threads are being reused?
  */
 @Service
-@ThreadScoped
+//@ThreadScoped
 public class ChangeSetService extends AbstractTransactionalService<DatabaseChangeSet, ChangeSetRepository> {
 
     private final Logger LOGGER = LoggerFactory.getLogger(ChangeSetService.class);
@@ -77,7 +80,11 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     /**
      * Cache for introducing change set ids.
      */
-    private Map<MultiKey, Optional<Long>> introducingChangeSetIdCache = new HashMap<>();
+
+    /**
+     * Cache for number of change sets per revision per project.
+     */
+    private Map<Long, Map<Long, Long>> changeSetCountByProjectCache = new HashMap<>();
 
     private BasicFormatterImpl changeSetFormatter = new BasicFormatterImpl();
 
@@ -142,7 +149,42 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
      * @return Number of change sets in the given revision.
      */
     public long countByRevision(Revision revision) {
-        return getRepository().countAllByRevisionId(revision.getId());
+        return getRepository().countByRevisionId(revision.getId());
+    }
+
+    /**
+     * Counts the change sets for a given revision using an internal cache.
+     *
+     * @param revision
+     *         Revision for which the change sets should be counted.
+     * @return Number of change sets in the given revision.
+     */
+    public long countCachedByRevision(Revision revision) {
+        Map<Long, Long> countCache = getCountCacheByProject(revision.getProject());
+        return countCache.getOrDefault(revision.getId(), 0L);
+    }
+
+    @EventListener
+    public void forceProjectCacheReload(ProjectCacheReloadEvent event) {
+        reloadCountCache(event.getProject());
+    }
+
+    private Map<Long, Long> getCountCacheByProject(Project project) {
+        Long projectId = project.getId();
+        if (!changeSetCountByProjectCache.containsKey(projectId)) {
+            reloadCountCache(project);
+        }
+        return changeSetCountByProjectCache.get(projectId);
+    }
+
+    private void reloadCountCache(Project project) {
+        LOGGER.debug("Updating change set count cache for project {}", project.getName());
+        Stream<Object[]> countAllByProject = getRepository().countAllByProject(project.getId());
+        Map<Long, Long> newCache = new HashMap<>();
+
+        countAllByProject.forEach(v -> newCache.put(((BigInteger)v[0]).longValueExact(), ((BigInteger)v[1]).longValueExact()));
+        changeSetCountByProjectCache.put(project.getId(), newCache);
+        LOGGER.debug("Finished loading change set count cache for project {}", project.getName());
     }
 
     /**
@@ -166,7 +208,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
         ArrayList<DatabaseChangeSet> changeSets = new ArrayList<>();
         AtomicInteger visitedRevisions = new AtomicInteger(0);
         breadthFirstTraverser.traverseParentsCutOnMatch(lastDevRevision, (r) -> {
-            long countByRevision = countByRevision(r);
+            long countByRevision = countCachedByRevision(r);
             if (countByRevision > 0) {
                 List<DatabaseChangeSet> changeSetsInRevision = findAllInRevision(r);
                 for (int i = changeSetsInRevision.size() - 1; i > 0 && changeSets.size() < changeSetsToFind; i--) {
@@ -211,7 +253,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
         AtomicInteger visitedRevisions = new AtomicInteger(0);
         breadthFirstTraverser.traverseParentsCutOnMatch(reloadedRevision, (r) -> {
             LOGGER.trace("Checking revision {} for change sets", r.getInternalId());
-            if (changeSetsInRevision.isEmpty() && countByRevision(r) > 0) {
+            if (changeSetsInRevision.isEmpty() && countCachedByRevision(r) > 0) {
                 LOGGER.trace("Loading all change sets in revision {}", r.getInternalId());
                 for (DatabaseChangeSet databaseChangeSet : findAllInRevision(r)) {
                     changeSetsInRevision.add(databaseChangeSet);
@@ -234,7 +276,8 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     public void linkRevisions(@NotNull DatabaseChangeSet databaseChangeSet) {
         checkState(!databaseChangeSet.isPersisted(), "The given change set may not be persisted");
 
-        DatabaseChangeSet firstChangeSet = findIntroducingChangeSet(databaseChangeSet);
+        Map<MultiKey, Optional<Long>> introducingChangeSetIdCache = new HashMap<>();
+        DatabaseChangeSet firstChangeSet = findIntroducingChangeSet(databaseChangeSet, introducingChangeSetIdCache);
         if (firstChangeSet != null) {
             databaseChangeSet.setIntroducingChangeSet(firstChangeSet);
             if (!StringUtils.equals(databaseChangeSet.getChecksum(), firstChangeSet.getChecksum())) {
@@ -281,7 +324,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
         return message;
     }
 
-    private DatabaseChangeSet findIntroducingChangeSet(@NotNull DatabaseChangeSet databaseChangeSet) {
+    private DatabaseChangeSet findIntroducingChangeSet(@NotNull DatabaseChangeSet databaseChangeSet, Map<MultiKey, Optional<Long>> introducingChangeSetIdCache) {
         DatabaseChangeSet introducingChangeSet;
         Project project = databaseChangeSet.getRevision().getProject();
 

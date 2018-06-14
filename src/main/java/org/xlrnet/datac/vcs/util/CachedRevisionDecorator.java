@@ -1,31 +1,27 @@
-package org.xlrnet.datac.vcs.domain;
+package org.xlrnet.datac.vcs.util;
 
 import java.time.Instant;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
 import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.vcs.domain.Revision;
+import org.xlrnet.datac.vcs.services.ProjectRevisionCache;
 
-import com.google.common.collect.Multimap;
-
+/**
+ * Decorator for {@link Revision} which operates on cached data. All attempts to modify any data throw a {@link UnsupportedOperationException}.
+ */
 public class CachedRevisionDecorator extends Revision {
 
+    /** The delegate which is decorated. */
     private final Revision delegate;
 
-    private final Multimap<String, String> parentChildMap;
+    /** The cached data. */
+    private final ProjectRevisionCache cache;
 
-    private final Multimap<String, String> childParentMap;
-
-    private final Map<String, Revision> cachedRevisions;
-
-    public CachedRevisionDecorator(Revision delegate, Map<String, Revision> cachedRevisions, Multimap<String, String> parentChildMap, Multimap<String, String> childParentMap) {
+    public CachedRevisionDecorator(Revision delegate, ProjectRevisionCache cache) {
         this.delegate = delegate;
-        this.parentChildMap = parentChildMap;
-        this.cachedRevisions = cachedRevisions;
-        this.childParentMap = childParentMap;
+        this.cache = cache;
     }
 
     @Override
@@ -92,8 +88,7 @@ public class CachedRevisionDecorator extends Revision {
     @Override
     @NotNull
     public List<Revision> getParents() {
-        Collection<String> strings = childParentMap.get(this.getInternalId());
-        return strings.stream().map(cachedRevisions::get).collect(Collectors.toList());
+        return cache.getParents(this.getInternalId());
     }
 
     @Override
@@ -129,8 +124,7 @@ public class CachedRevisionDecorator extends Revision {
     @Override
     @NotNull
     public List<Revision> getChildren() {
-        Collection<String> strings = parentChildMap.get(this.getInternalId());
-        return strings.stream().map(cachedRevisions::get).collect(Collectors.toList());
+        return cache.getChildren(this.getInternalId());
     }
 
     @Override

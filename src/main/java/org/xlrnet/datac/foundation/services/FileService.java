@@ -53,7 +53,7 @@ public class FileService extends AbstractLifecycleComponent {
 
     @Override
     protected void onStart() {
-        LOGGER.info("Starting file service...");
+        LOGGER.info("Starting file service");
         initializeWorkingDirectory();
     }
 

@@ -121,7 +121,7 @@ public class ChangeIndexingService {
         // Find those revisions which don't have a change set yet
         Set<Revision> revisionsToIndex = new LinkedHashSet<>();
         for (Revision revision : internalRevisions) {
-            if (changeSetService.countByRevision(revision) == 0) {
+            if (changeSetService.countCachedByRevision(revision) == 0) {
                 revisionsToIndex.add(revision);
             }
         }
@@ -134,7 +134,7 @@ public class ChangeIndexingService {
             Iterable<Revision> mergeRevisionsInProject = revisionGraphService.findMergeRevisionsInProject(project);
             LOGGER.debug("Checking for merge revisions in project {} [id={}]", updatedProject.getName(), updatedProject.getId());
             for (Revision revision : mergeRevisionsInProject) {
-                if (changeSetService.countByRevision(revision) == 0 && localRepository.existsPathInRevision(revision, project.getChangelogLocation())) {
+                if (changeSetService.countCachedByRevision(revision) == 0 && localRepository.existsPathInRevision(revision, project.getChangelogLocation())) {
                     orderedRevisionsToIndex.add(revision);
                     LOGGER.debug("Adding merge revision {} to index", revision.getInternalId());
                 }

@@ -1,10 +1,15 @@
 package org.xlrnet.datac.vcs.services;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
@@ -21,14 +26,15 @@ import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.ProjectState;
 import org.xlrnet.datac.foundation.services.EventLogService;
 import org.xlrnet.datac.foundation.services.FileService;
+import org.xlrnet.datac.foundation.services.ProjectCacheReloadEvent;
 import org.xlrnet.datac.foundation.services.ProjectService;
-import org.xlrnet.datac.vcs.api.*;
+import org.xlrnet.datac.vcs.api.VcsAdapter;
+import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
+import org.xlrnet.datac.vcs.api.VcsLocalRepository;
+import org.xlrnet.datac.vcs.api.VcsRemoteRepositoryConnection;
+import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
 
 /**
  * Service which is responsible for collecting all database changes in a project.
@@ -83,8 +89,13 @@ public class ProjectUpdateService {
      */
     private final EventLogService eventLogService;
 
+    /**
+     * Application event publisher.
+     */
+    private final ApplicationEventPublisher eventPublisher;
+
     @Autowired
-    public ProjectUpdateService(EventLogProxy eventLog1, VersionControlSystemRegistry vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, BranchService branchService, RevisionGraphService revisionGraphService, EventLogService eventLogService, EventLogProxy eventLog, LiquibaseAdapter databaseChangeSystemAdapter, ChangeSetService changeSetService, ChangeIndexingService changeIndexingService) {
+    public ProjectUpdateService(EventLogProxy eventLog1, VersionControlSystemRegistry vcsService, LockingService lockingService, FileService fileService, ProjectService projectService, BranchService branchService, RevisionGraphService revisionGraphService, EventLogService eventLogService, EventLogProxy eventLog, LiquibaseAdapter databaseChangeSystemAdapter, ChangeSetService changeSetService, ChangeIndexingService changeIndexingService, ApplicationEventPublisher eventPublisher) {
         this.eventLog = eventLog1;
         this.vcsService = vcsService;
         this.lockingService = lockingService;
@@ -94,6 +105,7 @@ public class ProjectUpdateService {
         this.revisionGraphService = revisionGraphService;
         this.eventLogService = eventLogService;
         this.changeIndexingService = changeIndexingService;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -172,10 +184,13 @@ public class ProjectUpdateService {
             if (updatedProject.getState() != ProjectState.MISSING_LOG) {
                 updatedProject.setState(ProjectState.FINISHED);
             }
-            return projectService.saveAndPublishStateChange(updatedProject, 0);
+            updatedProject = projectService.saveAndPublishStateChange(updatedProject, 0);
         } catch (RuntimeException | IOException e) {
             throw new DatacTechnicalException("Project update failed", e);
+        } finally {
+            eventPublisher.publishEvent(new ProjectCacheReloadEvent(this, updatedProject));
         }
+        return updatedProject;
     }
 
     /**

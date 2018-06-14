@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -23,6 +26,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,12 +38,13 @@ import org.xlrnet.datac.commons.graph.DepthFirstTraverser;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.foundation.domain.repository.ProjectRepository;
 import org.xlrnet.datac.foundation.services.AbstractTransactionalService;
+import org.xlrnet.datac.foundation.services.ProjectCacheReloadEvent;
 import org.xlrnet.datac.foundation.services.ValidationService;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Branch;
-import org.xlrnet.datac.vcs.domain.CachedRevisionDecorator;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
+import org.xlrnet.datac.vcs.util.CachedRevisionDecorator;
 import org.xlrnet.datac.vcs.util.RevisionTimestampComparator;
 
 import com.google.common.collect.Multimap;
@@ -73,6 +78,16 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
      * Helper class for performing depth first traversals on revision graphs.
      */
     private final DepthFirstTraverser<Revision> depthFirstTraverser = new DepthFirstTraverser<>();
+
+    /**
+     * Map of all cached revisions for each project.
+     */
+    private final ConcurrentMap<Long, ProjectRevisionCache> revisionCacheMap = new ConcurrentHashMap<>();
+
+    /**
+     * Map of cache updater locks.
+     */
+    private final ConcurrentMap<Long, ReentrantReadWriteLock> cacheUpdaterLockmap = new ConcurrentHashMap<>();
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
@@ -327,7 +342,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
      * that calling this method again on the last revision in the flattened list yields the same result as calling this method on the source object with a higher
      *
      * @param rev
-     *         The origin revision from which to start.
+     *         The origin revision from which to start. No refresh of given entity will be performed.
      * @param maximumDepth
      *         The maximum amount of revisions to include in the flattened list.
      */
@@ -336,7 +351,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         Map<Revision, Boolean> visitedRevs = new HashMap<>();
         Map<Revision, Boolean> printedRevs = new HashMap<>();
         Queue<Revision> continueCandidates = new LinkedList<>();        // Revisions which might be processed in a second run
-        continueCandidates.offer(refresh(rev));
+        continueCandidates.offer(rev);
         List<Revision> resultList = new ArrayList<>(maximumDepth);
         LOGGER.trace("Flattening revision graph for revision {}", rev.getInternalId());
 
@@ -375,23 +390,49 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         return resultList;
     }
 
+    @Nullable
     @Transactional(readOnly = true)
     public Revision findCachedByInternalIdAndProject(String internalId, Project project) {
-        LOGGER.trace("Loading revision cache in project {}...", project.getName());
+        ProjectRevisionCache cache = getProjectRevisionCache(project);
+        return cache.getRevisionByInternalId(internalId);
+    }
+
+    @EventListener
+    public void forceProjectCacheReload(ProjectCacheReloadEvent event) {
+        reloadRevisionCache(event.getProject());
+    }
+
+    private ProjectRevisionCache getProjectRevisionCache(Project project) {
+        Long projectId = project.getId();
+        if (!revisionCacheMap.containsKey(projectId)) {
+            reloadRevisionCache(project);
+        }
+        return revisionCacheMap.get(projectId);
+    }
+
+    private void reloadRevisionCache(Project project) {
+        Long projectId = project.getId();
+        ProjectRevisionCache cache = revisionCacheMap.computeIfAbsent(projectId, (x) -> new ProjectRevisionCache());
+        fillCache(project, cache);
+    }
+
+    private void fillCache(Project project, ProjectRevisionCache target) {
+        LOGGER.debug("Updating revision cache for project {}", project.getName());
         Map<String, Revision> revisionMap = new HashMap<>();
         Multimap<String, String> parentChildRevisionMap = MultimapBuilder.hashKeys().arrayListValues(2).build();
         Multimap<String, String> childParentRevisionMap = MultimapBuilder.hashKeys().arrayListValues(2).build();
         Stream<Revision> allByProject = findAllByProject(project);
-        allByProject.forEach(r -> revisionMap.put(r.getInternalId(), new CachedRevisionDecorator(r, revisionMap, parentChildRevisionMap, childParentRevisionMap)));
+        allByProject.forEach(r -> revisionMap.put(r.getInternalId(), new CachedRevisionDecorator(r, target)));
 
         Stream<Object[]> allParentChildRelationsInProject = getRepository().findAllParentChildRelationsInProject(project.getId());
         allParentChildRelationsInProject.forEach(s -> {
             parentChildRevisionMap.put((String) s[0], (String) s[1]);
             childParentRevisionMap.put((String) s[1], (String) s[0]);
         });
-        LOGGER.trace("Finished loading revision cache for project {}", project.getName());
-
-        return revisionMap.get(internalId);
+        LOGGER.debug("Finished loading revision cache for project {}", project.getName());
+        target.setChildParentMap(childParentRevisionMap);
+        target.setParentChildMap(parentChildRevisionMap);
+        target.setRevisionMap(revisionMap);
     }
 
     private long collectParents(@NotNull VcsRevision rootRevision, Map<String, Revision> revisionMap) {
