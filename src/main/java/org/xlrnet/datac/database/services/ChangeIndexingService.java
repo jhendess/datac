@@ -1,15 +1,6 @@
 package org.xlrnet.datac.database.services;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +10,9 @@ import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.MissingDatabaseChangeSystemAdapterException;
 import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
 import org.xlrnet.datac.commons.graph.DepthFirstTraverser;
+import org.xlrnet.datac.commons.util.SortableComparator;
 import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
+import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.foundation.components.EventLogProxy;
 import org.xlrnet.datac.foundation.domain.EventLogMessage;
@@ -31,6 +24,18 @@ import org.xlrnet.datac.vcs.api.VcsLocalRepository;
 import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Service responsible for indexing database changes in a project.
@@ -149,6 +154,42 @@ public class ChangeIndexingService {
         return updatedProject;
     }
 
+    @Transactional
+    public void recalculateChecksumsInRevision(@NotNull Project project, @NotNull Revision revision, @NotNull VcsLocalRepository localRepository) throws DatacTechnicalException {
+        localRepository.checkoutRevision(revision);
+        LOGGER.debug("Recalculating checksums in revision {}", revision.getInternalId());
+        List<DatabaseChangeSet> newChangeSets = listDatabaseChangeSetsInRevision(project, localRepository, revision);
+        newChangeSets.sort(new SortableComparator());
+        List<DatabaseChangeSet> oldChangeSets = changeSetService.findAllInRevision(revision);
+
+        checkState(oldChangeSets.size() == newChangeSets.size(), "Number of change sets doesn't match in revision %s of project %s: expected %d, but got %d change sets", revision.getInternalId(), project.getName(), oldChangeSets.size(), newChangeSets.size());
+
+        for (int i = 0; i < newChangeSets.size(); i++) {
+            DatabaseChangeSet newChangeSet = newChangeSets.get(i);
+            DatabaseChangeSet oldChangeSet = oldChangeSets.get(i);
+
+            // Perform various validations to make sure we update the correct checksum and that the DCS didn't change their implementation
+            checkState(StringUtils.equals(newChangeSet.getInternalId(), oldChangeSet.getInternalId()), "Internal id doesn't match in change set %s (file: %s) of revision %s of project %s: expected %s, but got %s", newChangeSet.getInternalId(), newChangeSet.getSourceFilename(), revision.getInternalId(), project.getName(), oldChangeSet.getInternalId(), newChangeSet.getInternalId());
+            checkState(StringUtils.equals(newChangeSet.getSourceFilename(), oldChangeSet.getSourceFilename()), "Source filename doesn't match in change set %s (file: %s) of revision %s of project %s: expected %s, but got %s", newChangeSet.getInternalId(), newChangeSet.getSourceFilename(), revision.getInternalId(), project.getName(), oldChangeSet.getSourceFilename(), newChangeSet.getSourceFilename());
+            checkState(newChangeSet.getChanges().size() == oldChangeSet.getChanges().size(), "Number of changes doesn't match in change set %s (file: %s) of revision %s of project %s: expected %d, but got %d changes", newChangeSet.getInternalId(), newChangeSet.getSourceFilename(), revision.getInternalId(), project.getName(), oldChangeSet.getChanges().size(), newChangeSet.getChanges().size());
+
+            for (int j = 0; j < newChangeSet.getChanges().size(); j++) {
+                DatabaseChange newChange = newChangeSet.getChanges().get(j);
+                DatabaseChange oldChange = oldChangeSet.getChanges().get(j);
+
+                // Perform various validations to make sure we update the correct checksum and that the DCS didn't change their implementation
+                checkState(StringUtils.equals(newChange.getType(), oldChange.getType()), "Type doesn't match in change %d of change set %s (file: %s) of revision %s of project %s: expected %s, but got %s", newChange.getSort(), newChangeSet.getInternalId(), newChangeSet.getSourceFilename(), revision.getInternalId(), project.getName(), oldChange.getType(), newChange.getType());
+                checkState(StringUtils.equals(newChange.getDescription(), oldChange.getDescription()), "Description doesn't match in change %d of change set %s (file: %s) of revision %s of project %s: expected %s, but got %s", newChange.getSort(), newChangeSet.getInternalId(), newChangeSet.getSourceFilename(), revision.getInternalId(), project.getName(), oldChange.getDescription(), newChange.getDescription());
+
+                oldChange.setChecksum(newChange.getChecksum());
+            }
+
+            oldChangeSet.setChecksum(newChangeSet.getChecksum());
+        }
+
+        changeSetService.save(oldChangeSets);
+    }
+
     /**
      * Performs indexing of database changes in the given project using the given local repository. The algorithm will
      * perform a breadth-first traversal from the root revision. For each revision during the traversal,
@@ -203,7 +244,19 @@ public class ChangeIndexingService {
 
     private Collection<DatabaseChangeSet> indexDatabaseChangesInRevision(Project project, VcsLocalRepository localRepository, Revision revision) throws DatacTechnicalException {
         LOGGER.debug("Indexing database changes of project {} in revision {}", project.getName(), revision.getInternalId());
+        List<DatabaseChangeSet> databaseChangeSets = listDatabaseChangeSetsInRevision(project, localRepository, revision);
+        LOGGER.trace("Linking change sets to revisions");
 
+        for (DatabaseChangeSet databaseChangeSet : databaseChangeSets) {
+            databaseChangeSet.setRevision(revision);
+            changeSetService.linkRevisions(databaseChangeSet);
+        }
+
+        return changeSetService.save(databaseChangeSets);
+    }
+
+    @NotNull
+    private List<DatabaseChangeSet> listDatabaseChangeSetsInRevision(Project project, VcsLocalRepository localRepository, Revision revision) throws DatacTechnicalException {
         // TODO: Check if the file even exists in that revision (somewhere -> maybe a bit earlier while calculating the list of revs to index)
         localRepository.checkoutRevision(revision);
 
@@ -214,14 +267,6 @@ public class ChangeIndexingService {
         } else {
             throw new MissingDatabaseChangeSystemAdapterException(project);
         }
-
-        LOGGER.trace("Linking change sets to revisions");
-
-        for (DatabaseChangeSet databaseChangeSet : databaseChangeSets) {
-            databaseChangeSet.setRevision(revision);
-            changeSetService.linkRevisions(databaseChangeSet);
-        }
-
-        return changeSetService.save(databaseChangeSets);
+        return databaseChangeSets;
     }
 }

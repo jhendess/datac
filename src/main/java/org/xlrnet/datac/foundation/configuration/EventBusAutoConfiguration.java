@@ -15,19 +15,29 @@
  */
 package org.xlrnet.datac.foundation.configuration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.vaadin.spring.events.EventBus;
 import org.vaadin.spring.events.annotation.EnableEventBus;
+import org.vaadin.spring.events.support.ApplicationContextEventBroker;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Auto configuration for the Event Bus.
  */
+@Slf4j
 @Configuration
 public class EventBusAutoConfiguration {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(EventBusAutoConfiguration.class);
+    private final EventBus.ApplicationEventBus eventBus;
+
+    @Autowired
+    public EventBusAutoConfiguration(EventBus.ApplicationEventBus eventBus) {
+        this.eventBus = eventBus;
+    }
 
     @Configuration
     @EnableEventBus
@@ -35,7 +45,15 @@ public class EventBusAutoConfiguration {
 
         @Override
         public void afterPropertiesSet() throws Exception {
-            LOGGER.debug("Event bus initialized");
+            LOGGER.info("Vaadin event bus initialized");
         }
+    }
+
+    /**
+     * Produce an application context event broker which propagates Spring events to the Vaadin bus.
+     */
+    @Bean
+    ApplicationContextEventBroker applicationContextEventBroker() {
+        return new ApplicationContextEventBroker(eventBus);
     }
 }

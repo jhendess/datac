@@ -1,32 +1,7 @@
 package org.xlrnet.datac.database.impl.liquibase;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.annotation.PostConstruct;
-
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.xlrnet.datac.commons.exception.DatacTechnicalException;
-import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
-import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
-import org.xlrnet.datac.database.api.IPreparedDeploymentContainer;
-import org.xlrnet.datac.database.domain.DatabaseChange;
-import org.xlrnet.datac.database.domain.DatabaseChangeSet;
-import org.xlrnet.datac.database.domain.DeploymentInstance;
-import org.xlrnet.datac.foundation.domain.Project;
-import org.xlrnet.datac.foundation.services.FileService;
-import org.xlrnet.datac.vcs.api.VcsAdapter;
-import org.xlrnet.datac.vcs.api.VcsLocalRepository;
-import org.xlrnet.datac.vcs.services.VersionControlSystemRegistry;
-
-import com.google.common.base.Throwables;
-
 import ch.qos.logback.classic.Level;
+import com.google.common.base.Throwables;
 import liquibase.change.Change;
 import liquibase.changelog.ChangeLogParameters;
 import liquibase.changelog.ChangeSet;
@@ -45,6 +20,28 @@ import liquibase.sql.Sql;
 import liquibase.sqlgenerator.SqlGeneratorFactory;
 import liquibase.statement.SqlStatement;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
+import org.xlrnet.datac.database.api.IPreparedDeploymentContainer;
+import org.xlrnet.datac.database.domain.DatabaseChange;
+import org.xlrnet.datac.database.domain.DatabaseChangeSet;
+import org.xlrnet.datac.database.domain.DeploymentInstance;
+import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.services.FileService;
+import org.xlrnet.datac.vcs.api.VcsAdapter;
+import org.xlrnet.datac.vcs.api.VcsLocalRepository;
+import org.xlrnet.datac.vcs.services.VersionControlSystemRegistry;
+
+import javax.annotation.PostConstruct;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Service which provides access to liquibase change log files.
@@ -137,7 +134,7 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
         VcsAdapter vcsAdapter = versionControlSystemRegistry.getVcsAdapter(project);
         VcsLocalRepository vcsLocalRepository = vcsAdapter.openLocalRepository(fileService.getProjectRepositoryPath(project), project);
         vcsLocalRepository.checkoutRevision(changeSet.getRevision());
-        IPreparedDeploymentContainer preparedDeploymentContainer = new LiquibaseDeploymentContainer();
+        LiquibaseDeploymentContainer preparedDeploymentContainer = new LiquibaseDeploymentContainer();
 
         try {
             DatabaseChangeLog databaseChangeLog = getDatabaseChangeLog(project.getChangelogLocation(), project);
@@ -156,7 +153,7 @@ public class LiquibaseAdapter implements DatabaseChangeSystemAdapter {
                     generateSql(change, targetDatabase, stringBuilder);
                     allSql.add(stringBuilder.toString());
                 }
-                
+                preparedDeploymentContainer.setGeneratedSql(allSql);
             } finally {
                 if (targetDatabase != null && targetDatabase.getConnection() != null) {
                     targetDatabase.getConnection().close();

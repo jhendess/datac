@@ -1,15 +1,15 @@
 package org.xlrnet.datac.vcs.domain.repository;
 
-import java.math.BigInteger;
-import java.util.List;
-import java.util.stream.Stream;
-
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.domain.Revision;
+
+import java.math.BigInteger;
+import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Repository for accessing revision data.
@@ -50,4 +50,8 @@ public interface RevisionRepository extends PagingAndSortingRepository<Revision,
             "  GROUP BY REVISION_ID\n" +
             ") WHERE REV_COUNT > 1", nativeQuery = true)
     List<BigInteger> findMergeRevisionIdsInProject(long projectId);
+
+    @Transactional(readOnly = true)
+    @Query(nativeQuery = true, value = "SELECT DISTINCT R.* FROM REVISION R JOIN CHANGESET C ON R.ID = C.REVISION_ID AND R.PROJECT_ID = ?1")
+    List<Revision> findAllWithModifyingDatabaseChangesInProject(long projectId);
 }

@@ -1,24 +1,7 @@
 package org.xlrnet.datac.vcs.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -47,8 +30,24 @@ import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
 import org.xlrnet.datac.vcs.util.CachedRevisionDecorator;
 import org.xlrnet.datac.vcs.util.RevisionTimestampComparator;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Service for accessing and manipulating VCS revision graphs.
@@ -400,6 +399,20 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
     @EventListener
     public void forceProjectCacheReload(ProjectCacheReloadEvent event) {
         reloadRevisionCache(event.getProject());
+    }
+
+    /**
+     * Finds all revisions in the given project which contain a new or changed database change set. Each revision is returned only once.
+     *
+     * @param project
+     *         The persisted project to check.
+     * @return all revisions in the given project which contain a new or changed database change set.
+     */
+    @NotNull
+    @Transactional(readOnly = true)
+    public Collection<Revision> findAllWithModifyingDatabaseChangesInProject(Project project) {
+        checkArgument(project.isPersisted(), "Project must be persisted");
+        return getRepository().findAllWithModifyingDatabaseChangesInProject(project.getId());
     }
 
     private ProjectRevisionCache getProjectRevisionCache(Project project) {

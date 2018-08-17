@@ -5,6 +5,7 @@ import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.layouts.MGridLayout;
 import org.xlrnet.datac.administration.ui.views.database.AdminDatabaseSubview;
 import org.xlrnet.datac.administration.ui.views.eventlog.AdminEventLogSubview;
+import org.xlrnet.datac.administration.ui.views.maintenance.AdminMaintenanceSubview;
 import org.xlrnet.datac.administration.ui.views.projects.AdminProjectSubview;
 import org.xlrnet.datac.administration.ui.views.user.AdminUserSubview;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
@@ -73,10 +74,16 @@ public class AdminSubview extends AbstractSubview implements Subview {
         eventlogButton.withStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
         eventlogButton.addClickListener(event -> UI.getCurrent().getNavigator().navigateTo(AdminEventLogSubview.VIEW_NAME));
 
+        MButton maintenanceButton = new MButton("Maintenance").withIcon(new ThemeResource("img/maintenance-128.png"));
+        maintenanceButton.withStyleName(ADMIN_CATEGORY_BUTTON_CLASS, "card", "card-2");
+        maintenanceButton.withStyleName(ValoTheme.BUTTON_ICON_ALIGN_TOP);
+        maintenanceButton.addClickListener(event -> UI.getCurrent().getNavigator().navigateTo(AdminMaintenanceSubview.VIEW_NAME));
+
         layout.addComponent(userButton);
         layout.addComponent(projectButton);
         layout.addComponent(databaseButton);
         layout.addComponent(eventlogButton);
+        layout.addComponent(maintenanceButton);
 
         return layout;
     }

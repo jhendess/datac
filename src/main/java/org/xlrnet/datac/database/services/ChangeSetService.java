@@ -1,17 +1,5 @@
 package org.xlrnet.datac.database.services;
 
-import static com.google.common.base.Preconditions.checkState;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
-
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
@@ -44,6 +32,18 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
+
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Transactional service for accessing change set data. This service is thread-scoped in order to guarantee isolated

@@ -1,8 +1,17 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
+import com.vaadin.data.ValueProvider;
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.spring.annotation.ViewScope;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.MenuBar;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.renderers.TextRenderer;
+import com.vaadin.ui.themes.ValoTheme;
+import de.steinwedel.messagebox.MessageBox;
+import elemental.json.JsonValue;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -29,20 +38,8 @@ import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.ProjectSchedulingService;
 import org.xlrnet.datac.vcs.services.ProjectUpdateStarter;
 
-import com.vaadin.data.ValueProvider;
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.server.VaadinSession;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.spring.annotation.ViewScope;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.MenuBar;
-import com.vaadin.ui.UI;
-import com.vaadin.ui.renderers.TextRenderer;
-import com.vaadin.ui.themes.ValoTheme;
-
-import de.steinwedel.messagebox.MessageBox;
-import elemental.json.JsonValue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Admin view for managing projects responsible for managing the available users.
@@ -82,11 +79,6 @@ public class AdminProjectSubview extends AbstractSubview {
     private final LockingService lockingService;
 
     /**
-     * The vaadin session used for accessing the UI on a separate thread.
-     */
-    private VaadinSession vaadinSession;
-
-    /**
      * Read-only form of the project.
      */
     private final ReadOnlyProjectInfoForm readOnlyProjectInfoForm;
@@ -112,8 +104,13 @@ public class AdminProjectSubview extends AbstractSubview {
 
     @Override
     protected void initialize() {
-        vaadinSession = VaadinSession.getCurrent();
         applicationEventBus.subscribe(this);
+    }
+
+    @Override
+    public void detach() {
+        applicationEventBus.unsubscribe(this);
+        super.detach();
     }
 
     @NotNull
@@ -142,7 +139,7 @@ public class AdminProjectSubview extends AbstractSubview {
     private void buildGrid() {
         grid.withFullSize();
         grid.addColumn(ValueProvider.identity(), new ProjectStateRenderer())
-                .setCaption("State").setWidth(180);
+                .setCaption("State").setWidth(200);
         grid.addColumn(Project::getName).setCaption("Name");
         grid.addColumn(Project::getUrl).setCaption("VCS Url").setMaximumWidth(514);
         grid.addColumn(Project::getLastChangeCheck, new TemporalRenderer()).setCaption("Last check for changes");
@@ -187,7 +184,7 @@ public class AdminProjectSubview extends AbstractSubview {
     @EventBusListenerTopic(topic = EventTopics.PROJECT_UPDATE)
     private void handeProjectStateUpdate(ProjectUpdateEvent event) {
         PROGRESS_MAP.put(event.getProject().getId(), event.getProgress());
-        vaadinSession.access(() -> grid.getDataProvider().refreshItem(event.getProject()));
+        runOnUiThread(() -> grid.getDataProvider().refreshItem(event.getProject()));
     }
 
     private void reloadProjects() {

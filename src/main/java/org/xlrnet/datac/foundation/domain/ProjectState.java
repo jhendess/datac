@@ -48,7 +48,12 @@ public enum ProjectState {
     /**
      * The last project update was interrupted on shutdown.
      */
-    INTERRUPTED(false);
+    INTERRUPTED(false),
+
+    /**
+     * The project is currently under maintenance.
+     **/
+    MAINTENANCE(true);
 
     private final boolean progressable;
 
