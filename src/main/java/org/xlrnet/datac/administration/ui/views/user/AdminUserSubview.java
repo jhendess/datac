@@ -1,19 +1,5 @@
 package org.xlrnet.datac.administration.ui.views.user;
 
-import java.util.Objects;
-
-import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.vaadin.viritin.grid.MGrid;
-import org.vaadin.viritin.layouts.MHorizontalLayout;
-import org.vaadin.viritin.layouts.MVerticalLayout;
-import org.xlrnet.datac.commons.ui.NotificationUtils;
-import org.xlrnet.datac.session.domain.User;
-import org.xlrnet.datac.session.services.CryptoService;
-import org.xlrnet.datac.session.services.UserService;
-import org.xlrnet.datac.session.ui.views.AbstractSubview;
-import org.xlrnet.datac.session.ui.views.Subview;
-
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.spring.annotation.SpringComponent;
@@ -21,8 +7,22 @@ import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.Label;
-
 import de.steinwedel.messagebox.MessageBox;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.spring.events.EventBus;
+import org.vaadin.viritin.grid.MGrid;
+import org.vaadin.viritin.layouts.MHorizontalLayout;
+import org.vaadin.viritin.layouts.MVerticalLayout;
+import org.xlrnet.datac.administration.services.ApplicationMaintenanceService;
+import org.xlrnet.datac.commons.ui.NotificationUtils;
+import org.xlrnet.datac.session.domain.User;
+import org.xlrnet.datac.session.services.CryptoService;
+import org.xlrnet.datac.session.services.UserService;
+import org.xlrnet.datac.session.ui.views.AbstractSubview;
+import org.xlrnet.datac.session.ui.views.Subview;
+
+import java.util.Objects;
 
 /**
  * Admin view which is responsible for managing the available users.
@@ -64,7 +64,8 @@ public class AdminUserSubview extends AbstractSubview implements Subview {
     private MGrid<User> grid;
 
     @Autowired
-    public AdminUserSubview(AdminUserForm userForm, UserService userService, CryptoService cryptoService) {
+    public AdminUserSubview(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService, AdminUserForm userForm, UserService userService, CryptoService cryptoService) {
+        super(applicationEventBus, maintenanceService);
         this.userService = userService;
         this.userForm = userForm;
         this.cryptoService = cryptoService;

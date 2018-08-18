@@ -5,6 +5,8 @@ import com.vaadin.spring.annotation.UIScope;
 import com.vaadin.ui.Component;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.spring.events.EventBus;
+import org.xlrnet.datac.administration.services.ApplicationMaintenanceService;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
 
 /**
@@ -19,7 +21,8 @@ public class AdminEventLogSubview extends AbstractSubview {
     public static final String VIEW_NAME = "admin/eventlog";
 
     @Autowired
-    public AdminEventLogSubview(EventLogLayout eventLogLayout) {
+    public AdminEventLogSubview(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService, EventLogLayout eventLogLayout) {
+        super(applicationEventBus, maintenanceService);
         this.eventLogLayout = eventLogLayout;
     }
 

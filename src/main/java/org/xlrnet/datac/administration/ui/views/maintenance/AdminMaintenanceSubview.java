@@ -22,14 +22,9 @@ public class AdminMaintenanceSubview extends AbstractSubview {
 
     public static final String VIEW_NAME = "admin/maintenance";
 
-    private final EventBus.ApplicationEventBus applicationEventBus;
-
-    private final ApplicationMaintenanceService maintenanceService;
-
     @Autowired
     public AdminMaintenanceSubview(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService) {
-        this.applicationEventBus = applicationEventBus;
-        this.maintenanceService = maintenanceService;
+        super(applicationEventBus, maintenanceService);
     }
 
     @NotNull
@@ -42,13 +37,7 @@ public class AdminMaintenanceSubview extends AbstractSubview {
 
     @Override
     protected void initialize() throws DatacTechnicalException {
-        applicationEventBus.subscribe(this);
-    }
-
-    @Override
-    public void detach() {
-        applicationEventBus.unsubscribe(this);
-        super.detach();
+        // No initialization necessary
     }
 
     @NotNull
@@ -84,7 +73,7 @@ public class AdminMaintenanceSubview extends AbstractSubview {
     }
 
     private void startRecalculateChecksums() {
-        if (maintenanceService.startChecksumRecalculation()) {
+        if (getMaintenanceService().startChecksumRecalculation()) {
             NotificationUtils.showSuccess("Started maintenance operation");
         } else {
             NotificationUtils.showError("Starting maintenance operation failed", false);

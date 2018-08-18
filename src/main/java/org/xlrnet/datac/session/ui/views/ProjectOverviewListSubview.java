@@ -1,15 +1,25 @@
 package org.xlrnet.datac.session.ui.views;
 
-import java.util.List;
-
+import com.vaadin.server.ExternalResource;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.GridLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Layout;
+import com.vaadin.ui.Link;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.spring.events.EventBus;
 import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MPanel;
 import org.vaadin.viritin.layouts.MVerticalLayout;
+import org.xlrnet.datac.administration.services.ApplicationMaintenanceService;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.commons.util.DateTimeUtils;
@@ -21,16 +31,7 @@ import org.xlrnet.datac.foundation.ui.services.NavigationService;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import com.vaadin.server.ExternalResource;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.GridLayout;
-import com.vaadin.ui.Label;
-import com.vaadin.ui.Layout;
-import com.vaadin.ui.Link;
-import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.themes.ValoTheme;
+import java.util.List;
 
 /**
  * Overview for projects.
@@ -74,7 +75,8 @@ public class ProjectOverviewListSubview extends AbstractSubview {
     private final NavigationService navigationService;
 
     @Autowired
-    public ProjectOverviewListSubview(ProjectService projectService, ChangeSetService changeSetService, RevisionGraphService revisionGraphService, NavigationService navigationService) {
+    public ProjectOverviewListSubview(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService, ProjectService projectService, ChangeSetService changeSetService, RevisionGraphService revisionGraphService, NavigationService navigationService) {
+        super(applicationEventBus, maintenanceService);
         this.projectService = projectService;
         this.changeSetService = changeSetService;
         this.revisionGraphService = revisionGraphService;

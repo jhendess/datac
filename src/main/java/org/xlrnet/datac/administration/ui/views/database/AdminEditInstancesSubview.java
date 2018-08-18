@@ -12,9 +12,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.spring.events.EventBus;
 import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
+import org.xlrnet.datac.administration.services.ApplicationMaintenanceService;
 import org.xlrnet.datac.commons.exception.IllegalUIStateException;
 import org.xlrnet.datac.commons.ui.DatacTheme;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
@@ -87,7 +89,8 @@ public class AdminEditInstancesSubview extends AbstractSubview {
     private List<Branch> availableBranchesInProject;
 
     @Autowired
-    public AdminEditInstancesSubview(ProjectService projectService, DeploymentGroupService deploymentGroupService, DeploymentInstanceService deploymentInstanceService, DatabaseConnectionService connectionService, BranchService branchService, AdminDeploymentGroupForm groupForm, AdminDeploymentInstanceForm instanceForm) {
+    public AdminEditInstancesSubview(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService, ProjectService projectService, DeploymentGroupService deploymentGroupService, DeploymentInstanceService deploymentInstanceService, DatabaseConnectionService connectionService, BranchService branchService, AdminDeploymentGroupForm groupForm, AdminDeploymentInstanceForm instanceForm) {
+        super(applicationEventBus, maintenanceService);
         this.projectService = projectService;
         this.deploymentGroupService = deploymentGroupService;
         this.deploymentInstanceService = deploymentInstanceService;

@@ -1,8 +1,17 @@
 package org.xlrnet.datac.administration.ui.views;
 
+import com.vaadin.server.ThemeResource;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.spring.annotation.UIScope;
+import com.vaadin.ui.Component;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.themes.ValoTheme;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.spring.events.EventBus;
 import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.layouts.MGridLayout;
+import org.xlrnet.datac.administration.services.ApplicationMaintenanceService;
 import org.xlrnet.datac.administration.ui.views.database.AdminDatabaseSubview;
 import org.xlrnet.datac.administration.ui.views.eventlog.AdminEventLogSubview;
 import org.xlrnet.datac.administration.ui.views.maintenance.AdminMaintenanceSubview;
@@ -10,13 +19,6 @@ import org.xlrnet.datac.administration.ui.views.projects.AdminProjectSubview;
 import org.xlrnet.datac.administration.ui.views.user.AdminUserSubview;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
 import org.xlrnet.datac.session.ui.views.Subview;
-
-import com.vaadin.server.ThemeResource;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.spring.annotation.UIScope;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.UI;
-import com.vaadin.ui.themes.ValoTheme;
 
 /**
  * Administration view.
@@ -31,6 +33,11 @@ public class AdminSubview extends AbstractSubview implements Subview {
      * CSS class for category buttons.
      */
     private static final String ADMIN_CATEGORY_BUTTON_CLASS = "admin-category-button";
+
+    @Autowired
+    public AdminSubview(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService) {
+        super(applicationEventBus, maintenanceService);
+    }
 
     @Override
     protected void initialize() {

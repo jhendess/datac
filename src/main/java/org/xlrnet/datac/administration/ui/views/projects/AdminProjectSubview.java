@@ -24,6 +24,7 @@ import org.vaadin.viritin.button.MButton;
 import org.vaadin.viritin.grid.MGrid;
 import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
+import org.xlrnet.datac.administration.services.ApplicationMaintenanceService;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.commons.ui.TemporalRenderer;
@@ -52,11 +53,6 @@ public class AdminProjectSubview extends AbstractSubview {
     public static final String VIEW_NAME = "admin/projects";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AdminProjectSubview.class);
-
-    /**
-     * Event bus for application scoped events.
-     */
-    private final EventBus.ApplicationEventBus applicationEventBus;
 
     /**
      * Service for accessing transactional project data.
@@ -93,8 +89,8 @@ public class AdminProjectSubview extends AbstractSubview {
     private MButton editButton = new MButton("Edit").withIcon(VaadinIcons.PENCIL).withVisible(false);
 
     @Autowired
-    public AdminProjectSubview(EventBus.ApplicationEventBus viewEventBus, ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, ProjectSchedulingService projectSchedulingService, LockingService lockingService, ReadOnlyProjectInfoForm readOnlyProjectInfoForm, NavigationService navigationService) {
-        this.applicationEventBus = viewEventBus;
+    public AdminProjectSubview(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService, ProjectService projectService, ProjectUpdateStarter projectUpdateStarter, ProjectSchedulingService projectSchedulingService, LockingService lockingService, ReadOnlyProjectInfoForm readOnlyProjectInfoForm, NavigationService navigationService) {
+        super(applicationEventBus, maintenanceService);
         this.projectService = projectService;
         this.projectUpdateStarter = projectUpdateStarter;
         this.lockingService = lockingService;
@@ -104,13 +100,7 @@ public class AdminProjectSubview extends AbstractSubview {
 
     @Override
     protected void initialize() {
-        applicationEventBus.subscribe(this);
-    }
-
-    @Override
-    public void detach() {
-        applicationEventBus.unsubscribe(this);
-        super.detach();
+        // No initialization necessary
     }
 
     @NotNull

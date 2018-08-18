@@ -4,7 +4,10 @@ import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.VerticalLayout;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.vaadin.spring.events.EventBus;
 import org.xlrnet.datac.Application;
+import org.xlrnet.datac.administration.services.ApplicationMaintenanceService;
 
 /**
  * Start page after login.
@@ -13,6 +16,11 @@ import org.xlrnet.datac.Application;
 public class HomeView extends AbstractSubview implements Subview {
 
     public static final String VIEW_NAME = "home";
+
+    @Autowired
+    public HomeView(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService) {
+        super(applicationEventBus, maintenanceService);
+    }
 
     @Override
     protected void initialize() {

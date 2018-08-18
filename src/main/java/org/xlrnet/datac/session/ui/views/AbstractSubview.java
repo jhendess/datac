@@ -13,9 +13,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.vaadin.spring.events.EventBus;
+import org.vaadin.spring.events.annotation.EventBusListenerMethod;
+import org.vaadin.viritin.label.MLabel;
 import org.vaadin.viritin.layouts.MVerticalLayout;
+import org.xlrnet.datac.administration.services.ApplicationMaintenanceService;
 import org.xlrnet.datac.administration.ui.views.AdminSubview;
+import org.xlrnet.datac.administration.util.MaintenanceModeEvent;
 import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 
@@ -25,6 +31,7 @@ import java.util.Map;
 /**
  * Abstract subview which contains a titleLabel with subtitleLabel and a main content panel. Override the abstract methods in this
  * class to build a the user interface.
+ * All instances are subscribed on the application event bus on {@link #attach()} on unsubscribed on {@link #detach()}.
  */
 @Scope(UIScopeImpl.VAADIN_UI_SCOPE_NAME)
 @SpringView(name = AdminSubview.VIEW_NAME)
@@ -32,11 +39,30 @@ public abstract class AbstractSubview extends MVerticalLayout implements Subview
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractSubview.class);
 
+    private static final String MAINTENANCE_MODE_MESSAGE = "Maintenance mode is enabled. Please wait until all maintenance operations are finished before using the application.";
+
     /** Label of the title. */
     private Label titleLabel;
 
     /** Label of the subtitle. */
     private Label subtitleLabel;
+
+    /** Label to indicate maintenance mode. */
+    private Label maintenanceModeLabel;
+
+    /** Application event bus. */
+    @Getter(AccessLevel.PROTECTED)
+    private final EventBus.ApplicationEventBus applicationEventBus;
+
+    /** Maintenance service. */
+    @Getter(AccessLevel.PROTECTED)
+    private final ApplicationMaintenanceService maintenanceService;
+
+    @Autowired
+    public AbstractSubview(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService) {
+        this.applicationEventBus = applicationEventBus;
+        this.maintenanceService = maintenanceService;
+    }
 
     @NotNull
     protected abstract Component buildMainPanel();
@@ -75,10 +101,12 @@ public abstract class AbstractSubview extends MVerticalLayout implements Subview
     public void attach() {
         super.attach();
         this.currentUI = UI.getCurrent();      // Make the current UI reference available to all components.
+        this.applicationEventBus.subscribe(this);
     }
 
     @Override
     public void detach() {
+        this.applicationEventBus.unsubscribe(this);
         this.currentUI = null;
         super.detach();
     }
@@ -149,13 +177,25 @@ public abstract class AbstractSubview extends MVerticalLayout implements Subview
                 .withMargin(false)
                 .withSpacing(false);
 
+        maintenanceModeLabel = new MLabel(MAINTENANCE_MODE_MESSAGE).withStyleName(ValoTheme.LABEL_FAILURE).withFullWidth();
         titleLabel = new Label(getTitle());
         titleLabel.setStyleName(ValoTheme.LABEL_H1);
         subtitleLabel = new Label(getSubtitle());
 
+        topPanel.addComponent(maintenanceModeLabel);
         topPanel.addComponent(titleLabel);
         topPanel.addComponent(subtitleLabel);
+        updateMaintenanceModeLabelStatus();
         return topPanel;
+    }
+
+    private void updateMaintenanceModeLabelStatus() {
+        maintenanceModeLabel.setVisible(maintenanceService.isMaintenanceModeEnabled());
+    }
+
+    @EventBusListenerMethod
+    private void onMaintenanceModeStatusChange(MaintenanceModeEvent event) {
+        runOnUiThread(this::updateMaintenanceModeLabelStatus);
     }
 
     /**

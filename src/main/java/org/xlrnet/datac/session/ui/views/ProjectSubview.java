@@ -1,31 +1,5 @@
 package org.xlrnet.datac.session.ui.views;
 
-import static org.xlrnet.datac.session.ui.views.ProjectSubview.VIEW_NAME;
-
-import java.util.Collections;
-import java.util.List;
-
-import org.apache.commons.lang3.math.NumberUtils;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
-import org.vaadin.viritin.layouts.MHorizontalLayout;
-import org.vaadin.viritin.layouts.MVerticalLayout;
-import org.xlrnet.datac.commons.exception.DatacTechnicalException;
-import org.xlrnet.datac.commons.exception.IllegalUIStateException;
-import org.xlrnet.datac.foundation.domain.Project;
-import org.xlrnet.datac.foundation.ui.services.NavigationService;
-import org.xlrnet.datac.foundation.ui.util.RevisionFormatService;
-import org.xlrnet.datac.session.ui.components.project.AbstractProjectLayout;
-import org.xlrnet.datac.session.ui.components.project.ProjectChangeLayout;
-import org.xlrnet.datac.session.ui.components.project.ProjectRevisionLayout;
-import org.xlrnet.datac.vcs.domain.Branch;
-import org.xlrnet.datac.vcs.domain.Revision;
-import org.xlrnet.datac.vcs.services.BranchService;
-import org.xlrnet.datac.vcs.services.RevisionGraphService;
-
 import com.vaadin.data.HasValue;
 import com.vaadin.icons.VaadinIcons;
 import com.vaadin.spring.annotation.SpringComponent;
@@ -36,6 +10,32 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.NativeSelect;
 import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.themes.ValoTheme;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.vaadin.spring.events.EventBus;
+import org.vaadin.viritin.layouts.MHorizontalLayout;
+import org.vaadin.viritin.layouts.MVerticalLayout;
+import org.xlrnet.datac.administration.services.ApplicationMaintenanceService;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.exception.IllegalUIStateException;
+import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.ui.services.NavigationService;
+import org.xlrnet.datac.session.ui.components.project.AbstractProjectLayout;
+import org.xlrnet.datac.session.ui.components.project.ProjectChangeLayout;
+import org.xlrnet.datac.session.ui.components.project.ProjectRevisionLayout;
+import org.xlrnet.datac.vcs.domain.Branch;
+import org.xlrnet.datac.vcs.domain.Revision;
+import org.xlrnet.datac.vcs.services.BranchService;
+import org.xlrnet.datac.vcs.services.RevisionGraphService;
+
+import java.util.Collections;
+import java.util.List;
+
+import static org.xlrnet.datac.session.ui.views.ProjectSubview.VIEW_NAME;
 
 /**
  * Main project view which provides a tabbed view on a single proejct.
@@ -78,11 +78,6 @@ public class ProjectSubview extends AbstractSubview {
     private final RevisionGraphService revisionGraphService;
 
     /**
-     * Service for formatting elements of a revision.
-     */
-    private final RevisionFormatService revisionFormatService;
-
-    /**
      * The current project.
      */
     private Project project;
@@ -109,13 +104,12 @@ public class ProjectSubview extends AbstractSubview {
 
     private TabSheet tabSheet;
 
-
     @Autowired
-    public ProjectSubview(BranchService branchService, NavigationService navigationService, RevisionGraphService revisionGraphService, RevisionFormatService revisionFormatService, ProjectChangeLayout changeTab, ProjectRevisionLayout revisionTab) {
+    public ProjectSubview(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService, BranchService branchService, NavigationService navigationService, RevisionGraphService revisionGraphService, ProjectChangeLayout changeTab, ProjectRevisionLayout revisionTab) {
+        super(applicationEventBus, maintenanceService);
         this.branchService = branchService;
         this.navigationService = navigationService;
         this.revisionGraphService = revisionGraphService;
-        this.revisionFormatService = revisionFormatService;
         this.changeTab = changeTab;
         this.revisionTab = revisionTab;
     }

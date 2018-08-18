@@ -1,47 +1,5 @@
 package org.xlrnet.datac.administration.ui.views.projects;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import javax.validation.ConstraintViolationException;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.task.TaskExecutor;
-import org.vaadin.viritin.fields.IntegerField;
-import org.vaadin.viritin.fields.MCheckBox;
-import org.vaadin.viritin.fields.MTextField;
-import org.xlrnet.datac.commons.exception.DatacTechnicalException;
-import org.xlrnet.datac.commons.tasks.RunnableTask;
-import org.xlrnet.datac.commons.ui.DatacTheme;
-import org.xlrnet.datac.commons.ui.NotificationUtils;
-import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
-import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
-import org.xlrnet.datac.database.services.ChangeSetService;
-import org.xlrnet.datac.database.services.DatabaseChangeSystemAdapterRegistry;
-import org.xlrnet.datac.foundation.domain.Project;
-import org.xlrnet.datac.foundation.domain.ProjectState;
-import org.xlrnet.datac.foundation.services.ProjectService;
-import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
-import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
-import org.xlrnet.datac.session.ui.views.AbstractSubview;
-import org.xlrnet.datac.vcs.api.VcsAdapter;
-import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
-import org.xlrnet.datac.vcs.api.VcsMetaInfo;
-import org.xlrnet.datac.vcs.domain.Branch;
-import org.xlrnet.datac.vcs.services.LockingService;
-import org.xlrnet.datac.vcs.services.VersionControlSystemRegistry;
-import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
-import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
-
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.vaadin.annotations.PropertyId;
@@ -65,6 +23,48 @@ import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.ValoTheme;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
+import org.vaadin.spring.events.EventBus;
+import org.vaadin.viritin.fields.IntegerField;
+import org.vaadin.viritin.fields.MCheckBox;
+import org.vaadin.viritin.fields.MTextField;
+import org.xlrnet.datac.administration.services.ApplicationMaintenanceService;
+import org.xlrnet.datac.commons.exception.DatacTechnicalException;
+import org.xlrnet.datac.commons.tasks.RunnableTask;
+import org.xlrnet.datac.commons.ui.DatacTheme;
+import org.xlrnet.datac.commons.ui.NotificationUtils;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemAdapter;
+import org.xlrnet.datac.database.api.DatabaseChangeSystemMetaInfo;
+import org.xlrnet.datac.database.services.ChangeSetService;
+import org.xlrnet.datac.database.services.DatabaseChangeSystemAdapterRegistry;
+import org.xlrnet.datac.foundation.domain.Project;
+import org.xlrnet.datac.foundation.domain.ProjectState;
+import org.xlrnet.datac.foundation.services.ProjectService;
+import org.xlrnet.datac.foundation.ui.components.EntityChangeHandler;
+import org.xlrnet.datac.foundation.ui.components.SimpleOkCancelWindow;
+import org.xlrnet.datac.session.ui.views.AbstractSubview;
+import org.xlrnet.datac.vcs.api.VcsAdapter;
+import org.xlrnet.datac.vcs.api.VcsConnectionStatus;
+import org.xlrnet.datac.vcs.api.VcsMetaInfo;
+import org.xlrnet.datac.vcs.domain.Branch;
+import org.xlrnet.datac.vcs.services.LockingService;
+import org.xlrnet.datac.vcs.services.VersionControlSystemRegistry;
+import org.xlrnet.datac.vcs.tasks.CheckRemoteVcsConnectionTask;
+import org.xlrnet.datac.vcs.tasks.FetchRemoteVcsBranchesTask;
+
+import javax.validation.ConstraintViolationException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Assistant for creating new projects.
@@ -234,9 +234,9 @@ public class AdminEditProjectSubview extends AbstractSubview {
 
     private Button resetButton;
 
-
     @Autowired
-    public AdminEditProjectSubview(VersionControlSystemRegistry vcsRegistry, DatabaseChangeSystemAdapterRegistry dcsRegistry, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService, ChangeSetService changeSetService) {
+    public AdminEditProjectSubview(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService, VersionControlSystemRegistry vcsRegistry, DatabaseChangeSystemAdapterRegistry dcsRegistry, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor, ProjectService projectService, LockingService lockingService, ChangeSetService changeSetService) {
+        super(applicationEventBus, maintenanceService);
         this.vcsRegistry = vcsRegistry;
         this.dcsRegistry = dcsRegistry;
         this.taskExecutor = taskExecutor;

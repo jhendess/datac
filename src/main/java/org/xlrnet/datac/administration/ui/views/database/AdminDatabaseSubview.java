@@ -1,28 +1,28 @@
 package org.xlrnet.datac.administration.ui.views.database;
 
+import com.vaadin.icons.VaadinIcons;
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.SpringView;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Component;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
+import org.vaadin.spring.events.EventBus;
 import org.vaadin.viritin.form.AbstractForm;
 import org.vaadin.viritin.grid.MGrid;
 import org.vaadin.viritin.layouts.MHorizontalLayout;
 import org.vaadin.viritin.layouts.MVerticalLayout;
+import org.xlrnet.datac.administration.services.ApplicationMaintenanceService;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.ui.NotificationUtils;
 import org.xlrnet.datac.database.domain.ConnectionPingResult;
 import org.xlrnet.datac.database.domain.DatabaseConnection;
 import org.xlrnet.datac.database.services.ConnectionManagerService;
 import org.xlrnet.datac.database.services.DatabaseConnectionService;
-import org.xlrnet.datac.database.services.DeploymentInstanceService;
 import org.xlrnet.datac.database.tasks.CheckDatabaseConnectionTask;
 import org.xlrnet.datac.session.ui.views.AbstractSubview;
-
-import com.vaadin.icons.VaadinIcons;
-import com.vaadin.spring.annotation.SpringComponent;
-import com.vaadin.spring.annotation.SpringView;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Component;
 
 @SpringComponent
 @SpringView(name = AdminDatabaseSubview.VIEW_NAME)
@@ -46,11 +46,6 @@ public class AdminDatabaseSubview extends AbstractSubview {
     private final ConnectionManagerService connectionManagerService;
 
     /**
-     * Service for accessing deployment instances.
-     */
-    private final DeploymentInstanceService instanceService;
-
-    /**
      * Form for editing database connections.
      */
     private final AdminDatabaseConnectionForm dbForm;
@@ -61,10 +56,10 @@ public class AdminDatabaseSubview extends AbstractSubview {
     private final TaskExecutor taskExecutor;
 
     @Autowired
-    public AdminDatabaseSubview(DatabaseConnectionService connectionService, ConnectionManagerService connectionManagerService, DeploymentInstanceService instanceService, AdminDatabaseConnectionForm dbForm, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor) {
+    public AdminDatabaseSubview(EventBus.ApplicationEventBus applicationEventBus, ApplicationMaintenanceService maintenanceService, DatabaseConnectionService connectionService, ConnectionManagerService connectionManagerService, AdminDatabaseConnectionForm dbForm, @Qualifier("defaultTaskExecutor") TaskExecutor taskExecutor) {
+        super(applicationEventBus, maintenanceService);
         this.connectionService = connectionService;
         this.connectionManagerService = connectionManagerService;
-        this.instanceService = instanceService;
         this.dbForm = dbForm;
         this.taskExecutor = taskExecutor;
     }
