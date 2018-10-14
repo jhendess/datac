@@ -1,7 +1,24 @@
 package org.xlrnet.datac.vcs.services;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -30,24 +47,8 @@ import org.xlrnet.datac.vcs.domain.repository.RevisionRepository;
 import org.xlrnet.datac.vcs.util.CachedRevisionDecorator;
 import org.xlrnet.datac.vcs.util.RevisionTimestampComparator;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static com.google.common.base.Preconditions.checkArgument;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 
 /**
  * Service for accessing and manipulating VCS revision graphs.
@@ -112,7 +113,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
      */
     @NotNull
     @Transactional(readOnly = true)
-    public Stream<Revision> findAllByProject(@NotNull Project project) {
+    public List<Revision> findAllByProject(@NotNull Project project) {
         return getRepository().findAllByProject(project);
     }
 
@@ -338,7 +339,8 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
 
     /**
      * Traverses the child graph of a given revision and creates a flattened list of it. Note, that it is not guaranteed
-     * that calling this method again on the last revision in the flattened list yields the same result as calling this method on the source object with a higher
+     * that calling this method again on the last revision in the flattened list yields the same result as calling this
+     * method on the source object with a higher
      *
      * @param rev
      *         The origin revision from which to start. No refresh of given entity will be performed.
@@ -423,7 +425,7 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         return revisionCacheMap.get(projectId);
     }
 
-    private void reloadRevisionCache(Project project) {
+    void reloadRevisionCache(Project project) {
         Long projectId = project.getId();
         ProjectRevisionCache cache = revisionCacheMap.computeIfAbsent(projectId, (x) -> new ProjectRevisionCache());
         fillCache(project, cache);
@@ -434,10 +436,10 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         Map<String, Revision> revisionMap = new HashMap<>();
         Multimap<String, String> parentChildRevisionMap = MultimapBuilder.hashKeys().arrayListValues(2).build();
         Multimap<String, String> childParentRevisionMap = MultimapBuilder.hashKeys().arrayListValues(2).build();
-        Stream<Revision> allByProject = findAllByProject(project);
+        List<Revision> allByProject = findAllByProject(project);
         allByProject.forEach(r -> revisionMap.put(r.getInternalId(), new CachedRevisionDecorator(r, target)));
 
-        Stream<Object[]> allParentChildRelationsInProject = getRepository().findAllParentChildRelationsInProject(project.getId());
+        List<Object[]> allParentChildRelationsInProject = getRepository().findAllParentChildRelationsInProject(project.getId());
         allParentChildRelationsInProject.forEach(s -> {
             parentChildRevisionMap.put((String) s[0], (String) s[1]);
             childParentRevisionMap.put((String) s[1], (String) s[0]);
@@ -520,6 +522,31 @@ public class RevisionGraphService extends AbstractTransactionalService<Revision,
         for (Revision child : revisionChildMap.get(revisionToPersist)) {
             child.replaceParent(revisionToPersist, persistedRevision);
         }
+    }
+
+    /**
+     * Checks if the given revision is on the given branch (i.e. the given revision is a indirect parent). Operates on
+     * the cached data set.
+     * @param revision The revision to check.
+     * @param branch The branch to check.
+     * @return True if the revision is on the branch, otherwise false.
+     */
+    public boolean isRevisionOnBranch(Revision revision, Branch branch) {
+        Revision branchRevision = findCachedByInternalIdAndProject(branch.getInternalId(), branch.getProject());
+        AtomicBoolean found = new AtomicBoolean(false);
+        try {
+            breadthFirstTraverser.traverseParentsCutOnMatch(branchRevision, r -> {
+                if (r.getInternalId().equals(revision.getInternalId())) {
+                    found.set(true);
+                }
+            }, r -> !found.get());
+        } catch (DatacTechnicalException e) {
+            // This shouldn't happen
+            LOGGER.error("An unexpected error occurred while checking if revision is part of a branch", e);
+            throw new DatacRuntimeException(e);
+        }
+
+        return found.get();
     }
 
     private class ProcessingFinishedException extends RuntimeException {

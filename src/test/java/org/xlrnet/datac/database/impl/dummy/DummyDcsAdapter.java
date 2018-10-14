@@ -76,6 +76,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                                 .setInternalId("A")
                                 .setSourceFilename("DUMMY")
                                 .setChecksum(CHECKSUM_A_MODIFIED_4)
+                                .setSort(0)
                                 .addChange(buildDummyChange())
                 );
                 changeSets.add(
@@ -83,6 +84,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                                 .setInternalId("B")
                                 .setSourceFilename("DUMMY")
                                 .setChecksum(CHECKSUM_B_ORIGINAL)
+                                .setSort(1)
                                 .addChange(buildDummyChange())
                 );
                 break;
@@ -92,6 +94,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                                 .setInternalId("A")
                                 .setSourceFilename("DUMMY")
                                 .setChecksum(CHECKSUM_A_MODIFIED_5)
+                                .setSort(0)
                                 .addChange(buildDummyChange())
                 );
                 changeSets.add(
@@ -99,6 +102,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                                 .setInternalId("C")
                                 .setSourceFilename("DUMMY")
                                 .setChecksum(CHECKSUM_C_ORIGINAL)
+                                .setSort(1)
                                 .addChange(buildDummyChange())
                 );
                 break;
@@ -108,6 +112,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                                 .setInternalId("A")
                                 .setSourceFilename("DUMMY")
                                 .setChecksum(CHECKSUM_A_MODIFIED_4)
+                                .setSort(0)
                                 .addChange(buildDummyChange())
                 );
                 changeSets.add(
@@ -115,6 +120,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                                 .setInternalId("B")
                                 .setSourceFilename("DUMMY")
                                 .setChecksum(CHECKSUM_B_ORIGINAL)
+                                .setSort(1)
                                 .addChange(buildDummyChange())
                 );
                 changeSets.add(
@@ -122,6 +128,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                                 .setInternalId("C")
                                 .setSourceFilename("DUMMY")
                                 .setChecksum(CHECKSUM_C_ORIGINAL)
+                                .setSort(2)
                                 .addChange(buildDummyChange())
                 );
                 break;
@@ -132,6 +139,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                                 .setInternalId("A")
                                 .setSourceFilename("DUMMY")
                                 .setChecksum(CHECKSUM_A_MODIFIED_4)
+                                .setSort(0)
                                 .addChange(buildDummyChange())
                 );
                 changeSets.add(
@@ -139,6 +147,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                                 .setInternalId("B")
                                 .setSourceFilename("DUMMY")
                                 .setChecksum(CHECKSUM_B_ORIGINAL)
+                                .setSort(1)
                                 .addChange(buildDummyChange())
                 );
                 changeSets.add(
@@ -146,6 +155,7 @@ public class DummyDcsAdapter implements DatabaseChangeSystemAdapter {
                                 .setInternalId("C")
                                 .setSourceFilename("DUMMY")
                                 .setChecksum(CHECKSUM_C_MODIFIED)
+                                .setSort(2)
                                 .addChange(buildDummyChange())
                 );
                 break;

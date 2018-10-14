@@ -59,7 +59,7 @@ public class QuickDeploymentWindow extends MWindow {
     private CheckBox abortOnFailure = new CheckBox("Cancel deployment on single instance failure");
 
     /** Flag to show only compatible instances as possible targets. */
-    boolean compatibleInstancesOnly = true;
+    private CheckBox showCompatibleInstancesOnly = new CheckBox("Show only instance on same branch", true);
 
     /** Button to perform the deployment. */
     private MButton deployButton = new MButton("Perform deployment").withStyleName(ValoTheme.BUTTON_PRIMARY).withListener(this::performDeployment);
@@ -105,7 +105,8 @@ public class QuickDeploymentWindow extends MWindow {
     private Component buildContent() {
         MVerticalLayout content = new MVerticalLayout().withFullSize();
         MVerticalLayout form = new MVerticalLayout();
-        form.with(headerLabel, noInstancesLabel, infoLabel, targetInstances, abortOnFailure);
+        showCompatibleInstancesOnly.addValueChangeListener((x) -> refreshInstances());
+        form.with(headerLabel, noInstancesLabel, infoLabel, targetInstances, showCompatibleInstancesOnly, abortOnFailure);
 
         MHorizontalLayout buttonLayout = new MHorizontalLayout().with(deployButton, cancelButton);
         MVerticalLayout footer = new MVerticalLayout().withStyleName(ValoTheme.WINDOW_BOTTOM_TOOLBAR)
@@ -145,11 +146,11 @@ public class QuickDeploymentWindow extends MWindow {
 
     private void refreshInstances() {
         Set<DeploymentInstance> instances;
-        /*if (compatibleInstancesOnly) {
+        if (Boolean.TRUE.equals(showCompatibleInstancesOnly.getValue())) {
             instances = instanceService.findInstancesWithTrackingRevision(revision);
-        } else {*/
+        } else {
             instances = instanceService.findAllInProject(project);
-        /*}*/
+        }
         boolean instancesAvailable = !instances.isEmpty();
         targetInstances.setEnabled(instancesAvailable);
         noInstancesLabel.setVisible(!instancesAvailable);
