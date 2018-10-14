@@ -273,6 +273,7 @@ public class ProjectUpdateService {
             }
         }
         LOGGER.debug("Finished revision update in project {}", updatedProject.getName());
+        revisionGraphService.reloadRevisionCache(updatedProject);   // Update only the revision cache to improve indexing performance
         return updatedProject;
     }
 

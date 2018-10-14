@@ -1,5 +1,17 @@
 package org.xlrnet.datac.database.services;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
@@ -8,14 +20,18 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.xlrnet.datac.commons.exception.DatacRuntimeException;
 import org.xlrnet.datac.commons.exception.DatacTechnicalException;
 import org.xlrnet.datac.commons.exception.LockFailedException;
 import org.xlrnet.datac.commons.graph.BreadthFirstTraverser;
 import org.xlrnet.datac.commons.util.SortableComparator;
+import org.xlrnet.datac.commons.util.TechnicalRuntimeException;
 import org.xlrnet.datac.database.domain.DatabaseChange;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.database.domain.repository.ChangeSetRepository;
@@ -32,18 +48,6 @@ import org.xlrnet.datac.vcs.domain.Branch;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.LockingService;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
-
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Transactional service for accessing change set data. This service is thread-scoped in order to guarantee isolated
@@ -78,8 +82,9 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     private final BreadthFirstTraverser<Revision> breadthFirstTraverser = new BreadthFirstTraverser<>();
 
     /**
-     * Cache for introducing change set ids.
+     * Application event publisher.
      */
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Cache for number of change sets per revision per project.
@@ -90,19 +95,20 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
 
     /**
      * Constructor for abstract transactional service. Needs always a crud repository for performing operations.
-     *
-     * @param crudRepository
+     *  @param crudRepository
      *         The crud repository for providing basic crud operations.
      * @param lockingService
      * @param eventLogService
+     * @param eventPublisher
      */
     @Autowired
-    public ChangeSetService(ChangeSetRepository crudRepository, SortOrderValidator sortOrderValidator, RevisionGraphService revisionGraphService, LockingService lockingService, EventLogService eventLogService) {
+    public ChangeSetService(ChangeSetRepository crudRepository, SortOrderValidator sortOrderValidator, RevisionGraphService revisionGraphService, LockingService lockingService, EventLogService eventLogService, ApplicationEventPublisher eventPublisher) {
         super(crudRepository);
         this.sortOrderValidator = sortOrderValidator;
         this.revisionGraphService = revisionGraphService;
         this.lockingService = lockingService;
         this.eventLogService = eventLogService;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -137,8 +143,11 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     }
 
     public <S extends DatabaseChangeSet> Collection<S> save(Collection<S> entities) {
-        sortOrderValidator.isValid(entities, null);
-        return (Collection<S>) super.save(entities);
+        if (sortOrderValidator.isValid(entities, null)) {
+            return (Collection<S>) super.save(entities);
+        } else {
+            throw new TechnicalRuntimeException("Change sets are not uniquely sorted");
+        }
     }
 
     /**
@@ -266,27 +275,6 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
     }
 
     /**
-     * If the given database change set doesn't occur for the first time on the revision graph, link it with the change
-     * set that introduced it. If the introducing change set has a different checksum, the given change set is marked as
-     * modifying. Requires an actively running transaction.
-     *
-     * @param databaseChangeSet
-     */
-    @Transactional(propagation = Propagation.MANDATORY)
-    public void linkRevisions(@NotNull DatabaseChangeSet databaseChangeSet) {
-        checkState(!databaseChangeSet.isPersisted(), "The given change set may not be persisted");
-
-        Map<MultiKey, Optional<Long>> introducingChangeSetIdCache = new HashMap<>();
-        DatabaseChangeSet firstChangeSet = findIntroducingChangeSet(databaseChangeSet, introducingChangeSetIdCache);
-        if (firstChangeSet != null) {
-            databaseChangeSet.setIntroducingChangeSet(firstChangeSet);
-            if (!StringUtils.equals(databaseChangeSet.getChecksum(), firstChangeSet.getChecksum())) {
-                databaseChangeSet.setModifying(true);
-            }
-        }
-    }
-
-    /**
      * Use a fallback algorithm to determine how a change should be displayed: <ol> <li>Try the actual comment</li>
      * <li>If the no comment is available, use the filename</li> <li>If there is no filename, use the SQL preview</li>
      * <li>If no SQL preview, use the change type</li> <li>If there is no change content, use the checksum</li> </ol>
@@ -350,7 +338,6 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
      * @param project
      * @throws DatacTechnicalException
      */
-    @Transactional
     public void resetChanges(Project project) throws DatacTechnicalException {
         if (!lockingService.tryLock(project)) {
             throw new LockFailedException(project);
@@ -360,6 +347,7 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
             LOGGER.warn("Deleting all change sets in project {}", project.getName());
             eventLog.addMessage(new EventLogMessage("Resetting change sets").setSeverity(MessageSeverity.WARNING));
             getRepository().deleteAllByProjectId(project.getId());
+            eventPublisher.publishEvent(new ProjectCacheReloadEvent(this, project));
             eventLogService.save(eventLog);
         } catch (RuntimeException e) {
             eventLogService.addExceptionToEventLog(eventLog, "Resetting change sets failed", e);
@@ -367,6 +355,49 @@ public class ChangeSetService extends AbstractTransactionalService<DatabaseChang
             throw new DatacTechnicalException(e);
         } finally {
             lockingService.unlock(project);
+        }
+    }
+
+    /**
+     * Link the given database change sets with their first and current revision and save them afterwards to the database.
+     * @param databaseChangeSets The change sets to link and persist.
+     * @param revision           The current revision.
+     * @return
+     */
+    @Transactional
+    public List<DatabaseChangeSet> linkRevisionsAndSave(List<DatabaseChangeSet> databaseChangeSets, Revision revision) {
+        LOGGER.trace("Linking change sets to revisions");
+        for (DatabaseChangeSet databaseChangeSet : databaseChangeSets) {
+            Revision databaseRevision = revisionGraphService.findByInternalIdAndProject(revision.getInternalId(), revision.getProject());
+            databaseChangeSet.setRevision(databaseRevision);
+            linkRevisions(databaseChangeSet);
+        }
+
+        try {
+            return (List<DatabaseChangeSet>) save(databaseChangeSets);
+        } catch (DataIntegrityViolationException e) {
+            LOGGER.error("Saving object failed." );
+            throw new DatacRuntimeException(e);
+        }
+    }
+
+    /**
+     * If the given database change set doesn't occur for the first time on the revision graph, link it with the change
+     * set that introduced it. If the introducing change set has a different checksum, the given change set is marked as
+     * modifying. Requires an actively running transaction.
+     *
+     * @param databaseChangeSet
+     */
+    private void linkRevisions(@NotNull DatabaseChangeSet databaseChangeSet) {
+        checkState(!databaseChangeSet.isPersisted(), "The given change set may not be persisted");
+
+        Map<MultiKey, Optional<Long>> introducingChangeSetIdCache = new HashMap<>();
+        DatabaseChangeSet firstChangeSet = findIntroducingChangeSet(databaseChangeSet, introducingChangeSetIdCache);
+        if (firstChangeSet != null) {
+            databaseChangeSet.setIntroducingChangeSet(firstChangeSet);
+            if (!StringUtils.equals(databaseChangeSet.getChecksum(), firstChangeSet.getChecksum())) {
+                databaseChangeSet.setModifying(true);
+            }
         }
     }
 }

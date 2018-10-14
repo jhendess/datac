@@ -7,7 +7,6 @@ import static org.xlrnet.datac.test.domain.EntityCreatorUtil.buildProject;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.transaction.Transactional;
 import javax.validation.ConstraintViolationException;
@@ -67,7 +66,7 @@ public class RevisionGraphServiceTest extends AbstractSpringBootTest {
 
         revisionGraphService.save(child);
 
-        List<Revision> revisions = revisionGraphService.findAllByProject(testProject).collect(Collectors.toList());
+        List<Revision> revisions = revisionGraphService.findAllByProject(testProject);
         assertEquals(2, revisions.size());
         for (Revision revision : revisions) {
             assertNotNull("Expected project to be set", revision.getProject());

@@ -1,19 +1,27 @@
 package org.xlrnet.datac.database.domain;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+import javax.validation.Valid;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
 import org.hibernate.validator.constraints.NotEmpty;
 import org.xlrnet.datac.foundation.domain.AbstractEntity;
 import org.xlrnet.datac.foundation.domain.Sortable;
 import org.xlrnet.datac.foundation.domain.validation.Sorted;
 import org.xlrnet.datac.vcs.domain.Revision;
-
-import javax.persistence.*;
-import javax.validation.Valid;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Set of database changes that must be executed together.
@@ -77,7 +85,7 @@ public class DatabaseChangeSet extends AbstractEntity implements Sortable {
      * The change set where this change set was first encountered.
      */
     @JoinColumn(name = "introducing_changeset_id")
-    @OneToOne(targetEntity = DatabaseChangeSet.class, cascade = {CascadeType.REFRESH, CascadeType.PERSIST}, fetch = FetchType.EAGER)
+    @OneToOne(targetEntity = DatabaseChangeSet.class, cascade = {CascadeType.REFRESH}, fetch = FetchType.EAGER)
     private DatabaseChangeSet introducingChangeSet;
 
     /**

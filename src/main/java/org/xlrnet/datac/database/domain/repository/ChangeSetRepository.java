@@ -6,6 +6,7 @@ import java.util.stream.Stream;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.database.domain.DatabaseChangeSet;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.domain.Revision;
@@ -45,9 +46,11 @@ public interface ChangeSetRepository extends PagingAndSortingRepository<Database
      *         Id of the project.
      */
     @Modifying
+    @Transactional
     @Query(value = "DELETE FROM CHANGESET WHERE REVISION_ID IN (SELECT ID FROM REVISION WHERE PROJECT_ID = ?1)", nativeQuery = true)
     void deleteAllByProjectId(Long projectId);
 
+    @Transactional(readOnly = true)
     @Query(value = "SELECT REVISION_ID, COUNT(*) FROM CHANGESET JOIN REVISION R on CHANGESET.REVISION_ID = R.ID WHERE R.PROJECT_ID = ?1 GROUP BY REVISION_ID", nativeQuery = true)
     Stream<Object[]> countAllByProject(Long projectId);
 }

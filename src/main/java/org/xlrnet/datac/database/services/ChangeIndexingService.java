@@ -1,5 +1,17 @@
 package org.xlrnet.datac.database.services;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -25,18 +37,6 @@ import org.xlrnet.datac.vcs.api.VcsRevision;
 import org.xlrnet.datac.vcs.domain.Revision;
 import org.xlrnet.datac.vcs.services.RevisionGraphService;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.google.common.base.Preconditions.checkState;
-
 /**
  * Service responsible for indexing database changes in a project.
  */
@@ -48,7 +48,7 @@ public class ChangeIndexingService {
     /**
      * Transaction timeout for indexing is increased to avoid errors.
      */
-    private static final int INDEX_TRANSACTION_TIMEOUT = 900;
+    private static final int INDEX_TRANSACTION_TIMEOUT = 3600;
 
     /**
      * Thread-scoped event log proxy.
@@ -94,7 +94,7 @@ public class ChangeIndexingService {
     }
 
 
-    @Transactional(timeout = INDEX_TRANSACTION_TIMEOUT)
+    //@Transactional(timeout = INDEX_TRANSACTION_TIMEOUT)
     public Project indexDatabaseChanges(@NotNull Project project, @NotNull VcsLocalRepository localRepository) throws DatacTechnicalException {
         LOGGER.info("Begin indexing changes in project {}", project.getName());
 
@@ -211,7 +211,9 @@ public class ChangeIndexingService {
             double progress = (indexed++ / (double) revisionsToIndex.size()) * 100.0;
             projectService.saveAndPublishStateChange(project, progress);
             Collection<DatabaseChangeSet> changeSets = indexDatabaseChangesInRevision(project, localRepository, toIndex);
-            newChangeSets += changeSets.size();
+            if (changeSets != null) {
+                newChangeSets += changeSets.size();
+            }
         }
 
         eventLog.addMessage(new EventLogMessage(String.format("Indexed total of %s new change sets", newChangeSets)));
@@ -221,6 +223,7 @@ public class ChangeIndexingService {
     @NotNull
     private Set<Revision> orderRevisionsToIndex(@NotNull Project project, @NotNull Collection<Revision> revisionsToIndex) throws DatacTechnicalException {
         Revision rootRevision = revisionGraphService.findProjectRootRevision(project);
+        rootRevision = revisionGraphService.findCachedByInternalIdAndProject(rootRevision.getInternalId(), project);
         Set<Revision> orderedRevisionsToIndex = new LinkedHashSet<Revision>();
         HashMap<String, AtomicInteger> mergeMap = new HashMap<>();
         breadthFirstTraverser.traverseChildrenCutOnMatch(rootRevision, r -> {
@@ -243,16 +246,15 @@ public class ChangeIndexingService {
     }
 
     private Collection<DatabaseChangeSet> indexDatabaseChangesInRevision(Project project, VcsLocalRepository localRepository, Revision revision) throws DatacTechnicalException {
-        LOGGER.debug("Indexing database changes of project {} in revision {}", project.getName(), revision.getInternalId());
-        List<DatabaseChangeSet> databaseChangeSets = listDatabaseChangeSetsInRevision(project, localRepository, revision);
-        LOGGER.trace("Linking change sets to revisions");
-
-        for (DatabaseChangeSet databaseChangeSet : databaseChangeSets) {
-            databaseChangeSet.setRevision(revision);
-            changeSetService.linkRevisions(databaseChangeSet);
+        long byRevision = changeSetService.countByRevision(revision);
+        if (byRevision == 0) {
+            LOGGER.debug("Indexing database changes of project {} in revision {}", project.getName(), revision.getInternalId());
+            List<DatabaseChangeSet> databaseChangeSets = listDatabaseChangeSetsInRevision(project, localRepository, revision);
+            return changeSetService.linkRevisionsAndSave(databaseChangeSets, revision);
+        } else {
+            LOGGER.debug("Skipping database changes of project {} in revision {} because it was already indexed", project.getName(), revision.getInternalId());
         }
-
-        return changeSetService.save(databaseChangeSets);
+        return null;
     }
 
     @NotNull

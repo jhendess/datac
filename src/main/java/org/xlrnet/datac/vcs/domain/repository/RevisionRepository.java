@@ -1,5 +1,8 @@
 package org.xlrnet.datac.vcs.domain.repository;
 
+import java.math.BigInteger;
+import java.util.List;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
@@ -7,17 +10,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.xlrnet.datac.foundation.domain.Project;
 import org.xlrnet.datac.vcs.domain.Revision;
 
-import java.math.BigInteger;
-import java.util.List;
-import java.util.stream.Stream;
-
 /**
  * Repository for accessing revision data.
  */
 public interface RevisionRepository extends PagingAndSortingRepository<Revision, Long> {
 
     @Transactional(readOnly = true)
-    Stream<Revision> findAllByProject(Project project);
+    List<Revision> findAllByProject(Project project);
 
     @Transactional(readOnly = true)
     List<Revision> findAllByProject(Project project, Pageable pageable);
@@ -30,7 +29,7 @@ public interface RevisionRepository extends PagingAndSortingRepository<Revision,
 
     @Transactional(readOnly = true)
     @Query(value = "SELECT P.INTERNAL_ID AS PARENT_ID, C.INTERNAL_ID AS CHILD_ID FROM REVISION P JOIN REVISION_GRAPH G on P.ID = G.PARENT_REVISION_ID JOIN REVISION C ON G.REVISION_ID = C.ID WHERE P.PROJECT_ID = ?1", nativeQuery = true)
-    Stream<Object[]> findAllParentChildRelationsInProject(long projectId);
+    List<Object[]> findAllParentChildRelationsInProject(long projectId);
 
     @Transactional(readOnly = true)
     @Query(value = "SELECT * FROM REVISION LEFT JOIN REVISION_GRAPH ON REVISION.ID = REVISION_GRAPH.REVISION_ID WHERE REVISION.PROJECT_ID = ?1 AND PARENT_REVISION_ID IS NULL", nativeQuery = true)
